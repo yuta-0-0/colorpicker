@@ -31,10 +31,13 @@ function createWindow() {
 app.whenReady().then(() => {
   const win = createWindow()
 
-  globalShortcut.register('CommandOrControl+Shift+P', () => {
+  const registered = globalShortcut.register('CommandOrControl+Shift+P', () => {
     if (win.isMinimized()) win.restore()
     win.focus()
   })
+  if (!registered) {
+    console.warn('Failed to register global shortcut ⌘+Shift+P (may be in use by another app)')
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
