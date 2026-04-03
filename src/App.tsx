@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { AppLayout } from '@/components/layout/AppLayout'
 import type { Session } from '@supabase/supabase-js'
 
 export default function App() {
@@ -34,19 +35,7 @@ export default function App() {
     return <LoginScreen />
   }
 
-  return (
-    <div className="h-screen flex items-center justify-center">
-      <div className="text-text-primary">
-        <p className="text-sm text-text-secondary">Logged in as: {session.user.email}</p>
-        <button
-          onClick={() => supabase.auth.signOut()}
-          className="mt-4 px-4 py-2 bg-surface-overlay border border-border rounded-lg text-sm text-text-secondary hover:text-text-primary transition-colors"
-        >
-          Sign Out
-        </button>
-      </div>
-    </div>
-  )
+  return <AppLayout />
 }
 
 function LoginScreen() {
