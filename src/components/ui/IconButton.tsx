@@ -32,7 +32,7 @@ export function IconButton({
           : danger
           ? 'text-text-muted hover:text-danger hover:bg-danger/10'
           : active
-          ? 'text-accent bg-accent/10'
+          ? 'text-accent bg-accent/10 hover:text-accent'
           : 'text-text-muted hover:text-text-primary hover:bg-surface-overlay',
         className,
       ].join(' ')}
