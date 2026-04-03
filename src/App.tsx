@@ -67,7 +67,7 @@ function LoginScreen() {
       .from('invitations')
       .select('id, used_by')
       .eq('code', inviteCode.trim())
-      .single()
+      .single() as { data: { id: string; used_by: string | null } | null; error: any }
 
     if (inviteError || !invitation) {
       setError('招待コードが無効です')
