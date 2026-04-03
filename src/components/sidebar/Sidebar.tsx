@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { SearchBar } from './SearchBar'
 import { NavItem } from './NavItem'
 import { FolderList } from './FolderList'
@@ -11,7 +11,7 @@ export function Sidebar() {
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
   const { activeSection, setActiveSection, activeFolderId, setActiveFolderId } = useUIStore()
 
-  const navItems: { id: NavSection; label: string; icon: string; count?: number }[] = [
+  const navItems: { id: NavSection; label: string; icon: React.ReactNode; count?: number }[] = [
     { id: 'all', label: 'すべての色', icon: '◉', count: 24 },
     { id: 'favorites', label: 'お気に入り', icon: '★', count: 3 },
     { id: 'history', label: '最近使った色', icon: '⏱' },
