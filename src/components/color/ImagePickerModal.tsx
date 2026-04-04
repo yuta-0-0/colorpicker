@@ -18,6 +18,7 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
 
   // スポイト
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [eyedropperHex, setEyedropperHex] = useState<string | null>(null)
   const [savingEyedropper, setSavingEyedropper] = useState(false)
 
@@ -25,7 +26,6 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
   const imgElementRef = useRef<HTMLImageElement | null>(null)
   const [palette, setPalette] = useState<string[]>([])
   const [selectedHexes, setSelectedHexes] = useState<Set<string>>(new Set())
-  const [extracting, setExtracting] = useState(false)
   const [savingPalette, setSavingPalette] = useState(false)
 
   // 画像ファイルを読み込んでcanvasに描画 + colorthiefでパレット抽出
@@ -51,7 +51,6 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
       setImageLoaded(true)
 
       // colorthief v3 でパレット抽出
-      setExtracting(true)
       try {
         const raw = getPaletteSync(img, { colorCount: 5 })
         const hexes = raw?.map((c) => c.hex().toUpperCase()) ?? []
@@ -59,8 +58,6 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
         setSelectedHexes(new Set(hexes))
       } catch {
         // 抽出失敗時はパレットを表示しない
-      } finally {
-        setExtracting(false)
       }
     }
     img.src = url
@@ -98,9 +95,12 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
   const handleSaveEyedropper = async () => {
     if (!eyedropperHex) return
     setSavingEyedropper(true)
-    await addColor(eyedropperHex, 1.0, activeFolderId)
-    setSavingEyedropper(false)
-    onClose()
+    try {
+      await addColor(eyedropperHex, 1.0, activeFolderId)
+      onClose()
+    } finally {
+      setSavingEyedropper(false)
+    }
   }
 
   // パレットのチェックボックストグル
@@ -117,11 +117,14 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
   const handleSavePalette = async () => {
     if (selectedHexes.size === 0) return
     setSavingPalette(true)
-    for (const hex of selectedHexes) {
-      await addColor(hex, 1.0, activeFolderId)
+    try {
+      for (const hex of selectedHexes) {
+        await addColor(hex, 1.0, activeFolderId)
+      }
+      onClose()
+    } finally {
+      setSavingPalette(false)
     }
-    setSavingPalette(false)
-    onClose()
   }
 
   const handleReset = () => {
@@ -150,14 +153,14 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             className="border-2 border-dashed border-border rounded-xl p-10 text-center cursor-pointer hover:border-accent transition-colors"
-            onClick={() => document.getElementById('image-picker-input')?.click()}
+            onClick={() => fileInputRef.current?.click()}
           >
             <p className="text-text-secondary text-sm mb-1">
               画像をドロップ、またはクリックして選択
             </p>
             <p className="text-text-muted text-xs">PNG / JPG / WebP 対応</p>
             <input
-              id="image-picker-input"
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"
@@ -177,7 +180,7 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
               <canvas
                 ref={canvasRef}
                 onClick={handleCanvasClick}
-                className="w-full object-contain cursor-crosshair"
+                className="w-full cursor-crosshair"
                 style={{ maxHeight: '220px', display: 'block' }}
               />
             </div>
@@ -201,17 +204,15 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
             )}
 
             {/* --- パレット抽出結果 --- */}
-            {extracting ? (
-              <p className="text-text-muted text-xs text-center py-3">パレットを抽出中...</p>
-            ) : palette.length > 0 ? (
+            {palette.length > 0 ? (
               <>
                 <p className="text-xs text-text-secondary mb-2">
                   抽出パレット（{selectedHexes.size}/{palette.length} 色を選択中）
                 </p>
                 <div className="space-y-1 mb-4">
-                  {palette.map((hex) => (
+                  {palette.map((hex, index) => (
                     <label
-                      key={hex}
+                      key={`${hex}-${index}`}
                       className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-surface-overlay cursor-pointer transition-colors"
                     >
                       <input
