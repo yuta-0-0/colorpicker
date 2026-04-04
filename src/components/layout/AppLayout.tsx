@@ -12,6 +12,7 @@ import { BulkActionBar } from '@/components/ui/BulkActionBar'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import { useFolderStore } from '@/store/folderStore'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 // 色相カテゴリを返す（FilterBar の HUE_FILTERS ラベルと一致させる）
 function getHueCategory(hex: string): string {
@@ -69,6 +70,11 @@ export function AppLayout() {
       // ユーザーキャンセルは無視
     }
   }, [addColor, activeFolderId])
+
+  useKeyboardShortcuts({
+    openAddModal: () => setShowAddModal(true),
+    openScreenPicker: handleScreenPick,
+  })
 
   // 初回データ取得
   useEffect(() => {
