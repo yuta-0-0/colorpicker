@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React from 'react'
 import { SearchBar } from './SearchBar'
 import { NavItem } from './NavItem'
 import { FolderList } from './FolderList'
@@ -8,8 +8,7 @@ import { useColorStore } from '@/store/colorStore'
 import type { NavSection } from '@/store/uiStore'
 
 export function Sidebar() {
-  const [activeTagId, setActiveTagId] = useState<string | null>(null)
-  const { activeSection, setActiveSection, activeFolderId, setActiveFolderId } = useUIStore()
+  const { activeSection, setActiveSection, activeFolderId, setActiveFolderId, activeTagId, setActiveTagId } = useUIStore()
   const { colors } = useColorStore()
 
   const allCount = colors.filter((c) => !c.is_archived).length
@@ -21,6 +20,11 @@ export function Sidebar() {
     { id: 'history', label: '最近使った色', icon: '⏱' },
     { id: 'generator', label: 'カラージェネレーター', icon: '✦' },
   ]
+
+  const handleSelectTag = (id: string) => {
+    // 同じタグをクリックでトグル解除
+    setActiveTagId(activeTagId === id ? null : id)
+  }
 
   return (
     <aside className="w-56 flex-shrink-0 flex flex-col gap-5 px-3 py-4 bg-surface border-r border-border overflow-y-auto h-full">
@@ -46,7 +50,7 @@ export function Sidebar() {
 
       <div>
         <p className="px-2.5 mb-1.5 text-xs font-medium text-text-muted uppercase tracking-wider">タグ</p>
-        <TagList activeTagId={activeTagId} onSelectTag={setActiveTagId} />
+        <TagList activeTagId={activeTagId} onSelectTag={handleSelectTag} />
       </div>
     </aside>
   )
