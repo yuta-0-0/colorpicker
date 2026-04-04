@@ -106,7 +106,7 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker }: Shortcu
       }
 
       // ⌘+Delete: 選択色を削除（ロック中は無効）
-      if (e.key === 'Backspace' || e.key === 'Delete') {
+      if (key === 'backspace' || key === 'delete') {
         if (selected.is_locked) return
         e.preventDefault()
         deleteColor(selected.id)
