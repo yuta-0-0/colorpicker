@@ -12,17 +12,44 @@ const HUE_FILTERS = [
 ]
 
 export function FilterBar() {
-  const { showArchived, setShowArchived } = useUIStore()
+  const { showArchived, setShowArchived, activeHueFilter, setActiveHueFilter } = useUIStore()
+
+  const handleHueClick = (label: string) => {
+    setActiveHueFilter(activeHueFilter === label ? null : label)
+  }
+
   return (
     <div className="flex items-center gap-2 px-4 py-2 border-b border-border overflow-x-auto flex-shrink-0">
-      {HUE_FILTERS.map((filter) => (
-        <button key={filter.label} type="button" className="flex items-center gap-1 px-2 py-1 rounded-full text-xs text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors flex-shrink-0">
-          <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: filter.hex }} />
-          {filter.label}
-        </button>
-      ))}
+      {HUE_FILTERS.map((filter) => {
+        const isActive = activeHueFilter === filter.label
+        return (
+          <button
+            key={filter.label}
+            type="button"
+            onClick={() => handleHueClick(filter.label)}
+            className={[
+              'flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors flex-shrink-0',
+              isActive
+                ? 'bg-surface-overlay text-text-primary ring-1 ring-border'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay',
+            ].join(' ')}
+          >
+            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: filter.hex }} />
+            {filter.label}
+          </button>
+        )
+      })}
       <div className="ml-auto flex-shrink-0">
-        <button onClick={() => setShowArchived(!showArchived)} type="button" className={['px-2 py-1 rounded-full text-xs transition-colors', showArchived ? 'bg-surface-overlay text-text-primary' : 'text-text-muted hover:text-text-secondary'].join(' ')}>
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          type="button"
+          className={[
+            'px-2 py-1 rounded-full text-xs transition-colors',
+            showArchived
+              ? 'bg-surface-overlay text-text-primary'
+              : 'text-text-muted hover:text-text-secondary',
+          ].join(' ')}
+        >
           アーカイブ {showArchived ? '非表示' : '表示'}
         </button>
       </div>
