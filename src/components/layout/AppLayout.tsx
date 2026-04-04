@@ -10,11 +10,15 @@ import { AddColorModal } from '@/components/color/AddColorModal'
 import { AddMenuPopover } from '@/components/color/AddMenuPopover'
 import { ImagePickerModal } from '@/components/color/ImagePickerModal'
 import { BulkActionBar } from '@/components/ui/BulkActionBar'
+import { VisualExportModal } from '@/components/export/VisualExportModal'
+import { PaletteExportModal } from '@/components/export/PaletteExportModal'
+import { ImportModal } from '@/components/export/ImportModal'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import { useFolderStore } from '@/store/folderStore'
 import { useTagStore } from '@/store/tagStore'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { downloadAllDataJSON } from '@/lib/exportUtils'
 
 // 色相カテゴリを返す（FilterBar の HUE_FILTERS ラベルと一致させる）
 function getHueCategory(hex: string): string {
@@ -58,11 +62,14 @@ export function AppLayout() {
   } = useUIStore()
 
   const { colors, loading: colorsLoading, fetchColors, addColor } = useColorStore()
-  const { fetchFolders } = useFolderStore()
+  const { fetchFolders, folders } = useFolderStore()
   const { fetchTags, fetchAllColorTags, colorTags } = useTagStore()
   const [showMenu, setShowMenu] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
+  const [showVisualExport, setShowVisualExport] = useState(false)
+  const [showPaletteExport, setShowPaletteExport] = useState(false)
+  const [showImport, setShowImport] = useState(false)
 
   const handleCloseMenu = useCallback(() => setShowMenu(false), [])
 
@@ -183,6 +190,16 @@ export function AppLayout() {
               </div>
             </>
           )}
+          {/* エクスポート・インポートメニュー */}
+          <ExportMenu
+            onVisualExport={() => setShowVisualExport(true)}
+            onPaletteExport={() => setShowPaletteExport(true)}
+            onImport={() => setShowImport(true)}
+            onExportAll={() => {
+              const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
+              downloadAllDataJSON(colors, folders, filename)
+            }}
+          />
         </header>
 
         {!isGenerator && <FilterBar />}
@@ -213,6 +230,71 @@ export function AppLayout() {
 
       {showAddModal && <AddColorModal onClose={() => setShowAddModal(false)} />}
       {showImageModal && <ImagePickerModal onClose={() => setShowImageModal(false)} />}
+      {showVisualExport && (
+        <VisualExportModal
+          folders={folders}
+          allColors={colors}
+          onClose={() => setShowVisualExport(false)}
+        />
+      )}
+      {showPaletteExport && (
+        <PaletteExportModal
+          folders={folders}
+          allColors={colors}
+          onClose={() => setShowPaletteExport(false)}
+        />
+      )}
+      {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+    </div>
+  )
+}
+
+// ---- エクスポート・インポートメニュー ----
+
+interface ExportMenuProps {
+  onVisualExport: () => void
+  onPaletteExport: () => void
+  onImport: () => void
+  onExportAll: () => void
+}
+
+function ExportMenu({ onVisualExport, onPaletteExport, onImport, onExportAll }: ExportMenuProps) {
+  const [open, setOpen] = useState(false)
+
+  const items = [
+    { label: 'ビジュアル書き出し（SVG/PNG）', onClick: onVisualExport },
+    { label: 'パレット書き出し（CSV/JSON/ASE）', onClick: onPaletteExport },
+    { label: 'インポート', onClick: onImport },
+    { label: '全データをバックアップ', onClick: onExportAll },
+  ]
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="px-2 py-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded transition-colors text-sm"
+        title="書き出し / インポート"
+      >
+        ⋯
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 w-52 bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+            {items.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => { item.onClick(); setOpen(false) }}
+                className="w-full text-left px-3 py-2 text-xs text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

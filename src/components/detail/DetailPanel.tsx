@@ -6,6 +6,7 @@ import { useColorStore } from '@/store/colorStore'
 import { calcTAC, isTACWarning, isOutOfGamut, cmykSourceLabel } from '@/lib/printUtils'
 import type { Color } from '@/types/database'
 import { TagInput } from '@/components/color/TagInput'
+import { ContrastChecker } from '@/components/detail/ContrastChecker'
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return {
@@ -431,6 +432,9 @@ export function DetailPanel({ color }: DetailPanelProps) {
           <p className="text-xs text-text-muted mb-1.5">タグ</p>
           <TagInput colorId={color.id} isLocked={color.is_locked} />
         </div>
+
+        {/* コントラストチェッカー・色覚シミュレーション */}
+        <ContrastChecker color={color} />
       </div>
     </aside>
   )
