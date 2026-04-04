@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { ListView } from '@/components/views/ListView'
 import { GalleryView } from '@/components/views/GalleryView'
+import { GeneratorView } from '@/components/generator/GeneratorView'
 import { ViewToggle } from '@/components/views/ViewToggle'
 import { FilterBar } from '@/components/views/FilterBar'
 import { DetailPanel } from '@/components/detail/DetailPanel'
@@ -12,6 +13,7 @@ import { BulkActionBar } from '@/components/ui/BulkActionBar'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import { useFolderStore } from '@/store/folderStore'
+import { useTagStore } from '@/store/tagStore'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
 // 色相カテゴリを返す（FilterBar の HUE_FILTERS ラベルと一致させる）
@@ -50,10 +52,14 @@ export function AppLayout() {
     activeSection,
     activeHueFilter,
     isBulkMode,
+    searchQuery,
+    activeTagId,
+    sortBy,
   } = useUIStore()
 
   const { colors, loading: colorsLoading, fetchColors, addColor } = useColorStore()
   const { fetchFolders } = useFolderStore()
+  const { fetchTags, fetchAllColorTags, colorTags } = useTagStore()
   const [showMenu, setShowMenu] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
@@ -81,7 +87,9 @@ export function AppLayout() {
   // 初回データ取得
   useEffect(() => {
     fetchFolders()
-  }, [fetchFolders])
+    fetchTags()
+    fetchAllColorTags()
+  }, [fetchFolders, fetchTags, fetchAllColorTags])
 
   // フォルダ・セクション変更時にデータ再取得
   useEffect(() => {
@@ -94,20 +102,50 @@ export function AppLayout() {
 
   const selectedColor = colors.find((c) => c.id === selectedColorId) ?? null
 
-  // お気に入りフィルター → 色相フィルター の順に適用
-  const baseColors = activeSection === 'favorites'
+  // 5段階フィルターパイプライン
+  // 1. お気に入りフィルター
+  const step1 = activeSection === 'favorites'
     ? colors.filter((c) => c.is_favorite)
     : colors
 
-  const displayColors = activeHueFilter
-    ? baseColors.filter((c) => getHueCategory(c.hex) === activeHueFilter)
-    : baseColors
+  // 2. 色相フィルター
+  const step2 = activeHueFilter
+    ? step1.filter((c) => getHueCategory(c.hex) === activeHueFilter)
+    : step1
+
+  // 3. テキスト検索（名前・HEX・メモ・特色メモ・タグ名）
+  const step3 = searchQuery.trim()
+    ? (() => {
+        const q = searchQuery.trim().toLowerCase()
+        return step2.filter((c) => {
+          if (c.name?.toLowerCase().includes(q)) return true
+          if (c.hex.toLowerCase().includes(q)) return true
+          if (c.memo?.toLowerCase().includes(q)) return true
+          if (c.spot_color?.toLowerCase().includes(q)) return true
+          const tags = colorTags[c.id] ?? []
+          if (tags.some((t) => t.name.toLowerCase().includes(q))) return true
+          return false
+        })
+      })()
+    : step2
+
+  // 4. タグフィルター
+  const step4 = activeTagId
+    ? step3.filter((c) => (colorTags[c.id] ?? []).some((t) => t.id === activeTagId))
+    : step3
+
+  // 5. ソート
+  const displayColors = sortBy === 'used_count'
+    ? [...step4].sort((a, b) => (b.used_count ?? 0) - (a.used_count ?? 0))
+    : step4
 
   const sectionTitle =
     activeSection === 'favorites' ? 'お気に入り' :
     activeSection === 'history' ? '最近使った色' :
     activeSection === 'generator' ? 'カラージェネレーター' :
     'すべての色'
+
+  const isGenerator = activeSection === 'generator'
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-text-primary">
@@ -123,34 +161,40 @@ export function AppLayout() {
         <header className="flex items-center gap-3 px-4 py-2.5 border-b border-border flex-shrink-0">
           <button onClick={() => setSidebarOpen(true)} type="button" className="md:hidden text-text-secondary hover:text-text-primary">☰</button>
           <h1 className="text-sm font-medium text-text-primary flex-1">{sectionTitle}</h1>
-          <ViewToggle mode={viewMode} onChange={setViewMode} />
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu((v) => !v)}
-              type="button"
-              className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-sm rounded-lg transition-colors"
-            >
-              ＋ 追加
-            </button>
-            {showMenu && (
-              <AddMenuPopover
-                onSelectText={() => setShowAddModal(true)}
-                onSelectImage={() => setShowImageModal(true)}
-                onSelectScreen={handleScreenPick}
-                onClose={handleCloseMenu}
-              />
-            )}
-          </div>
+          {!isGenerator && (
+            <>
+              <ViewToggle mode={viewMode} onChange={setViewMode} />
+              <div className="relative">
+                <button
+                  onClick={() => setShowMenu((v) => !v)}
+                  type="button"
+                  className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-sm rounded-lg transition-colors"
+                >
+                  ＋ 追加
+                </button>
+                {showMenu && (
+                  <AddMenuPopover
+                    onSelectText={() => setShowAddModal(true)}
+                    onSelectImage={() => setShowImageModal(true)}
+                    onSelectScreen={handleScreenPick}
+                    onClose={handleCloseMenu}
+                  />
+                )}
+              </div>
+            </>
+          )}
         </header>
 
-        <FilterBar />
+        {!isGenerator && <FilterBar />}
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {isBulkMode && <BulkActionBar />}
 
           <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden">
-              {colorsLoading ? (
+              {isGenerator ? (
+                <GeneratorView />
+              ) : colorsLoading ? (
                 <div className="flex-1 flex items-center justify-center">
                   <p className="text-text-muted text-sm">読み込み中...</p>
                 </div>
