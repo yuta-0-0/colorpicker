@@ -34,6 +34,14 @@ interface UIStore {
   toggleBulkSelect: (id: string) => void
   clearBulkSelect: () => void
   isBulkMode: boolean
+
+  // 検索フォーカス
+  searchFocusTrigger: number
+  triggerSearchFocus: () => void
+
+  // フォルダ追加
+  isAddingFolder: boolean
+  setIsAddingFolder: (v: boolean) => void
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -74,4 +82,12 @@ export const useUIStore = create<UIStore>((set) => ({
       return { bulkSelectedIds: next, isBulkMode: next.length > 0 }
     }),
   clearBulkSelect: () => set({ bulkSelectedIds: [], isBulkMode: false }),
+
+  // 検索フォーカス
+  searchFocusTrigger: 0,
+  triggerSearchFocus: () => set((s) => ({ searchFocusTrigger: s.searchFocusTrigger + 1 })),
+
+  // フォルダ追加
+  isAddingFolder: false,
+  setIsAddingFolder: (v) => set({ isAddingFolder: v }),
 }))
