@@ -101,13 +101,16 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
       .update({ is_locked: isLocked })
       .eq('id', id)
 
-    if (!error) {
-      set((state) => ({
-        folders: state.folders.map((f) =>
-          f.id === id ? { ...f, is_locked: isLocked } : f
-        ),
-      }))
+    if (error) {
+      set({ error: error.message })
+      return
     }
+
+    set((state) => ({
+      folders: state.folders.map((f) =>
+        f.id === id ? { ...f, is_locked: isLocked } : f
+      ),
+    }))
   },
 
   reorderFolders: async (orderedIds) => {
