@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { SearchBar } from './SearchBar'
 import { NavItem } from './NavItem'
 import { FolderList } from './FolderList'
@@ -8,7 +8,6 @@ import { useColorStore } from '@/store/colorStore'
 import type { NavSection } from '@/store/uiStore'
 
 export function Sidebar() {
-  const [searchQuery, setSearchQuery] = useState('')
   const [activeTagId, setActiveTagId] = useState<string | null>(null)
   const { activeSection, setActiveSection, activeFolderId, setActiveFolderId } = useUIStore()
   const { colors } = useColorStore()
@@ -25,7 +24,7 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 flex-shrink-0 flex flex-col gap-5 px-3 py-4 bg-surface border-r border-border overflow-y-auto h-full">
-      <SearchBar value={searchQuery} onChange={setSearchQuery} />
+      <SearchBar />
 
       <nav className="space-y-0.5">
         {navItems.map((item) => (

@@ -1,14 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { useUIStore } from '@/store/uiStore'
 
-interface SearchBarProps {
-  value: string
-  onChange: (value: string) => void
-}
-
-export function SearchBar({ value, onChange }: SearchBarProps) {
+export function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null)
-  const searchFocusTrigger = useUIStore((s) => s.searchFocusTrigger)
+  const { searchQuery, setSearchQuery, searchFocusTrigger } = useUIStore()
 
   useEffect(() => {
     if (searchFocusTrigger > 0) {
@@ -25,8 +20,8 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
       <input
         ref={inputRef}
         type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
         placeholder="検索"
         className="w-full pl-9 pr-3 py-1.5 bg-surface-overlay border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:outline-dashed focus:outline-2 focus:outline-offset-1 focus:outline-accent/50 transition-colors"
       />
