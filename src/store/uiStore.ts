@@ -42,6 +42,18 @@ interface UIStore {
   // フォルダ追加
   isAddingFolder: boolean
   setIsAddingFolder: (v: boolean) => void
+
+  // 検索
+  searchQuery: string
+  setSearchQuery: (q: string) => void
+
+  // タグ絞り込み
+  activeTagId: string | null
+  setActiveTagId: (id: string | null) => void
+
+  // ソート
+  sortBy: 'order' | 'used_count'
+  setSortBy: (sort: 'order' | 'used_count') => void
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -90,4 +102,16 @@ export const useUIStore = create<UIStore>((set) => ({
   // フォルダ追加
   isAddingFolder: false,
   setIsAddingFolder: (v) => set({ isAddingFolder: v }),
+
+  // 検索
+  searchQuery: '',
+  setSearchQuery: (q) => set({ searchQuery: q }),
+
+  // タグ絞り込み
+  activeTagId: null,
+  setActiveTagId: (id) => set({ activeTagId: id }),
+
+  // ソート
+  sortBy: 'order',
+  setSortBy: (sort) => set({ sortBy: sort }),
 }))
