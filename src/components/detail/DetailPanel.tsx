@@ -3,7 +3,9 @@ import { ColorSwatch } from '@/components/color/ColorSwatch'
 import { IconButton } from '@/components/ui/IconButton'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
+import { calcTAC, isTACWarning, isOutOfGamut, cmykSourceLabel } from '@/lib/printUtils'
 import type { Color } from '@/types/database'
+import { TagInput } from '@/components/color/TagInput'
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return {
@@ -67,6 +69,13 @@ function FormatRow({ label, value, onCopy }: { label: string; value: string; onC
   )
 }
 
+interface CmykDraft {
+  c: number
+  m: number
+  y: number
+  k: number
+}
+
 interface DetailPanelProps {
   color: Color | null
 }
@@ -79,6 +88,10 @@ export function DetailPanel({ color }: DetailPanelProps) {
   const [nameValue, setNameValue] = useState('')
   const [isEditingMemo, setIsEditingMemo] = useState(false)
   const [memoValue, setMemoValue] = useState('')
+  const [isEditingSpotColor, setIsEditingSpotColor] = useState(false)
+  const [spotColorValue, setSpotColorValue] = useState('')
+  const [cmykDraft, setCmykDraft] = useState<CmykDraft>({ c: 0, m: 0, y: 0, k: 0 })
+  const [isEditingCmyk, setIsEditingCmyk] = useState(false)
 
   const handleClose = () => {
     setSelectedColorId(null)
@@ -99,9 +112,58 @@ export function DetailPanel({ color }: DetailPanelProps) {
     setIsEditingMemo(false)
   }
 
+  const handleSpotColorSubmit = () => {
+    if (!color) return
+    updateColor(color.id, { spot_color: spotColorValue.trim() || null })
+    setIsEditingSpotColor(false)
+  }
+
+  const handleCmykEdit = () => {
+    if (!color) return
+    setCmykDraft({
+      c: color.c ?? 0,
+      m: color.m ?? 0,
+      y: color.y ?? 0,
+      k: color.k ?? 0,
+    })
+    setIsEditingCmyk(true)
+  }
+
+  const handleCmykSave = () => {
+    if (!color) return
+    const clamped: CmykDraft = {
+      c: Math.min(100, Math.max(0, cmykDraft.c)),
+      m: Math.min(100, Math.max(0, cmykDraft.m)),
+      y: Math.min(100, Math.max(0, cmykDraft.y)),
+      k: Math.min(100, Math.max(0, cmykDraft.k)),
+    }
+    updateColor(color.id, { ...clamped, cmyk_source: 'manual' })
+    setIsEditingCmyk(false)
+  }
+
+  const handleCmykCancel = () => {
+    setIsEditingCmyk(false)
+  }
+
+  const handleCmykChannelChange = (channel: keyof CmykDraft, value: string) => {
+    const num = parseInt(value, 10)
+    setCmykDraft((prev) => ({ ...prev, [channel]: isNaN(num) ? 0 : num }))
+  }
+
   if (!color) return null
 
   const FORMATS = ['HEX', 'RGB', 'RGBA', 'HSL', 'HSLA', 'CMYK']
+
+  // TAC・ガマット警告の計算
+  const hasCmyk = color.c != null && color.m != null && color.y != null && color.k != null
+  const tac = hasCmyk ? calcTAC(color.c!, color.m!, color.y!, color.k!) : null
+  const tacWarning = tac !== null ? isTACWarning(tac) : false
+  const gamutWarning = isOutOfGamut(color.hex)
+  const sourceLabel = cmykSourceLabel(color.cmyk_source)
+
+  // CMYK 入力中の TAC プレビュー
+  const draftTac = isEditingCmyk ? calcTAC(cmykDraft.c, cmykDraft.m, cmykDraft.y, cmykDraft.k) : null
+  const draftTacWarning = draftTac !== null ? isTACWarning(draftTac) : false
 
   return (
     <aside className="w-64 flex-shrink-0 flex flex-col border-l border-border bg-surface overflow-y-auto">
@@ -209,28 +271,136 @@ export function DetailPanel({ color }: DetailPanelProps) {
           />
         </div>
 
-        {/* CMYK */}
-        {(color.c != null || color.m != null) && (
-          <div>
-            <p className="text-xs text-text-muted mb-1.5">CMYK（印刷用）</p>
-            <div className="grid grid-cols-4 gap-1.5">
-              {(['c', 'm', 'y', 'k'] as const).map((ch) => (
-                <div key={ch} className="text-center">
-                  <p className="text-xs text-text-muted uppercase">{ch}</p>
-                  <p className="text-sm font-mono text-text-primary">{color[ch] != null ? Math.round(color[ch]!) : '—'}</p>
-                </div>
-              ))}
-            </div>
+        {/* ガマット警告 */}
+        {gamutWarning && (
+          <div className="flex items-start gap-2 px-2.5 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <span className="text-yellow-400 text-xs flex-shrink-0 mt-0.5">⚠</span>
+            <p className="text-xs text-yellow-300 leading-snug">
+              この色はCMYK印刷で正確に再現できない可能性があります（色域外）
+            </p>
           </div>
         )}
 
-        {/* 特色メモ */}
-        {color.spot_color && (
-          <div>
-            <p className="text-xs text-text-muted mb-1">特色メモ</p>
-            <p className="text-sm text-text-secondary">{color.spot_color}</p>
+        {/* CMYK（手動入力） */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-xs text-text-muted">CMYK（印刷用）</p>
+            {sourceLabel && (
+              <span className="text-xs text-text-muted bg-surface-raised px-1.5 py-0.5 rounded">{sourceLabel}</span>
+            )}
           </div>
-        )}
+
+          {isEditingCmyk ? (
+            <div className="space-y-2">
+              {/* 入力フィールド */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {(['c', 'm', 'y', 'k'] as const).map((ch) => (
+                  <div key={ch} className="flex flex-col items-center gap-1">
+                    <label className="text-xs text-text-muted uppercase">{ch}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={cmykDraft[ch]}
+                      onChange={(e) => handleCmykChannelChange(ch, e.target.value)}
+                      className="w-full text-center text-xs font-mono bg-surface-overlay border border-border rounded px-1 py-1 text-text-primary focus:outline-none focus:border-accent"
+                    />
+                  </div>
+                ))}
+              </div>
+              {/* 入力中 TAC プレビュー */}
+              <div className={['flex items-center justify-between px-2 py-1 rounded text-xs', draftTacWarning ? 'bg-red-500/10 border border-red-500/30' : 'bg-surface-raised'].join(' ')}>
+                <span className="text-text-muted">TAC合計</span>
+                <span className={['font-mono font-medium', draftTacWarning ? 'text-red-400' : 'text-text-secondary'].join(' ')}>
+                  {draftTac}%{draftTacWarning ? ' ⚠ 上限超過' : ''}
+                </span>
+              </div>
+              {/* 操作ボタン */}
+              <div className="flex gap-1.5">
+                <button
+                  onClick={handleCmykSave}
+                  type="button"
+                  className="flex-1 py-1 bg-accent hover:bg-accent-hover text-white text-xs rounded transition-colors"
+                >
+                  保存
+                </button>
+                <button
+                  onClick={handleCmykCancel}
+                  type="button"
+                  className="flex-1 py-1 bg-surface-raised hover:bg-surface-overlay text-text-secondary text-xs rounded transition-colors"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* 表示モード */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {(['c', 'm', 'y', 'k'] as const).map((ch) => (
+                  <div key={ch} className="text-center">
+                    <p className="text-xs text-text-muted uppercase">{ch}</p>
+                    <p className="text-sm font-mono text-text-primary">
+                      {color[ch] != null ? Math.round(color[ch]!) : '—'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              {/* TAC 表示（保存済み値がある場合） */}
+              {hasCmyk && tac !== null && (
+                <div className={['flex items-center justify-between px-2 py-1 rounded text-xs', tacWarning ? 'bg-red-500/10 border border-red-500/30' : 'bg-surface-raised'].join(' ')}>
+                  <span className="text-text-muted">TAC合計</span>
+                  <span className={['font-mono font-medium', tacWarning ? 'text-red-400' : 'text-text-secondary'].join(' ')}>
+                    {Math.round(tac)}%{tacWarning ? ' ⚠ 上限超過' : ''}
+                  </span>
+                </div>
+              )}
+              {/* 編集ボタン */}
+              {!color.is_locked && (
+                <button
+                  onClick={handleCmykEdit}
+                  type="button"
+                  className="w-full py-1 text-xs text-text-muted hover:text-text-primary bg-surface-raised hover:bg-surface-overlay rounded transition-colors"
+                >
+                  {hasCmyk ? 'CMYK を編集' : 'CMYK を入力'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 特色メモ（クリックで編集） */}
+        <div>
+          <p className="text-xs text-text-muted mb-1">特色メモ</p>
+          {isEditingSpotColor ? (
+            <input
+              type="text"
+              value={spotColorValue}
+              onChange={(e) => setSpotColorValue(e.target.value)}
+              onBlur={handleSpotColorSubmit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSpotColorSubmit()
+                if (e.key === 'Escape') setIsEditingSpotColor(false)
+              }}
+              autoFocus
+              placeholder="PANTONE 286 C / DIC-43"
+              className="w-full bg-surface-overlay border border-accent rounded px-2 py-1 text-sm text-text-primary focus:outline-none placeholder:text-text-muted"
+            />
+          ) : (
+            <button
+              onClick={() => {
+                if (!color.is_locked) {
+                  setSpotColorValue(color.spot_color ?? '')
+                  setIsEditingSpotColor(true)
+                }
+              }}
+              type="button"
+              className="w-full text-left text-sm text-text-secondary hover:text-text-primary transition-colors"
+            >
+              {color.spot_color || <span className="text-text-muted">クリックして追加...</span>}
+            </button>
+          )}
+        </div>
 
         {/* 一言メモ（クリックで編集） */}
         <div>
@@ -254,6 +424,12 @@ export function DetailPanel({ color }: DetailPanelProps) {
               {color.memo || <span className="text-text-muted">クリックしてメモを追加...</span>}
             </button>
           )}
+        </div>
+
+        {/* タグ */}
+        <div>
+          <p className="text-xs text-text-muted mb-1.5">タグ</p>
+          <TagInput colorId={color.id} isLocked={color.is_locked} />
         </div>
       </div>
     </aside>
