@@ -1,41 +1,184 @@
+import { useState } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { useFolderStore } from '@/store/folderStore'
+import type { Folder } from '@/types/database'
+
+function SortableFolderItem({
+  folder,
+  isActive,
+  onSelect,
+  onRename,
+  onDelete,
+}: {
+  folder: Folder
+  isActive: boolean
+  onSelect: () => void
+  onRename: (name: string) => void
+  onDelete: () => void
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(folder.name)
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: folder.id,
+  })
+
+  const handleRenameSubmit = () => {
+    if (editValue.trim() && editValue !== folder.name) {
+      onRename(editValue.trim())
+    }
+    setIsEditing(false)
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+      }}
+      className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors"
+    >
+      {/* ドラッグハンドル */}
+      <span
+        {...attributes}
+        {...listeners}
+        className="text-text-muted cursor-grab opacity-0 group-hover:opacity-100 transition-opacity text-xs flex-shrink-0"
+        title="ドラッグで並び替え"
+      >
+        ⠿
+      </span>
+
+      <span className="text-xs flex-shrink-0">📁</span>
+
+      {isEditing ? (
+        <input
+          type="text"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleRenameSubmit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleRenameSubmit()
+            if (e.key === 'Escape') { setEditValue(folder.name); setIsEditing(false) }
+          }}
+          autoFocus
+          className="flex-1 bg-surface-overlay border border-accent rounded px-1 text-sm text-text-primary focus:outline-none"
+        />
+      ) : (
+        <button
+          onClick={onSelect}
+          onDoubleClick={() => setIsEditing(true)}
+          type="button"
+          className={[
+            'flex-1 text-sm text-left truncate',
+            isActive ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary',
+          ].join(' ')}
+        >
+          {folder.name}
+        </button>
+      )}
+
+      {!isEditing && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete() }}
+          type="button"
+          className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs transition-all flex-shrink-0"
+          title="フォルダを削除"
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  )
+}
+
 interface FolderListProps {
   activeFolderId: string | null
   onSelectFolder: (id: string) => void
 }
 
 export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) {
-  const MOCK_FOLDERS = [
-    { id: 'f1', name: 'ブランドカラー', count: 8 },
-    { id: 'f2', name: 'Webプロジェクト', count: 12 },
-    { id: 'f3', name: '印刷素材', count: 5 },
-  ]
+  const { folders, createFolder, renameFolder, deleteFolder, reorderFolders } = useFolderStore()
+  const [isCreating, setIsCreating] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = folders.findIndex((f) => f.id === active.id)
+    const newIndex = folders.findIndex((f) => f.id === over.id)
+    const reordered = arrayMove(folders, oldIndex, newIndex)
+    reorderFolders(reordered.map((f) => f.id))
+  }
+
+  const handleCreateSubmit = async () => {
+    if (newFolderName.trim()) {
+      await createFolder(newFolderName.trim())
+    }
+    setNewFolderName('')
+    setIsCreating(false)
+  }
 
   return (
     <div className="space-y-0.5">
-      {MOCK_FOLDERS.map((folder) => (
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={folders.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+          {folders.map((folder) => (
+            <SortableFolderItem
+              key={folder.id}
+              folder={folder}
+              isActive={activeFolderId === folder.id}
+              onSelect={() => onSelectFolder(folder.id)}
+              onRename={(name) => renameFolder(folder.id, name)}
+              onDelete={() => deleteFolder(folder.id)}
+            />
+          ))}
+        </SortableContext>
+      </DndContext>
+
+      {isCreating ? (
+        <div className="px-2.5 py-1.5">
+          <input
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onBlur={handleCreateSubmit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleCreateSubmit()
+              if (e.key === 'Escape') { setNewFolderName(''); setIsCreating(false) }
+            }}
+            autoFocus
+            placeholder="フォルダ名"
+            className="w-full bg-surface-overlay border border-accent rounded px-2 py-0.5 text-sm text-text-primary focus:outline-none placeholder:text-text-muted"
+          />
+        </div>
+      ) : (
         <button
-          key={folder.id}
-          onClick={() => onSelectFolder(folder.id)}
+          onClick={() => setIsCreating(true)}
           type="button"
-          className={[
-            'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm transition-colors text-left',
-            activeFolderId === folder.id
-              ? 'bg-surface-overlay text-text-primary'
-              : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay/50',
-          ].join(' ')}
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-text-muted hover:text-text-secondary transition-colors text-left"
         >
-          <span className="text-xs">📁</span>
-          <span className="flex-1 truncate">{folder.name}</span>
-          <span className="text-xs text-text-muted">{folder.count}</span>
+          <span className="text-xs">＋</span>
+          <span>フォルダを追加</span>
         </button>
-      ))}
-      <button
-        type="button"
-        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-text-muted hover:text-text-secondary transition-colors text-left"
-      >
-        <span className="text-xs">＋</span>
-        <span>フォルダを追加</span>
-      </button>
+      )}
     </div>
   )
 }
