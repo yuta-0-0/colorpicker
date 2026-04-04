@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { ColorSwatch } from './ColorSwatch'
 import { useColorStore } from '@/store/colorStore'
 import { useUIStore } from '@/store/uiStore'
+import { useHistoryStore } from '@/store/historyStore'
 import { normalizeToHex } from '@/lib/colorUtils'
 
 interface AddColorModalProps {
@@ -15,6 +16,7 @@ export function AddColorModal({ onClose }: AddColorModalProps) {
   const [saving, setSaving] = useState(false)
   const { addColor } = useColorStore()
   const { activeFolderId } = useUIStore()
+  const { addToHistory } = useHistoryStore()
 
   useEffect(() => {
     if (!input.trim()) {
@@ -35,6 +37,7 @@ export function AddColorModal({ onClose }: AddColorModalProps) {
   const handleSave = async () => {
     if (!previewHex) return
     setSaving(true)
+    await addToHistory(previewHex, 1.0)
     await addColor(previewHex, 1.0, activeFolderId)
     setSaving(false)
     onClose()

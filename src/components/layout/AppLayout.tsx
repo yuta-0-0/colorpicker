@@ -19,6 +19,7 @@ import { useFolderStore } from '@/store/folderStore'
 import { useTagStore } from '@/store/tagStore'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { downloadAllDataJSON } from '@/lib/exportUtils'
+import { useHistoryStore } from '@/store/historyStore'
 
 // 色相カテゴリを返す（FilterBar の HUE_FILTERS ラベルと一致させる）
 function getHueCategory(hex: string): string {
@@ -64,6 +65,7 @@ export function AppLayout() {
   const { colors, loading: colorsLoading, fetchColors, addColor } = useColorStore()
   const { fetchFolders, folders } = useFolderStore()
   const { fetchTags, fetchAllColorTags, colorTags } = useTagStore()
+  const { addToHistory: addColorToHistory } = useHistoryStore()
   const [showMenu, setShowMenu] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
@@ -78,11 +80,12 @@ export function AppLayout() {
     try {
       const eyeDropper = new (window as unknown as { EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper()
       const { sRGBHex } = await eyeDropper.open()
+      await addColorToHistory(sRGBHex, 1.0)
       await addColor(sRGBHex, 1.0, activeFolderId)
     } catch {
       // ユーザーキャンセルは無視
     }
-  }, [addColor, activeFolderId])
+  }, [addColor, addColorToHistory, activeFolderId])
 
   const handleOpenAddModal = useCallback(() => setShowAddModal(true), [])
 

@@ -13,6 +13,10 @@ interface ColorStore {
   loading: boolean
   error: string | null
 
+  // Undo/Redo スタック（最大20スナップショット）
+  undoStack: Color[][]
+  redoStack: Color[][]
+
   // データ取得
   fetchColors: (folderId?: string | null) => Promise<void>
 
@@ -30,12 +34,52 @@ interface ColorStore {
 
   // ドラッグ並び替え後の順序保存
   reorderColors: (orderedIds: string[]) => Promise<void>
+
+  // Undo/Redo
+  undo: () => void
+  redo: () => void
+
+  // 変更前スナップショット（内部ヘルパー）
+  _snapshot: () => void
 }
 
 export const useColorStore = create<ColorStore>((set, get) => ({
   colors: [],
   loading: false,
   error: null,
+  undoStack: [],
+  redoStack: [],
+
+  _snapshot: () => {
+    set((state) => ({
+      undoStack: [...state.undoStack.slice(-19), [...state.colors]],
+      redoStack: [], // 新しい変更でやり直しスタックをクリア
+    }))
+  },
+
+  undo: () => {
+    set((state) => {
+      if (state.undoStack.length === 0) return state
+      const prev = state.undoStack[state.undoStack.length - 1]
+      return {
+        undoStack: state.undoStack.slice(0, -1),
+        redoStack: [...state.redoStack, [...state.colors]],
+        colors: prev,
+      }
+    })
+  },
+
+  redo: () => {
+    set((state) => {
+      if (state.redoStack.length === 0) return state
+      const next = state.redoStack[state.redoStack.length - 1]
+      return {
+        redoStack: state.redoStack.slice(0, -1),
+        undoStack: [...state.undoStack, [...state.colors]],
+        colors: next,
+      }
+    })
+  },
 
   fetchColors: async (folderId) => {
     set({ loading: true, error: null })
@@ -64,6 +108,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
   },
 
   addColor: async (hex, alpha = 1.0, folderId = null) => {
+    get()._snapshot()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
@@ -112,6 +157,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
   },
 
   updateColor: async (id, updates) => {
+    get()._snapshot()
     const { error } = await db
       .from('colors')
       .update(updates)
@@ -130,6 +176,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
   },
 
   deleteColor: async (id) => {
+    get()._snapshot()
     const { error } = await db
       .from('colors')
       .delete()
@@ -166,6 +213,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
   },
 
   reorderColors: async (orderedIds) => {
+    get()._snapshot()
     // 楽観的更新：先にUIを更新（ロールバック用に元の状態を保存）
     const previousColors = get().colors
     set((state) => {

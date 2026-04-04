@@ -25,7 +25,7 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker }: Shortcu
     setIsAddingFolder,
   } = useUIStore()
 
-  const { colors, addColor, deleteColor } = useColorStore()
+  const { colors, addColor, deleteColor, undo, redo } = useColorStore()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -36,6 +36,18 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker }: Shortcu
 
       const key = e.key.toLowerCase()
       const shift = e.shiftKey
+
+      // ⌘+Z: Undo / ⌘+Shift+Z: Redo
+      if (key === 'z') {
+        if (shift) {
+          e.preventDefault()
+          redo()
+        } else {
+          e.preventDefault()
+          undo()
+        }
+        return
+      }
 
       // ⌘+N: 新規カラー追加モーダルを開く
       if (key === 'n' && !shift) {
@@ -126,6 +138,8 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker }: Shortcu
     setIsAddingFolder,
     addColor,
     deleteColor,
+    undo,
+    redo,
     openAddModal,
     openScreenPicker,
   ])
