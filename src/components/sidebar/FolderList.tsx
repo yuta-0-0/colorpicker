@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useFolderStore } from '@/store/folderStore'
+import { useUIStore } from '@/store/uiStore'
 import type { Folder } from '@/types/database'
 
 function SortableFolderItem({
@@ -116,6 +117,15 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
   const { folders, createFolder, renameFolder, deleteFolder, reorderFolders } = useFolderStore()
   const [isCreating, setIsCreating] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+
+  const { isAddingFolder, setIsAddingFolder } = useUIStore()
+
+  useEffect(() => {
+    if (isAddingFolder) {
+      setIsCreating(true)
+      setIsAddingFolder(false)
+    }
+  }, [isAddingFolder, setIsAddingFolder])
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
