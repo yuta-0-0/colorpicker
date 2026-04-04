@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { getPaletteSync } from 'colorthief'
 import { ColorSwatch } from './ColorSwatch'
 import { useColorStore } from '@/store/colorStore'
 import { useUIStore } from '@/store/uiStore'
@@ -28,7 +29,7 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
   const [savingPalette, setSavingPalette] = useState(false)
 
   // 画像ファイルを読み込んでcanvasに描画 + colorthiefでパレット抽出
-  const loadImageFile = async (file: File) => {
+  const loadImageFile = (file: File) => {
     if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl)
     const url = URL.createObjectURL(file)
     setImageObjectUrl(url)
@@ -37,7 +38,7 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
     setSelectedHexes(new Set())
 
     const img = new Image()
-    img.onload = async () => {
+    img.onload = () => {
       // canvas に描画（スポイト用）
       const canvas = canvasRef.current
       if (canvas) {
@@ -52,7 +53,6 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
       // colorthief v3 でパレット抽出
       setExtracting(true)
       try {
-        const { getPaletteSync } = await import('colorthief')
         const raw = getPaletteSync(img, { colorCount: 5 })
         const hexes = raw?.map((c) => c.hex().toUpperCase()) ?? []
         setPalette(hexes)
