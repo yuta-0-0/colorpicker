@@ -74,9 +74,6 @@ function LoginScreen() {
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
-        queryParams: {
-          state: inviteCode.trim(),
-        },
       },
     })
 
