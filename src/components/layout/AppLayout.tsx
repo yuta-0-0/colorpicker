@@ -179,7 +179,7 @@ export function AppLayout() {
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <div className={['fixed inset-y-0 left-0 z-30 transition-transform md:relative md:translate-x-0', isSidebarOpen ? 'translate-x-0' : '-translate-x-full'].join(' ')}>
+      <div className={['fixed inset-y-0 left-0 z-30 transition-transform md:relative md:translate-x-0 pb-safe', isSidebarOpen ? 'translate-x-0' : '-translate-x-full'].join(' ')}>
         <Sidebar />
       </div>
 

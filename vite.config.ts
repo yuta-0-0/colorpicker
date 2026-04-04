@@ -37,21 +37,27 @@ export default defineConfig({
     renderer(),
     VitePWA({
       registerType: 'autoUpdate',
+      manifest: false, // public/manifest.json を直接使用するため false のまま維持
+      injectRegister: 'auto',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'supabase-api-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }, // 1日
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24, // 1日
+              },
               networkTimeoutSeconds: 10,
             },
           },
         ],
       },
-      manifest: false, // Step 13 で public/manifest.json を手動管理するため false
       devOptions: {
         enabled: false, // 開発時は Service Worker を無効化（Electron と競合するため）
       },
