@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
+import { useToastStore } from '@/store/toastStore'
 import type { Folder, FolderInsert } from '@/types/database'
 
 interface FolderStore {
@@ -29,6 +30,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
 
     if (error) {
       set({ error: error.message, loading: false })
+      useToastStore.getState().addToast('フォルダの取得に失敗しました。', 'error')
       return
     }
     set({ folders: data ?? [], loading: false })
@@ -53,6 +55,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
 
     if (error) {
       set({ error: error.message })
+      useToastStore.getState().addToast('フォルダの作成に失敗しました。', 'error')
       return null
     }
 

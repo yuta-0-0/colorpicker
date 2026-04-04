@@ -1,0 +1,11 @@
+{
+  "name": "ColorPicker",
+  "short_name": "ColorPicker",
+  "description": "グラフィックデザイナー向けカラー管理アプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait",
+  "icons": []
+}

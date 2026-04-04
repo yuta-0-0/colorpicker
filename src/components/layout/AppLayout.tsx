@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { ListView } from '@/components/views/ListView'
 import { GalleryView } from '@/components/views/GalleryView'
@@ -20,6 +20,9 @@ import { useTagStore } from '@/store/tagStore'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { downloadAllDataJSON } from '@/lib/exportUtils'
 import { useHistoryStore } from '@/store/historyStore'
+import { useNetworkStatus } from '@/hooks/useNetworkStatus'
+import { useToastStore } from '@/store/toastStore'
+import { ToastContainer } from '@/components/ui/ToastContainer'
 
 // 色相カテゴリを返す（FilterBar の HUE_FILTERS ラベルと一致させる）
 function getHueCategory(hex: string): string {
@@ -66,6 +69,9 @@ export function AppLayout() {
   const { fetchFolders, folders } = useFolderStore()
   const { fetchTags, fetchAllColorTags, colorTags } = useTagStore()
   const { addToHistory: addColorToHistory } = useHistoryStore()
+  const isOnline = useNetworkStatus()
+  const { addToast } = useToastStore()
+  const prevIsOnline = useRef(true)
   const [showMenu, setShowMenu] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
@@ -93,6 +99,16 @@ export function AppLayout() {
     openAddModal: handleOpenAddModal,
     openScreenPicker: handleScreenPick,
   })
+
+  // ネットワーク状態監視
+  useEffect(() => {
+    if (prevIsOnline.current && !isOnline) {
+      addToast('オフラインです。復帰時に自動で同期されます。', 'error')
+    } else if (!prevIsOnline.current && isOnline) {
+      addToast('オンラインに復帰しました。', 'success')
+    }
+    prevIsOnline.current = isOnline
+  }, [isOnline, addToast])
 
   // 初回データ取得
   useEffect(() => {
@@ -248,6 +264,7 @@ export function AppLayout() {
         />
       )}
       {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+      <ToastContainer />
     </div>
   )
 }

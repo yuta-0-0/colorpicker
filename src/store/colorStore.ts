@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import { getColorName } from '@/lib/colorUtils'
+import { useToastStore } from '@/store/toastStore'
 import type { Color, ColorInsert, ColorUpdate } from '@/types/database'
 
 // supabase-js v2 の型推論を回避するためのユーティリティ
@@ -144,11 +145,11 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       .single()
 
     if (error) {
-      if ((error.message as string).includes('COLOR_LIMIT_EXCEEDED')) {
-        set({ error: '保存できる色の上限（500色）に達しています' })
-      } else {
-        set({ error: error.message as string })
-      }
+      const message = (error.message as string).includes('COLOR_LIMIT_EXCEEDED')
+        ? '保存できる色の上限（500色）に達しています'
+        : 'ネットワークエラー。オンライン復帰時に再試行してください。'
+      set({ error: message })
+      useToastStore.getState().addToast(message, 'error')
       return null
     }
 
@@ -164,7 +165,9 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       .eq('id', id)
 
     if (error) {
-      set({ error: (error.message as string) })
+      const message = 'ネットワークエラー。オンライン復帰時に再試行してください。'
+      set({ error: message })
+      useToastStore.getState().addToast(message, 'error')
       return
     }
 
@@ -183,7 +186,9 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       .eq('id', id)
 
     if (error) {
-      set({ error: (error.message as string) })
+      const message = 'ネットワークエラー。オンライン復帰時に再試行してください。'
+      set({ error: message })
+      useToastStore.getState().addToast(message, 'error')
       return
     }
 
