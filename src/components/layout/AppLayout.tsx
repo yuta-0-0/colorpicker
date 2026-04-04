@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { ListView } from '@/components/views/ListView'
 import { GalleryView } from '@/components/views/GalleryView'
@@ -6,6 +6,8 @@ import { ViewToggle } from '@/components/views/ViewToggle'
 import { FilterBar } from '@/components/views/FilterBar'
 import { DetailPanel } from '@/components/detail/DetailPanel'
 import { AddColorModal } from '@/components/color/AddColorModal'
+import { AddMenuPopover } from '@/components/color/AddMenuPopover'
+import { ImagePickerModal } from '@/components/color/ImagePickerModal'
 import { BulkActionBar } from '@/components/ui/BulkActionBar'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
@@ -49,9 +51,24 @@ export function AppLayout() {
     isBulkMode,
   } = useUIStore()
 
-  const { colors, loading: colorsLoading, fetchColors } = useColorStore()
+  const { colors, loading: colorsLoading, fetchColors, addColor } = useColorStore()
   const { fetchFolders } = useFolderStore()
+  const [showMenu, setShowMenu] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showImageModal, setShowImageModal] = useState(false)
+
+  const handleCloseMenu = useCallback(() => setShowMenu(false), [])
+
+  const handleScreenPick = useCallback(async () => {
+    setShowMenu(false)
+    try {
+      const eyeDropper = new (window as unknown as { EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper()
+      const { sRGBHex } = await eyeDropper.open()
+      await addColor(sRGBHex, 1.0, activeFolderId)
+    } catch {
+      // ユーザーキャンセルは無視
+    }
+  }, [addColor, activeFolderId])
 
   // 初回データ取得
   useEffect(() => {
@@ -99,13 +116,23 @@ export function AppLayout() {
           <button onClick={() => setSidebarOpen(true)} type="button" className="md:hidden text-text-secondary hover:text-text-primary">☰</button>
           <h1 className="text-sm font-medium text-text-primary flex-1">{sectionTitle}</h1>
           <ViewToggle mode={viewMode} onChange={setViewMode} />
-          <button
-            onClick={() => setShowAddModal(true)}
-            type="button"
-            className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-sm rounded-lg transition-colors"
-          >
-            ＋ 追加
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu((v) => !v)}
+              type="button"
+              className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-sm rounded-lg transition-colors"
+            >
+              ＋ 追加
+            </button>
+            {showMenu && (
+              <AddMenuPopover
+                onSelectText={() => setShowAddModal(true)}
+                onSelectImage={() => setShowImageModal(true)}
+                onSelectScreen={handleScreenPick}
+                onClose={handleCloseMenu}
+              />
+            )}
+          </div>
         </header>
 
         <FilterBar />
@@ -133,6 +160,7 @@ export function AppLayout() {
       </div>
 
       {showAddModal && <AddColorModal onClose={() => setShowAddModal(false)} />}
+      {showImageModal && <ImagePickerModal onClose={() => setShowImageModal(false)} />}
     </div>
   )
 }
