@@ -1,18 +1,22 @@
+import { useTagStore } from '@/store/tagStore'
+
 interface TagListProps {
   activeTagId: string | null
   onSelectTag: (id: string) => void
 }
 
 export function TagList({ activeTagId, onSelectTag }: TagListProps) {
-  const MOCK_TAGS = [
-    { id: 't1', name: 'ブランド' },
-    { id: 't2', name: '印刷用' },
-    { id: 't3', name: 'Web' },
-  ]
+  const { tags } = useTagStore()
+
+  if (tags.length === 0) {
+    return (
+      <p className="px-2.5 text-xs text-text-muted">タグがありません</p>
+    )
+  }
 
   return (
     <div className="flex flex-wrap gap-1.5 px-1">
-      {MOCK_TAGS.map((tag) => (
+      {tags.map((tag) => (
         <button
           key={tag.id}
           onClick={() => onSelectTag(tag.id)}
