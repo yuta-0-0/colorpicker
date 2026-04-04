@@ -12,7 +12,7 @@ const HUE_FILTERS = [
 ]
 
 export function FilterBar() {
-  const { showArchived, setShowArchived, activeHueFilter, setActiveHueFilter } = useUIStore()
+  const { showArchived, setShowArchived, activeHueFilter, setActiveHueFilter, sortBy, setSortBy } = useUIStore()
 
   const handleHueClick = (label: string) => {
     setActiveHueFilter(activeHueFilter === label ? null : label)
@@ -39,7 +39,31 @@ export function FilterBar() {
           </button>
         )
       })}
-      <div className="ml-auto flex-shrink-0">
+      <div className="ml-auto flex-shrink-0 flex items-center gap-1">
+        <button
+          onClick={() => setSortBy('order')}
+          type="button"
+          className={[
+            'px-2 py-1 rounded-full text-xs transition-colors',
+            sortBy === 'order'
+              ? 'bg-surface-overlay text-text-primary'
+              : 'text-text-muted hover:text-text-secondary',
+          ].join(' ')}
+        >
+          並び順
+        </button>
+        <button
+          onClick={() => setSortBy('used_count')}
+          type="button"
+          className={[
+            'px-2 py-1 rounded-full text-xs transition-colors',
+            sortBy === 'used_count'
+              ? 'bg-surface-overlay text-text-primary'
+              : 'text-text-muted hover:text-text-secondary',
+          ].join(' ')}
+        >
+          よく使う順
+        </button>
         <button
           onClick={() => setShowArchived(!showArchived)}
           type="button"
