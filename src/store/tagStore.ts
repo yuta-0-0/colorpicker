@@ -121,9 +121,13 @@ export const useTagStore = create<TagStore>((set, get) => ({
     }
 
     const map: Record<string, Tag[]> = {}
-    for (const row of (data ?? []) as { color_id: string; tags: Tag }[]) {
+    for (const row of (data ?? []) as { color_id: string; tags: Tag | Tag[] }[]) {
       if (!map[row.color_id]) map[row.color_id] = []
-      if (row.tags) map[row.color_id].push(row.tags)
+      if (Array.isArray(row.tags)) {
+        map[row.color_id].push(...row.tags)
+      } else if (row.tags) {
+        map[row.color_id].push(row.tags)
+      }
     }
     set({ colorTags: map })
   },
