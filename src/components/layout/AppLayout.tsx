@@ -71,8 +71,10 @@ export function AppLayout() {
     }
   }, [addColor, activeFolderId])
 
+  const handleOpenAddModal = useCallback(() => setShowAddModal(true), [])
+
   useKeyboardShortcuts({
-    openAddModal: () => setShowAddModal(true),
+    openAddModal: handleOpenAddModal,
     openScreenPicker: handleScreenPick,
   })
 
