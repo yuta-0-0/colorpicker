@@ -23,14 +23,20 @@ import type { Color } from '@/types/database'
 function SortableColorItem({
   color,
   isSelected,
+  isChecked,
+  isBulkMode,
   onSelect,
+  onCheck,
   onCopy,
   onToggleFavorite,
   onDelete,
 }: {
   color: Color
   isSelected: boolean
+  isChecked: boolean
+  isBulkMode: boolean
   onSelect: () => void
+  onCheck: () => void
   onCopy: (e: React.MouseEvent) => void
   onToggleFavorite: (e: React.MouseEvent) => void
   onDelete: (e: React.MouseEvent) => void
@@ -47,17 +53,48 @@ function SortableColorItem({
         transition,
         opacity: isDragging ? 0.5 : 1,
       }}
-      {...attributes}
-      {...listeners}
+      className="group/drag flex items-center"
     >
-      <ColorListItem
-        color={color}
-        isSelected={isSelected}
-        onSelect={onSelect}
-        onCopy={onCopy}
-        onToggleFavorite={onToggleFavorite}
-        onDelete={onDelete}
-      />
+      {/* チェックボックス：バルクモード中は常時表示、それ以外はホバー時のみ */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onCheck() }}
+        className={[
+          'flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-opacity mr-0.5',
+          isBulkMode
+            ? 'opacity-100'
+            : 'opacity-0 group-hover/drag:opacity-100',
+          isChecked
+            ? 'bg-accent text-white'
+            : 'border border-border text-transparent hover:border-text-muted',
+        ].join(' ')}
+        title="選択"
+      >
+        {isChecked && (
+          <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </button>
+
+      <span
+        {...attributes}
+        {...listeners}
+        className="flex-shrink-0 w-5 flex items-center justify-center text-text-muted opacity-0 group-hover/drag:opacity-100 cursor-grab active:cursor-grabbing transition-opacity text-xs select-none"
+        title="ドラッグで並び替え"
+      >
+        ⠿
+      </span>
+      <div className="flex-1 min-w-0">
+        <ColorListItem
+          color={color}
+          isSelected={isSelected}
+          onSelect={onSelect}
+          onCopy={onCopy}
+          onToggleFavorite={onToggleFavorite}
+          onDelete={onDelete}
+        />
+      </div>
     </div>
   )
 }
@@ -67,7 +104,7 @@ interface ListViewProps {
 }
 
 export function ListView({ colors }: ListViewProps) {
-  const { selectedColorId, setSelectedColorId, showArchived } = useUIStore()
+  const { selectedColorId, setSelectedColorId, showArchived, bulkSelectedIds, toggleBulkSelect, isBulkMode } = useUIStore()
   const { updateColor, deleteColor, incrementUsedCount, reorderColors } = useColorStore()
 
   const sensors = useSensors(
@@ -121,7 +158,10 @@ export function ListView({ colors }: ListViewProps) {
               key={color.id}
               color={color}
               isSelected={selectedColorId === color.id}
+              isChecked={bulkSelectedIds.includes(color.id)}
+              isBulkMode={isBulkMode}
               onSelect={() => setSelectedColorId(color.id)}
+              onCheck={() => toggleBulkSelect(color.id)}
               onCopy={(e) => handleCopy(color, e)}
               onToggleFavorite={(e) => handleToggleFavorite(color, e)}
               onDelete={(e) => handleDelete(color, e)}
