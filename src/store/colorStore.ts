@@ -150,22 +150,24 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     if (!color) return
 
     const newCount = color.used_count + 1
+    const now = new Date().toISOString()
     const { error } = await db
       .from('colors')
-      .update({ used_count: newCount, last_used_at: new Date().toISOString() })
+      .update({ used_count: newCount, last_used_at: now })
       .eq('id', id)
 
     if (!error) {
       set((state) => ({
         colors: state.colors.map((c) =>
-          c.id === id ? { ...c, used_count: newCount, last_used_at: new Date().toISOString() } : c
+          c.id === id ? { ...c, used_count: newCount, last_used_at: now } : c
         ),
       }))
     }
   },
 
   reorderColors: async (orderedIds) => {
-    // 楽観的更新：先にUIを更新
+    // 楽観的更新：先にUIを更新（ロールバック用に元の状態を保存）
+    const previousColors = get().colors
     set((state) => {
       const colorMap = new Map(state.colors.map((c) => [c.id, c]))
       const reordered = orderedIds
@@ -175,16 +177,20 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     })
 
     // Supabaseに順序を保存
-    const updates = orderedIds.map((id, index) => ({
-      id,
-      order: index,
-    }))
-
-    for (const update of updates) {
-      await db
+    let hasError = false
+    for (const [index, id] of orderedIds.entries()) {
+      const { error } = await db
         .from('colors')
-        .update({ order: update.order })
-        .eq('id', update.id)
+        .update({ order: index })
+        .eq('id', id)
+      if (error) {
+        hasError = true
+        break
+      }
+    }
+
+    if (hasError) {
+      set({ colors: previousColors, error: '並び替えの保存に失敗しました' })
     }
   },
 }))
