@@ -24,6 +24,16 @@ interface UIStore {
 
   showArchived: boolean
   setShowArchived: (show: boolean) => void
+
+  // 色相フィルター
+  activeHueFilter: string | null
+  setActiveHueFilter: (hue: string | null) => void
+
+  // バルク選択
+  bulkSelectedIds: string[]
+  toggleBulkSelect: (id: string) => void
+  clearBulkSelect: () => void
+  isBulkMode: boolean
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -47,4 +57,21 @@ export const useUIStore = create<UIStore>((set) => ({
 
   showArchived: false,
   setShowArchived: (show) => set({ showArchived: show }),
+
+  // 色相フィルター
+  activeHueFilter: null,
+  setActiveHueFilter: (hue) => set({ activeHueFilter: hue }),
+
+  // バルク選択
+  bulkSelectedIds: [],
+  isBulkMode: false,
+  toggleBulkSelect: (id) =>
+    set((state) => {
+      const exists = state.bulkSelectedIds.includes(id)
+      const next = exists
+        ? state.bulkSelectedIds.filter((x) => x !== id)
+        : [...state.bulkSelectedIds, id]
+      return { bulkSelectedIds: next, isBulkMode: next.length > 0 }
+    }),
+  clearBulkSelect: () => set({ bulkSelectedIds: [], isBulkMode: false }),
 }))
