@@ -55,8 +55,8 @@ export const useUITestStore = create<UITestStore>((set, get) => ({
   },
 
   resetUI: () => {
-    document.documentElement.style.setProperty('--color-accent', '59 130 246')
-    document.documentElement.style.setProperty('--color-accent-hover', '37 99 235')
+    document.documentElement.style.setProperty('--color-accent', '10 62 216')
+    document.documentElement.style.setProperty('--color-accent-hover', '8 50 184')
     set({ isActive: false })
   },
 
