@@ -22,6 +22,9 @@ interface TagStore {
   // タグ削除
   deleteTag: (id: string) => Promise<void>
 
+  // タグ名を更新
+  updateTag: (id: string, name: string) => Promise<void>
+
   // 全ユーザーのcolor_tagsを一括取得（起動時に1回・タグフィルター用）
   fetchAllColorTags: () => Promise<void>
 
@@ -108,6 +111,19 @@ export const useTagStore = create<TagStore>((set, get) => ({
         colorTags: newColorTags,
       }
     })
+  },
+
+  updateTag: async (id, name) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    const { error } = await db
+      .from('tags')
+      .update({ name: trimmed })
+      .eq('id', id)
+    if (error) throw error
+    set((state) => ({
+      tags: state.tags.map((t) => t.id === id ? { ...t, name: trimmed } : t),
+    }))
   },
 
   fetchAllColorTags: async () => {
