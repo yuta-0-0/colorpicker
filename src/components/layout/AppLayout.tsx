@@ -210,13 +210,14 @@ export function AppLayout() {
     const max = Math.max(r, g, b), min = Math.min(r, g, b)
     const l = (max + min) / 2
     const d = max - min
-    const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
+    // getHueCategory() と同じ HSV 彩度式・同じ閾値で無彩色判定を統一
+    const s = max === 0 ? 0 : d / max
 
     // 無彩色（彩度 12% 未満）→ 末尾: グレー(700) / 白(800) / 黒(900)
     if (s < 0.12) {
-      if (l > 0.85) return 800  // 白
-      if (l < 0.25) return 900  // 黒
-      return 700                // グレー
+      if (l >= 0.85) return 800  // 白
+      if (l <= 0.20) return 900  // 黒
+      return 700                 // グレー
     }
 
     // 有彩色: HSL 色相を計算

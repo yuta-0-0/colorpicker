@@ -168,7 +168,7 @@ export function ListView({ colors }: ListViewProps) {
     )
   }
 
-  // 追加順以外はDnD無効・ヘッダーなしフラット表示（hue / used_count / tone 共通）
+  // 追加順以外はDnD無効・ヘッダーなしフラット表示（hue / used_count 共通）
   if (sortBy !== 'order') {
     return (
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
