@@ -2,18 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-/* iPhone ノッチ・ホームバー対応 */
+/* ── テーマトークン（Dark = デフォルト） ── */
 :root {
-  --safe-area-top: env(safe-area-inset-top);
-  --safe-area-bottom: env(safe-area-inset-bottom);
-  --safe-area-left: env(safe-area-inset-left);
-  --safe-area-right: env(safe-area-inset-right);
+  --color-surface:          8 9 15;        /* #08090f */
+  --color-surface-raised:   12 13 20;      /* #0c0d14 */
+  --color-surface-overlay:  22 24 33;      /* #161821 */
+  --color-surface-sidebar:  12 13 20;      /* #0c0d14 */
+  --color-border:           26 27 36;      /* #1a1b24 */
+  --color-border-subtle:    18 19 26;      /* #12131a */
+  --color-border-sidebar:   26 27 36;      /* #1a1b24 */
+  --color-text-primary:     255 255 255;   /* #ffffff */
+  --color-text-secondary:   46 48 66;      /* #2e3042 */
+  --color-text-muted:       34 36 54;      /* #222436 */
+  --color-accent:           10 62 216;     /* #0a3ed8 */
+  --color-accent-hover:     8 50 184;      /* #0832b8 */
+  --color-accent-soft:      122 160 255;   /* #7aa0ff */
+  --color-accent-ring:      0 206 255;     /* #00ceff */
 }
 
+/* ── Light Mode ── */
+[data-theme="light"] {
+  --color-surface:          245 247 250;   /* #f5f7fa */
+  --color-surface-raised:   240 242 245;   /* #f0f2f5 */
+  --color-surface-overlay:  232 235 242;   /* #e8ebf2 */
+  --color-surface-sidebar:  234 237 242;   /* #eaedf2 */
+  --color-border:           235 235 235;   /* #ebebeb */
+  --color-border-subtle:    240 240 240;   /* #f0f0f0 */
+  --color-border-sidebar:   216 220 232;   /* #d8dce8 */
+  --color-text-primary:     13 13 13;      /* #0d0d0d */
+  --color-text-secondary:   154 160 178;   /* #9aa0b2 */
+  --color-text-muted:       192 196 208;   /* #c0c4d0 */
+  --color-accent:           10 62 216;     /* #0a3ed8 */
+  --color-accent-hover:     8 50 184;      /* #0832b8 */
+  --color-accent-soft:      10 62 216;     /* #0a3ed8 */
+  --color-accent-ring:      0 206 255;     /* #00ceff */
+}
+
+/* ── グローユーティリティ ── */
+.glow-accent {
+  box-shadow: 0 0 14px rgba(10,62,216,.55), 0 2px 8px rgba(10,62,216,.3);
+}
+[data-theme="light"] .glow-accent {
+  box-shadow: 0 0 12px rgba(10,62,216,.35), 0 2px 6px rgba(10,62,216,.2);
+}
+.glow-accent-sm {
+  box-shadow: 0 0 10px rgba(10,62,216,.25);
+}
+[data-theme="light"] .glow-accent-sm {
+  box-shadow: 0 0 8px rgba(10,62,216,.2);
+}
+.glow-accent-btn {
+  box-shadow: 0 0 16px rgba(10,62,216,.5), 0 2px 8px rgba(10,62,216,.25);
+}
+[data-theme="light"] .glow-accent-btn {
+  box-shadow: 0 0 14px rgba(10,62,216,.4), 0 2px 6px rgba(10,62,216,.2);
+}
+.ring-selection {
+  box-shadow: 0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(var(--color-accent-ring)), 0 0 8px rgba(0,206,255,.45);
+}
+[data-theme="light"] .ring-selection {
+  box-shadow: 0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(var(--color-accent-ring)), 0 0 8px rgba(0,206,255,.35);
+}
+
+/* ── iPhone ノッチ・ホームバー対応 ── */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }
-
 .pt-safe {
   padding-top: env(safe-area-inset-top);
 }
@@ -22,22 +76,13 @@
   * {
     box-sizing: border-box;
   }
-
   body {
     @apply bg-surface text-text-primary font-sans;
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-surface;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
-  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-surface; }
+  ::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
 }
