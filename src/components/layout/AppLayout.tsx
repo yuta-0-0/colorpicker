@@ -14,7 +14,7 @@ import { BulkActionBar } from '@/components/ui/BulkActionBar'
 import { VisualExportModal } from '@/components/export/VisualExportModal'
 import { PaletteExportModal } from '@/components/export/PaletteExportModal'
 import { ImportModal } from '@/components/export/ImportModal'
-import { useUIStore } from '@/store/uiStore'
+import { useUIStore, type ToneCategory } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import { useFolderStore } from '@/store/folderStore'
 import { useTagStore } from '@/store/tagStore'
@@ -79,6 +79,7 @@ export function AppLayout() {
     sortBy,
     sortDirection,
     activeTraditionalFilter,
+    activeToneFilter,
     theme,
     setTheme,
   } = useUIStore()
@@ -229,7 +230,7 @@ export function AppLayout() {
     return h >= 340 ? h - 360 : h
   }
 
-  function getToneOrder(hex: string): number {
+  function getTone(hex: string): ToneCategory {
     const r = parseInt(hex.slice(1, 3), 16) / 255
     const g = parseInt(hex.slice(3, 5), 16) / 255
     const b = parseInt(hex.slice(5, 7), 16) / 255
@@ -237,32 +238,32 @@ export function AppLayout() {
     const l = (max + min) / 2
     const d = max - min
     const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
-    // ビビッド: 彩度高・明度中
-    if (s > 0.7 && l > 0.2 && l < 0.8) return 0
-    // ペール: 彩度低・明度高
-    if (s < 0.3 && l > 0.7) return 1
-    // ダーク: 明度低
-    if (l < 0.2) return 2
-    // ミュート: それ以外
-    return 3
+    if (s < 0.15) return 'neutral'
+    if (l < 0.25) return 'dark'
+    if (s >= 0.65 && l >= 0.35 && l <= 0.70) return 'vivid'
+    if (l >= 0.70 && s < 0.55) return 'pastel'
+    if (l >= 0.55) return 'light'
+    return 'neutral'
   }
+
+  // 6. トーンフィルター
+  const step6 = activeToneFilter
+    ? step5.filter((c) => getTone(c.hex) === activeToneFilter)
+    : step5
 
   const dir = sortDirection === 'asc' ? 1 : -1
   const displayColors = (() => {
-    if (sortBy === 'tone') {
-      return [...step5].sort((a, b) => dir * (getToneOrder(a.hex) - getToneOrder(b.hex)))
-    }
     if (sortBy === 'used_count') {
-      return [...step5].sort((a, b) => dir * ((a.used_count ?? 0) - (b.used_count ?? 0)))
+      return [...step6].sort((a, b) => dir * ((a.used_count ?? 0) - (b.used_count ?? 0)))
     }
     if (sortBy === 'hue') {
-      return [...step5].sort((a, b) => dir * (getHue(a.hex) - getHue(b.hex)))
+      return [...step6].sort((a, b) => dir * (getHue(a.hex) - getHue(b.hex)))
     }
-    // 追加順（order列 or 挿入順）
+    // 追加順
     if (sortDirection === 'desc') {
-      return [...step5].reverse()
+      return [...step6].reverse()
     }
-    return step5
+    return step6
   })()
 
   const sectionTitle =

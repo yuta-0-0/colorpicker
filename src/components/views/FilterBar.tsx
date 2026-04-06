@@ -1,4 +1,4 @@
-import { useUIStore } from '@/store/uiStore'
+import { useUIStore, type ToneCategory } from '@/store/uiStore'
 import { IconSortAsc, IconSortDesc } from '@/components/ui/Icons'
 
 const HUE_FILTERS = [
@@ -17,9 +17,16 @@ const HUE_FILTERS = [
 const SORT_OPTIONS = [
   { value: 'order', label: '追加順' },
   { value: 'hue', label: '色相順' },
-  { value: 'tone', label: 'トーン順' },
   { value: 'used_count', label: 'よく使う順' },
 ] as const
+
+const TONE_FILTERS: { value: ToneCategory; label: string }[] = [
+  { value: 'vivid',   label: 'ビビッド' },
+  { value: 'pastel',  label: 'パステル' },
+  { value: 'dark',    label: 'ダーク' },
+  { value: 'light',   label: 'ライト' },
+  { value: 'neutral', label: 'ニュートラル' },
+]
 
 export function FilterBar() {
   const {
@@ -33,6 +40,8 @@ export function FilterBar() {
     toggleSortDirection,
     activeTraditionalFilter,
     setActiveTraditionalFilter,
+    activeToneFilter,
+    setActiveToneFilter,
   } = useUIStore()
 
   const handleHueClick = (label: string) => {
@@ -57,6 +66,29 @@ export function FilterBar() {
           >
             <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: filter.hex }} />
             {filter.label}
+          </button>
+        )
+      })}
+
+      {/* セパレーター */}
+      <div className="w-px h-4 bg-border flex-shrink-0" />
+
+      {/* トーンフィルター */}
+      {TONE_FILTERS.map((tone) => {
+        const isActive = activeToneFilter === tone.value
+        return (
+          <button
+            key={tone.value}
+            type="button"
+            onClick={() => setActiveToneFilter(activeToneFilter === tone.value ? null : tone.value)}
+            className={[
+              'px-2 py-1 rounded-full text-xs transition-colors flex-shrink-0',
+              isActive
+                ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
+                : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay border border-transparent',
+            ].join(' ')}
+          >
+            {tone.label}
           </button>
         )
       })}

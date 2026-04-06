@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 export type ViewMode = 'list' | 'gallery'
 export type NavSection = 'all' | 'favorites' | 'history' | 'generator' | 'ui-test'
+export type ToneCategory = 'vivid' | 'pastel' | 'dark' | 'light' | 'neutral'
 
 interface UIStore {
   viewMode: ViewMode
@@ -53,14 +54,18 @@ interface UIStore {
   setActiveTagId: (id: string | null) => void
 
   // ソート
-  sortBy: 'order' | 'used_count' | 'hue' | 'tone'
-  setSortBy: (sort: 'order' | 'used_count' | 'hue' | 'tone') => void
+  sortBy: 'order' | 'used_count' | 'hue'
+  setSortBy: (sort: 'order' | 'used_count' | 'hue') => void
   sortDirection: 'asc' | 'desc'
   toggleSortDirection: () => void
 
   // 伝統色フィルター（伝統色が割り当てられている色のみ表示）
   activeTraditionalFilter: boolean
   setActiveTraditionalFilter: (active: boolean) => void
+
+  // トーンフィルター
+  activeToneFilter: ToneCategory | null
+  setActiveToneFilter: (tone: ToneCategory | null) => void
 
   // テーマ
   theme: 'dark' | 'light' | 'system'
@@ -132,6 +137,10 @@ export const useUIStore = create<UIStore>((set) => ({
   // 伝統色フィルター
   activeTraditionalFilter: false,
   setActiveTraditionalFilter: (active) => set({ activeTraditionalFilter: active }),
+
+  // トーンフィルター
+  activeToneFilter: null,
+  setActiveToneFilter: (tone) => set({ activeToneFilter: tone }),
 
   // テーマ
   theme: 'dark',
