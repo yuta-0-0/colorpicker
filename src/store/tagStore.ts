@@ -120,9 +120,18 @@ export const useTagStore = create<TagStore>((set, get) => ({
       .from('tags')
       .update({ name: trimmed })
       .eq('id', id)
-    if (error) throw error
+    if (error) {
+      set({ error: error.message })
+      return
+    }
     set((state) => ({
       tags: state.tags.map((t) => t.id === id ? { ...t, name: trimmed } : t),
+      colorTags: Object.fromEntries(
+        Object.entries(state.colorTags).map(([colorId, tags]) => [
+          colorId,
+          tags.map((t) => t.id === id ? { ...t, name: trimmed } : t),
+        ])
+      ),
     }))
   },
 
