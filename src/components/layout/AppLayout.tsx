@@ -207,13 +207,26 @@ export function AppLayout() {
     const g = parseInt(hex.slice(3, 5), 16) / 255
     const b = parseInt(hex.slice(5, 7), 16) / 255
     const max = Math.max(r, g, b), min = Math.min(r, g, b)
-    if (max === min) return 0
+    const l = (max + min) / 2
     const d = max - min
+    const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1))
+
+    // 無彩色（彩度 12% 未満）→ 末尾: グレー(700) / 白(800) / 黒(900)
+    if (s < 0.12) {
+      if (l > 0.85) return 800  // 白
+      if (l < 0.25) return 900  // 黒
+      return 700                // グレー
+    }
+
+    // 有彩色: HSL 色相を計算
     let h = 0
     if (max === r) h = ((g - b) / d) % 6
     else if (max === g) h = (b - r) / d + 2
     else h = (r - g) / d + 4
-    return Math.round(h * 60 + (h < 0 ? 360 : 0))
+    h = Math.round(h * 60 + (h < 0 ? 360 : 0))
+
+    // 赤の折り返し正規化: hue 340-360 を -20〜0 にマップして赤グループを先頭に統一
+    return h >= 340 ? h - 360 : h
   }
 
   function getToneOrder(hex: string): number {
