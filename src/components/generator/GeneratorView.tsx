@@ -57,6 +57,8 @@ export function GeneratorView() {
   const isTwoColorMode = mode === 'bridge'
 
   const [activeScheme, setActiveScheme] = useState<ColorScheme>('complementary')
+  const [confirmedScheme, setConfirmedScheme] = useState<ColorScheme>('complementary')
+  const [isPendingConfirm, setIsPendingConfirm] = useState(false)
   const [multiPattern, setMultiPattern] = useState<MultiColorPattern>('harmony')
   const [multiInputs, setMultiInputs] = useState<string[]>(() => {
     const { bulkSelectedIds } = useUIStore.getState()
@@ -120,6 +122,28 @@ export function GeneratorView() {
     const tmp = inputValue
     setInputValue(subInputValue)
     setSubInputValue(tmp)
+  }
+
+  // 1色モード: パターン選択 → プレビュー状態へ
+  const handleSelectScheme = (scheme: ColorScheme) => {
+    setActiveScheme(scheme)
+    setIsPendingConfirm(scheme !== confirmedScheme)
+  }
+
+  // 確定: 全色保存 + 確定状態を更新
+  const handleConfirm = async () => {
+    if (generatedColors.length === 0) return
+    setSavingAll(true)
+    for (const hex of generatedColors) await addColor(hex)
+    setSavingAll(false)
+    setConfirmedScheme(activeScheme)
+    setIsPendingConfirm(false)
+  }
+
+  // キャンセル: 確定済みパターンに戻す
+  const handleCancelPreview = () => {
+    setActiveScheme(confirmedScheme)
+    setIsPendingConfirm(false)
   }
 
   return (
@@ -232,7 +256,7 @@ export function GeneratorView() {
                 {ALL_SCHEMES.map((scheme) => (
                   <button
                     key={scheme}
-                    onClick={() => setActiveScheme(scheme)}
+                    onClick={() => handleSelectScheme(scheme)}
                     type="button"
                     className={[
                       'px-3 py-1.5 text-xs rounded-full border transition-colors',
@@ -420,11 +444,16 @@ export function GeneratorView() {
         {generatedColors.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-text-muted">
-                {mode === 'bridge' ? `2色ブリッジ（${generatedColors.length}色）`
-                  : mode === 'multi' ? `${MULTI_PATTERN_LABELS[multiPattern]}（${generatedColors.length}色）`
-                  : `生成結果（${generatedColors.length}色）`}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-text-muted">
+                  {mode === 'bridge' ? `2色ブリッジ（${generatedColors.length}色）`
+                    : mode === 'multi' ? `${MULTI_PATTERN_LABELS[multiPattern]}（${generatedColors.length}色）`
+                    : `生成結果（${generatedColors.length}色）`}
+                </p>
+                {isPendingConfirm && mode === 'single' && (
+                  <span className="text-xs bg-accent/15 text-accent px-1.5 py-0.5 rounded-full">プレビュー</span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -434,14 +463,37 @@ export function GeneratorView() {
                 >
                   UIテスト ↗
                 </button>
-                <button
-                  onClick={handleSaveAll}
-                  disabled={savingAll}
-                  type="button"
-                  className="px-3 py-1 text-xs bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-lg transition-colors"
-                >
-                  {savingAll ? '保存中...' : 'すべて保存'}
-                </button>
+                {/* 1色モード: 確定フロー / それ以外: すべて保存 */}
+                {mode === 'single' ? (
+                  <div className="flex items-center gap-1.5">
+                    {isPendingConfirm && (
+                      <button
+                        type="button"
+                        onClick={handleCancelPreview}
+                        className="px-3 py-1 text-xs border border-border text-text-muted hover:text-text-primary hover:border-text-muted rounded-lg transition-colors"
+                      >
+                        キャンセル
+                      </button>
+                    )}
+                    <button
+                      onClick={handleConfirm}
+                      disabled={savingAll}
+                      type="button"
+                      className="px-3 py-1 text-xs bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-lg transition-colors"
+                    >
+                      {savingAll ? '保存中...' : isPendingConfirm ? 'この組み合わせを使う' : 'すべて保存'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleSaveAll}
+                    disabled={savingAll}
+                    type="button"
+                    className="px-3 py-1 text-xs bg-accent hover:bg-accent-hover disabled:opacity-50 text-white rounded-lg transition-colors"
+                  >
+                    {savingAll ? '保存中...' : 'すべて保存'}
+                  </button>
+                )}
               </div>
             </div>
 
