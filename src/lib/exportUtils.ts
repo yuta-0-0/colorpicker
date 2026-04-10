@@ -57,7 +57,7 @@ export function generatePaletteSVG(
     return `
       <circle cx="${cx}" cy="${cy}" r="${iconSize / 2}" fill="${c.hex}" />
       <text x="${20 + iconSize + 16}" y="${cy - 6}" font-size="14" fill="#ffffff" font-family="monospace">${formatCode(c)}</text>
-      <text x="${20 + iconSize + 16}" y="${cy + 14}" font-size="12" fill="#aaaaaa" font-family="sans-serif">${c.name}</text>
+      <text x="${20 + iconSize + 16}" y="${cy + 14}" font-size="12" fill="#aaaaaa" font-family="sans-serif">${c.name || c.hex}</text>
     `
   }).join('\n')
 
@@ -243,4 +243,107 @@ export function downloadASE(colors: Color[], filename: string) {
   const buffer = generateASE(colors)
   const blob = new Blob([buffer], { type: 'application/octet-stream' })
   downloadBlob(blob, filename)
+}
+
+// ---- 透明背景の丸アイコン PNG（1色1ファイル）----
+
+/**
+ * 指定した色の丸アイコンを透明背景の PNG Blob として生成する。
+ * Canvas API を使用するためブラウザ環境専用。
+ */
+export async function generateColorCirclePNG(
+  hex: string,
+  alpha: number,
+  size: number
+): Promise<Blob> {
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+
+  ctx.clearRect(0, 0, size, size) // 透明背景
+  ctx.beginPath()
+  ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+  ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
+  ctx.fill()
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('PNG 生成に失敗しました'))
+    }, 'image/png')
+  })
+}
+
+/**
+ * 複数の色を1色1ファイルの透明背景PNG にして ZIP でダウンロードする。
+ */
+export async function downloadColorPNGsAsZip(
+  colors: Color[],
+  size: number,
+  zipName: string
+): Promise<void> {
+  const { default: JSZip } = await import('jszip')
+  const zip = new JSZip()
+  const folder = zip.folder(zipName) ?? zip
+
+  for (const color of colors) {
+    const blob = await generateColorCirclePNG(color.hex, color.alpha, size)
+    const rawName = (color.name || color.hex).replace(/[\\/:*?"<>|#]/g, '_')
+    folder.file(`${rawName}.png`, blob)
+  }
+
+  const content = await zip.generateAsync({ type: 'blob' })
+  downloadBlob(content, `${zipName}.zip`)
+}
+
+/**
+ * 色をクリップボードにコピーする。
+ * 可能な場合はPNG丸アイコン（64px）も一緒にコピーする。
+ * 非対応ブラウザはテキストのみにフォールバック。
+ */
+export async function copyColorToClipboard(hex: string, alpha: number, text: string): Promise<void> {
+  try {
+    const blob = await generateColorCirclePNG(hex, alpha, 64)
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'image/png': blob,
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      }),
+    ])
+  } catch {
+    // ClipboardItem 非対応 or 権限なし → テキストのみ
+    await navigator.clipboard.writeText(text)
+  }
+}
+
+/**
+ * SVG（パレット）と PNG（丸アイコン×色数）を1つの ZIP にまとめてダウンロードする。
+ */
+export async function downloadBothAsZip(
+  colors: Color[],
+  svgOptions: { format: 'HEX' | 'RGB' | 'HSL' | 'CMYK'; iconSize: 64 | 128 | 256 },
+  zipName: string
+): Promise<void> {
+  const { default: JSZip } = await import('jszip')
+  const zip = new JSZip()
+
+  // SVG をルートに追加
+  const svg = generatePaletteSVG(colors, svgOptions)
+  zip.file(`${zipName}-palette.svg`, svg)
+
+  // PNG フォルダを作成して各色を追加
+  const pngFolder = zip.folder('png') ?? zip
+  for (const color of colors) {
+    const blob = await generateColorCirclePNG(color.hex, color.alpha, svgOptions.iconSize)
+    const rawName = (color.name || color.hex).replace(/[\\/:*?"<>|#]/g, '_')
+    pngFolder.file(`${rawName}.png`, blob)
+  }
+
+  const content = await zip.generateAsync({ type: 'blob' })
+  downloadBlob(content, `${zipName}.zip`)
 }

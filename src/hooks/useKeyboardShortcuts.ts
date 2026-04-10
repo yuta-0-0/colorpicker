@@ -91,8 +91,9 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker }: Shortcu
         return
       }
 
-      // ⌘+Shift+C: スクリーンピッカー
-      if (key === 'c' && shift) {
+      // ⌘+Shift+E: スクリーンピッカー（E = Eyedropper）
+      // ⌘+Shift+C はElectron DevToolsと競合するため変更
+      if (key === 'e' && shift) {
         e.preventDefault()
         openScreenPicker()
         return

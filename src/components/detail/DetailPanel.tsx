@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ColorSwatch } from '@/components/color/ColorSwatch'
 import { IconButton } from '@/components/ui/IconButton'
 import { useUIStore } from '@/store/uiStore'
@@ -7,12 +7,33 @@ import { calcTAC, isTACWarning, isOutOfGamut, cmykSourceLabel } from '@/lib/prin
 import type { Color } from '@/types/database'
 import { TagInput } from '@/components/color/TagInput'
 import { ContrastChecker } from '@/components/detail/ContrastChecker'
+import { copyColorToClipboard } from '@/lib/exportUtils'
+import { getEnglishColorName, getKatakanaColorName, getTraditionalColorNameSync } from '@/lib/colorUtils'
+import {
+  IconStar, IconStarFilled,
+  IconLock, IconLockOpen,
+  IconArchive, IconArchiveOut,
+  IconX, IconCopy, IconCheck, IconPencil,
+} from '@/components/ui/Icons'
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return {
     r: parseInt(hex.slice(1, 3), 16),
     g: parseInt(hex.slice(3, 5), 16),
     b: parseInt(hex.slice(5, 7), 16),
+  }
+}
+
+function rgbToCmyk(r: number, g: number, b: number): { c: number; m: number; y: number; k: number } {
+  const rn = r / 255, gn = g / 255, bn = b / 255
+  const k = 1 - Math.max(rn, gn, bn)
+  if (k >= 1) return { c: 0, m: 0, y: 0, k: 100 }
+  const d = 1 - k
+  return {
+    c: Math.round((1 - rn - k) / d * 100),
+    m: Math.round((1 - gn - k) / d * 100),
+    y: Math.round((1 - bn - k) / d * 100),
+    k: Math.round(k * 100),
   }
 }
 
@@ -45,16 +66,27 @@ function formatColor(color: Color, format: string): string {
       if (color.c != null && color.m != null && color.y != null && color.k != null) {
         return `C${Math.round(color.c)} M${Math.round(color.m)} Y${Math.round(color.y)} K${Math.round(color.k)}`
       }
-      return '未入力'
+      const approx = rgbToCmyk(r, g, b)
+      return `C${approx.c} M${approx.m} Y${approx.y} K${approx.k}（近似値）`
     }
     default: return color.hex
   }
 }
 
-function FormatRow({ label, value, onCopy }: { label: string; value: string; onCopy: () => void }) {
+function FormatRow({ label, value, onCopy, colorHex, colorAlpha }: {
+  label: string
+  value: string
+  onCopy: () => void
+  colorHex?: string
+  colorAlpha?: number
+}) {
   const [copied, setCopied] = useState(false)
   const handleCopy = () => {
-    navigator.clipboard.writeText(value)
+    if (colorHex && label === 'HEX') {
+      copyColorToClipboard(colorHex, colorAlpha ?? 1, value)
+    } else {
+      navigator.clipboard.writeText(value)
+    }
     setCopied(true)
     onCopy()
     setTimeout(() => setCopied(false), 1500)
@@ -63,8 +95,8 @@ function FormatRow({ label, value, onCopy }: { label: string; value: string; onC
     <div className="flex items-center gap-2 py-1.5 border-b border-border/50 last:border-0">
       <span className="text-xs text-text-muted w-10 flex-shrink-0">{label}</span>
       <span className="flex-1 text-xs text-text-secondary font-mono truncate">{value}</span>
-      <button onClick={handleCopy} type="button" className="text-xs text-text-muted hover:text-text-primary transition-colors flex-shrink-0">
-        {copied ? '✓' : '⎘'}
+      <button onClick={handleCopy} type="button" className="text-text-muted hover:text-text-primary transition-colors flex-shrink-0">
+        {copied ? <IconCheck size={13} /> : <IconCopy size={13} />}
       </button>
     </div>
   )
@@ -87,12 +119,26 @@ export function DetailPanel({ color }: DetailPanelProps) {
   const [bgMode, setBgMode] = useState<'dark' | 'light'>('dark')
   const [isEditingName, setIsEditingName] = useState(false)
   const [nameValue, setNameValue] = useState('')
+  const [enName, setEnName] = useState('')
+  const [katakanaName, setKatakanaName] = useState('')
+  const [traditionalName, setTraditionalName] = useState('')
+
+  useEffect(() => {
+    if (!color) return
+    setEnName('')
+    setKatakanaName('')
+    setTraditionalName(getTraditionalColorNameSync(color.hex))
+    getEnglishColorName(color.hex).then(setEnName)
+    getKatakanaColorName(color.hex).then(setKatakanaName)
+  }, [color?.hex])
   const [isEditingMemo, setIsEditingMemo] = useState(false)
   const [memoValue, setMemoValue] = useState('')
   const [isEditingSpotColor, setIsEditingSpotColor] = useState(false)
   const [spotColorValue, setSpotColorValue] = useState('')
   const [cmykDraft, setCmykDraft] = useState<CmykDraft>({ c: 0, m: 0, y: 0, k: 0 })
   const [isEditingCmyk, setIsEditingCmyk] = useState(false)
+  const [isEditingHex, setIsEditingHex] = useState(false)
+  const [hexDraft, setHexDraft] = useState('')
 
   const handleClose = () => {
     setSelectedColorId(null)
@@ -121,12 +167,13 @@ export function DetailPanel({ color }: DetailPanelProps) {
 
   const handleCmykEdit = () => {
     if (!color) return
-    setCmykDraft({
-      c: color.c ?? 0,
-      m: color.m ?? 0,
-      y: color.y ?? 0,
-      k: color.k ?? 0,
-    })
+    // 手動入力値があればそれを、なければRGBから近似値を計算して初期値に
+    if (color.c != null && color.m != null && color.y != null && color.k != null) {
+      setCmykDraft({ c: color.c, m: color.m, y: color.y, k: color.k })
+    } else {
+      const { r, g, b } = hexToRgb(color.hex)
+      setCmykDraft(rgbToCmyk(r, g, b))
+    }
     setIsEditingCmyk(true)
   }
 
@@ -144,6 +191,16 @@ export function DetailPanel({ color }: DetailPanelProps) {
 
   const handleCmykCancel = () => {
     setIsEditingCmyk(false)
+  }
+
+  const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(hexDraft)
+
+  const handleHexSave = () => {
+    if (!color || !isValidHex) { setIsEditingHex(false); return }
+    if (hexDraft.toUpperCase() !== color.hex) {
+      updateColor(color.id, { hex: hexDraft.toUpperCase() })
+    }
+    setIsEditingHex(false)
   }
 
   const handleCmykChannelChange = (channel: keyof CmykDraft, value: string) => {
@@ -178,7 +235,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
             active={color.is_favorite}
             title={color.is_favorite ? 'お気に入り解除' : 'お気に入り'}
           >
-            {color.is_favorite ? '★' : '☆'}
+            {color.is_favorite ? <IconStarFilled size={14} /> : <IconStar size={14} />}
           </IconButton>
           {/* ロック */}
           <IconButton
@@ -186,25 +243,37 @@ export function DetailPanel({ color }: DetailPanelProps) {
             active={color.is_locked}
             title={color.is_locked ? 'ロック解除' : 'ロックする'}
           >
-            {color.is_locked ? '🔒' : '🔓'}
+            {color.is_locked ? <IconLock size={14} /> : <IconLockOpen size={14} />}
           </IconButton>
           {/* アーカイブ */}
           <IconButton
             onClick={() => updateColor(color.id, { is_archived: !color.is_archived })}
             title={color.is_archived ? 'アーカイブ解除' : 'アーカイブ'}
           >
-            {color.is_archived ? '📤' : '📥'}
+            {color.is_archived ? <IconArchiveOut size={14} /> : <IconArchive size={14} />}
           </IconButton>
         </div>
-        <IconButton onClick={handleClose} title="閉じる">✕</IconButton>
+        <IconButton onClick={handleClose} title="閉じる"><IconX size={14} /></IconButton>
       </div>
 
-      {/* 丸アイコン + 背景切り替え */}
+      {/* 丸アイコン + 背景切り替え：透明度がある場合は実際に透けて見えるよう表示 */}
       <div
         className="flex items-center justify-center py-8 relative transition-colors"
         style={{ backgroundColor: bgMode === 'dark' ? '#111' : '#f5f5f5' }}
       >
-        <ColorSwatch hex={color.hex} alpha={color.alpha} size="lg" />
+        {/* alpha < 1 の場合は CSS rgba で実際の透過を表現（チェッカー柄ではなく背景が透けて見える） */}
+        {color.alpha < 1 ? (
+          <div
+            className="rounded-full flex-shrink-0"
+            style={{
+              width: 72,
+              height: 72,
+              backgroundColor: `rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${color.alpha})`,
+            }}
+          />
+        ) : (
+          <ColorSwatch hex={color.hex} alpha={color.alpha} size="lg" />
+        )}
         <div className="absolute bottom-2 right-2 flex gap-1">
           <button onClick={() => setBgMode('dark')} type="button" className={['w-5 h-5 rounded-full bg-black border transition-all', bgMode === 'dark' ? 'border-accent scale-110' : 'border-border'].join(' ')} />
           <button onClick={() => setBgMode('light')} type="button" className={['w-5 h-5 rounded-full bg-white border transition-all', bgMode === 'light' ? 'border-accent scale-110' : 'border-border'].join(' ')} />
@@ -212,8 +281,9 @@ export function DetailPanel({ color }: DetailPanelProps) {
       </div>
 
       <div className="flex-1 px-4 py-3 space-y-4">
-        {/* 色名（クリックで編集） */}
-        <div>
+        {/* 色名エリア */}
+        <div className="space-y-1.5">
+          {/* 編集可能な色名（ユーザー設定名 or デフォルトはHEX） */}
           {isEditingName ? (
             <input
               type="text"
@@ -228,17 +298,75 @@ export function DetailPanel({ color }: DetailPanelProps) {
             <button
               onClick={() => { if (!color.is_locked) { setNameValue(color.name); setIsEditingName(true) } }}
               type="button"
-              className="text-base font-medium text-text-primary hover:text-accent transition-colors text-left w-full truncate disabled:cursor-not-allowed"
+              className="text-base font-medium text-text-primary hover:text-accent transition-colors text-left w-full truncate"
               title={color.is_locked ? 'ロック中のため編集できません' : 'クリックして編集'}
             >
               {color.name || color.hex}
             </button>
           )}
+
+          {/* 英語名 */}
+          {enName && (
+            <p className="text-xs text-text-muted truncate">{enName}</p>
+          )}
+
+          {/* カタカナ名 */}
+          {katakanaName && (
+            <p className="text-xs text-text-muted truncate">{katakanaName}</p>
+          )}
+
+          {/* 伝統色名（距離閾値内の場合のみ表示） */}
+          {traditionalName && (
+            <p className="text-xs text-text-muted truncate">{traditionalName}</p>
+          )}
         </div>
 
         {/* カラーコード */}
         <div>
-          <p className="text-xs text-text-muted mb-2">カラーコード</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-text-muted">カラーコード</p>
+            {!color.is_locked && !isEditingHex && (
+              <button
+                type="button"
+                onClick={() => { setHexDraft(color.hex); setIsEditingHex(true) }}
+                className="text-text-muted hover:text-text-primary transition-colors"
+                title="HEXを編集"
+              ><IconPencil size={13} /></button>
+            )}
+          </div>
+          {isEditingHex && (
+            <div className="mb-2 flex items-center gap-2">
+              <input
+                type="text"
+                value={hexDraft}
+                onChange={(e) => setHexDraft(e.target.value.toUpperCase())}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && isValidHex) handleHexSave()
+                  if (e.key === 'Escape') setIsEditingHex(false)
+                }}
+                onBlur={handleHexSave}
+                autoFocus
+                maxLength={7}
+                placeholder="#RRGGBB"
+                className={[
+                  'flex-1 bg-surface-overlay border rounded px-2 py-1 text-sm font-mono text-text-primary focus:outline-none transition-colors',
+                  isValidHex ? 'border-border focus:border-accent' : 'border-red-500/60',
+                ].join(' ')}
+              />
+              <button
+                type="button"
+                onClick={handleHexSave}
+                disabled={!isValidHex}
+                className="text-xs px-2 py-1 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white rounded transition-colors"
+              >保存</button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setIsEditingHex(false)}
+                className="text-xs px-2 py-1 bg-surface-raised hover:bg-surface-overlay text-text-secondary rounded transition-colors"
+              >✕</button>
+            </div>
+          )}
           <div className="bg-surface-raised rounded-lg px-3 py-1">
             {FORMATS.map((fmt) => (
               <FormatRow
@@ -246,6 +374,8 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 label={fmt}
                 value={formatColor(color, fmt)}
                 onCopy={() => incrementUsedCount(color.id)}
+                colorHex={color.hex}
+                colorAlpha={color.alpha}
               />
             ))}
           </div>
@@ -337,15 +467,23 @@ export function DetailPanel({ color }: DetailPanelProps) {
           ) : (
             <div className="space-y-2">
               {/* 表示モード */}
+              {!hasCmyk && (
+                <p className="text-xs text-text-muted">近似値（RGB変換）</p>
+              )}
               <div className="grid grid-cols-4 gap-1.5">
-                {(['c', 'm', 'y', 'k'] as const).map((ch) => (
-                  <div key={ch} className="text-center">
-                    <p className="text-xs text-text-muted uppercase">{ch}</p>
-                    <p className="text-sm font-mono text-text-primary">
-                      {color[ch] != null ? Math.round(color[ch]!) : '—'}
-                    </p>
-                  </div>
-                ))}
+                {(['c', 'm', 'y', 'k'] as const).map((ch) => {
+                  const { r, g, b } = hexToRgb(color.hex)
+                  const approx = rgbToCmyk(r, g, b)
+                  const displayVal = color[ch] != null ? Math.round(color[ch]!) : approx[ch]
+                  return (
+                    <div key={ch} className="text-center">
+                      <p className="text-xs text-text-muted uppercase">{ch}</p>
+                      <p className={['text-sm font-mono', hasCmyk ? 'text-text-primary' : 'text-text-muted'].join(' ')}>
+                        {displayVal}
+                      </p>
+                    </div>
+                  )
+                })}
               </div>
               {/* TAC 表示（保存済み値がある場合） */}
               {hasCmyk && tac !== null && (
@@ -363,7 +501,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
                   type="button"
                   className="w-full py-1 text-xs text-text-muted hover:text-text-primary bg-surface-raised hover:bg-surface-overlay rounded transition-colors"
                 >
-                  {hasCmyk ? 'CMYK を編集' : 'CMYK を入力'}
+                  {hasCmyk ? 'CMYK を編集' : '近似値をもとに入力'}
                 </button>
               )}
             </div>
