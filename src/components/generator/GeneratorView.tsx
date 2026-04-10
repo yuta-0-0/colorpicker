@@ -8,6 +8,8 @@ import {
   generateScheme,
   generateBridgeScheme,
   generatePaletteFromMultiple,
+  hexToHsl,
+  hslToHex,
   SCHEME_LABELS,
   ALL_SCHEMES,
   MULTI_PATTERN_LABELS,
@@ -157,14 +159,20 @@ export function GeneratorView() {
         </div>
 
         {/* ---- 1色モード ---- */}
-        {!isTwoColorMode && (
+        {!isTwoColorMode && mode !== 'multi' && (
           <>
             {/* ベース色入力 */}
             <div className="bg-surface-raised rounded-xl p-4 space-y-3">
               <p className="text-xs text-text-muted">ベース色</p>
               <div className="flex items-center gap-3">
                 <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 border border-border cursor-pointer">
-                  <div className="absolute inset-0 rounded-full" style={{ backgroundColor: isValid ? inputValue : '#888' }} />
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      backgroundColor: isValid ? inputValue : '#888',
+                      transition: 'background-color 80ms ease',
+                    }}
+                  />
                   <input
                     type="color"
                     value={isValid ? inputValue : '#888888'}
@@ -184,6 +192,15 @@ export function GeneratorView() {
                   ].join(' ')}
                 />
               </div>
+
+              {/* 色相スライダー */}
+              {isValid && (
+                <HueSlider
+                  hex={inputValue}
+                  onChange={(hex) => setInputValue(hex)}
+                />
+              )}
+
               {/* seedColors がある場合はクリックでベース色に設定 */}
               {seedColors.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/40">
@@ -430,7 +447,7 @@ export function GeneratorView() {
 
             <div className="bg-surface-raised rounded-xl overflow-hidden divide-y divide-border/50">
               {generatedColors.map((hex, index) => (
-                <div key={`${hex}-${index}`} className="flex items-center gap-3 px-4 py-2.5">
+                <div key={index} className="flex items-center gap-3 px-4 py-2.5">
                   <ColorSwatch hex={hex} alpha={1} size="sm" />
                   <span className="flex-1 text-sm font-mono text-text-primary">{hex}</span>
                   {/* ラベル */}
@@ -474,8 +491,12 @@ export function GeneratorView() {
             <div className="flex rounded-lg overflow-hidden h-7">
               {generatedColors.map((hex, index) => (
                 <div
-                  key={`bar-${hex}-${index}`}
-                  style={{ backgroundColor: hex, flex: ratios[index] ?? DEFAULT_RATIOS[index] ?? 1 }}
+                  key={index}
+                  style={{
+                    backgroundColor: hex,
+                    flex: ratios[index] ?? DEFAULT_RATIOS[index] ?? 1,
+                    transition: 'background-color 80ms ease, flex 150ms ease',
+                  }}
                   title={`${hex} ${ratios[index] ?? DEFAULT_RATIOS[index] ?? 5}%`}
                 />
               ))}
@@ -493,6 +514,50 @@ export function GeneratorView() {
               : '有効な HEX カラーコードを入力してください'}
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ---- 色相スライダー ----
+
+/**
+ * 現在の色の Saturation / Lightness を維持したまま、色相（Hue）だけを変えるスライダー。
+ * トラックは虹色グラデーション（その色の S/L で固定）。
+ */
+function HueSlider({ hex, onChange }: { hex: string; onChange: (hex: string) => void }) {
+  const [h, s, l] = hexToHsl(hex)
+
+  // トラック用グラデーション：同じ S/L で H を 0〜360 変化
+  const gradientStops = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]
+    .map((deg) => hslToHex(deg, s, l))
+    .join(', ')
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-text-muted">色相</span>
+        <span className="text-xs font-mono text-text-muted">{h}°</span>
+      </div>
+      <div className="relative h-4 flex items-center">
+        {/* カラフルなトラック */}
+        <div
+          className="absolute inset-x-0 h-2 rounded-full"
+          style={{ background: `linear-gradient(to right, ${gradientStops})` }}
+        />
+        {/* サムの影用リング */}
+        <input
+          type="range"
+          min={0}
+          max={359}
+          value={h}
+          onChange={(e) => {
+            const newHue = parseInt(e.target.value)
+            onChange(hslToHex(newHue, s, l))
+          }}
+          className="relative w-full h-2 appearance-none bg-transparent cursor-pointer hue-slider"
+          style={{ zIndex: 1 }}
+        />
       </div>
     </div>
   )

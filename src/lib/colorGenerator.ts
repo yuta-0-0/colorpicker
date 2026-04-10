@@ -2,7 +2,7 @@
  * HEX 文字列を HSL のタプル [h, s, l] に変換する。
  * h: 0〜360, s: 0〜100, l: 0〜100
  */
-function hexToHsl(hex: string): [number, number, number] {
+export function hexToHsl(hex: string): [number, number, number] {
   const r = parseInt(hex.slice(1, 3), 16) / 255
   const g = parseInt(hex.slice(3, 5), 16) / 255
   const b = parseInt(hex.slice(5, 7), 16) / 255
@@ -30,7 +30,7 @@ function hexToHsl(hex: string): [number, number, number] {
  * HSL を HEX 文字列（#RRGGBB 大文字）に変換する。
  * h: 0〜360, s: 0〜100, l: 0〜100
  */
-function hslToHex(h: number, s: number, l: number): string {
+export function hslToHex(h: number, s: number, l: number): string {
   const sn = s / 100
   const ln = l / 100
   const a = sn * Math.min(ln, 1 - ln)
