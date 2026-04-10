@@ -1,21 +1,67 @@
-// nearest-color は CommonJS モジュールのため dynamic import で対応
-let nearestColorFn: ((hex: string) => { name: string; value: string } | null) | null = null
+import { JAPANESE_TRADITIONAL_COLORS } from './data/japaneseTraditionalColors'
+import { toKatakana } from './katakana'
 
-async function getNearestColor() {
-  if (nearestColorFn) return nearestColorFn
-  const nearestColor = (await import('nearest-color')).default
-  const colorNameList = (await import('color-name-list')) as unknown as { name: string; hex: string }[]
-  const colors: Record<string, string> = {}
-  for (const c of colorNameList) {
-    colors[c.name] = c.hex
-  }
-  nearestColorFn = nearestColor.from(colors)
-  return nearestColorFn
+// ---- ユーティリティ ----
+
+function hexToRgb255(hex: string): [number, number, number] {
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ]
 }
 
-export async function getColorName(hex: string): Promise<string> {
+// ---- 伝統色名（同期・距離閾値付き） ----
+// 閾値40: RGB空間でユークリッド距離が40以下の場合のみ伝統色名を返す
+// 遠い色には空文字を返すことで「似てない色に同じ伝統色が割り当たる」問題を防ぐ
+const TRADITIONAL_THRESHOLD = 40
+
+export function getTraditionalColorNameSync(hex: string): string {
+  const [r, g, b] = hexToRgb255(hex)
+  let bestName = ''
+  let bestDist = Infinity
+  for (const [name, value] of Object.entries(JAPANESE_TRADITIONAL_COLORS)) {
+    const [tr, tg, tb] = hexToRgb255(value)
+    const dist = Math.sqrt((r - tr) ** 2 + (g - tg) ** 2 + (b - tb) ** 2)
+    if (dist < bestDist) {
+      bestDist = dist
+      bestName = name
+    }
+  }
+  return bestDist <= TRADITIONAL_THRESHOLD ? bestName : ''
+}
+
+/** 日本の伝統色名（距離閾値あり・近い色のみ返す） */
+export async function getTraditionalColorName(hex: string): Promise<string> {
+  return getTraditionalColorNameSync(hex)
+}
+
+/** 伝統色が存在するかどうか（フィルター用） */
+export function hasTraditionalColor(hex: string): boolean {
+  return getTraditionalColorNameSync(hex) !== ''
+}
+
+// ---- 英語色名（color-name-list 最近傍） ----
+
+let nearestEnFn: ((hex: string) => { name: string; value: string } | null) | null = null
+
+async function getNearestEn() {
+  if (nearestEnFn) return nearestEnFn
+  const nearestColor = (await import('nearest-color')).default
+  const { colornames } = await import('color-name-list')
+  const list = colornames as { name: string; hex: string }[]
+  const map: Record<string, string> = {}
+  for (const c of list) {
+    map[c.name] = c.hex
+  }
+  nearestEnFn = nearestColor.from(map)
+  return nearestEnFn
+}
+
+/** 英語色名（color-name-list 最近傍） */
+export async function getEnglishColorName(hex: string): Promise<string> {
   try {
-    const fn = await getNearestColor()
+    const fn = await getNearestEn()
     const result = fn?.(hex)
     return result?.name ?? hex
   } catch {
@@ -23,12 +69,29 @@ export async function getColorName(hex: string): Promise<string> {
   }
 }
 
-// HEXフォーマットバリデーション
+/** 英語色名をカタカナに変換して返す */
+export async function getKatakanaColorName(hex: string): Promise<string> {
+  const en = await getEnglishColorName(hex)
+  if (en === hex) return ''
+  return toKatakana(en)
+}
+
+/**
+ * 色を新規保存するときの自動命名（伝統色名 → 英語名フォールバック）
+ * 伝統色が見つかれば伝統色名、なければ英語名を使う
+ */
+export async function getColorName(hex: string): Promise<string> {
+  const traditional = getTraditionalColorNameSync(hex)
+  if (traditional) return traditional
+  return getEnglishColorName(hex)
+}
+
+// ---- カラーコードバリデーション ----
+
 export function isValidHex(value: string): boolean {
   return /^#[0-9A-Fa-f]{6}$/.test(value)
 }
 
-// RGB文字列 → HEX変換（例: "rgb(255, 0, 0)" → "#ff0000"）
 export function rgbStringToHex(rgb: string): string | null {
   const match = rgb.match(/rgb\(\s*(\d+),\s*(\d+),\s*(\d+)\s*\)/)
   if (!match) return null
@@ -38,7 +101,6 @@ export function rgbStringToHex(rgb: string): string | null {
   return `#${r}${g}${b}`
 }
 
-// HSL文字列 → HEX変換（例: "hsl(0, 100%, 50%)" → "#ff0000"）
 export function hslStringToHex(hsl: string): string | null {
   const match = hsl.match(/hsl\(\s*(\d+),\s*(\d+)%,\s*(\d+)%\s*\)/)
   if (!match) return null
@@ -69,7 +131,6 @@ export function hslStringToHex(hsl: string): string | null {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
-// 入力文字列を正規化して HEX に変換（#RRGGBB / rgb() / hsl() に対応）
 export function normalizeToHex(input: string): string | null {
   const trimmed = input.trim()
   if (isValidHex(trimmed)) return trimmed.toUpperCase()
