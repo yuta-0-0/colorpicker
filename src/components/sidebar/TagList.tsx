@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useState } from 'react'
 import { useTagStore } from '@/store/tagStore'
 import type { Tag } from '@/types/database'
 
@@ -12,7 +12,7 @@ export function TagList({ activeTagId, onSelectTag }: TagListProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const isSubmittingRef = React.useRef(false)
 
   const startEdit = (tag: Tag) => {
     setEditingId(tag.id)
@@ -25,19 +25,28 @@ export function TagList({ activeTagId, onSelectTag }: TagListProps) {
     setEditValue('')
   }
 
-  const handleSaveEdit = async (e?: React.FormEvent | React.FocusEvent) => {
+  const handleSaveEdit = async (e?: React.SyntheticEvent) => {
     e?.preventDefault()
-    if (!editingId || !editValue.trim()) {
+    if (isSubmittingRef.current) return
+    isSubmittingRef.current = true
+    try {
+      if (!editingId || !editValue.trim()) {
+        cancelEdit()
+        return
+      }
+      await updateTag(editingId, editValue)
       cancelEdit()
-      return
+    } finally {
+      isSubmittingRef.current = false
     }
-    await updateTag(editingId, editValue)
-    cancelEdit()
   }
 
   const handleDeleteConfirm = async (id: string) => {
-    await deleteTag(id)
-    setConfirmingDeleteId(null)
+    try {
+      await deleteTag(id)
+    } finally {
+      setConfirmingDeleteId(null)
+    }
   }
 
   if (tags.length === 0) {
@@ -55,7 +64,6 @@ export function TagList({ activeTagId, onSelectTag }: TagListProps) {
           {editingId === tag.id ? (
             <form onSubmit={handleSaveEdit} className="flex-1 min-w-0">
               <input
-                ref={inputRef}
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit() }}
@@ -98,7 +106,10 @@ export function TagList({ activeTagId, onSelectTag }: TagListProps) {
               {/* 削除ボタン */}
               <button
                 type="button"
-                onClick={() => setConfirmingDeleteId(tag.id)}
+                onClick={() => {
+                  cancelEdit()
+                  setConfirmingDeleteId(tag.id)
+                }}
                 className="p-0.5 text-text-muted hover:text-danger rounded transition-colors"
                 title="タグを削除"
               >

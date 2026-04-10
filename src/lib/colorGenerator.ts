@@ -101,3 +101,109 @@ export const ALL_SCHEMES: ColorScheme[] = [
   'tetradic',
   'split-complementary',
 ]
+
+export type MultiColorPattern = 'harmony' | 'contrast' | 'blend'
+
+export const MULTI_PATTERN_LABELS: Record<MultiColorPattern, string> = {
+  harmony: 'ハーモニー',
+  contrast: 'コントラスト',
+  blend: 'ブレンド',
+}
+
+/** 円環上の平均色相（0〜360）を返す。 */
+function circularMeanHue(hues: number[]): number {
+  const sinSum = hues.reduce((s, h) => s + Math.sin((h * Math.PI) / 180), 0)
+  const cosSum = hues.reduce((s, h) => s + Math.cos((h * Math.PI) / 180), 0)
+  const mean = Math.atan2(sinSum / hues.length, cosSum / hues.length) * (180 / Math.PI)
+  return Math.round((mean + 360) % 360)
+}
+
+/**
+ * 複数の起点色から配色パレットを生成する。
+ * - harmony : 起点色の平均色相を中心に類似色5色を加えた調和パレット
+ * - contrast: 起点色それぞれに補色を追加した高コントラストパレット
+ * - blend   : 起点色を色相順にソートし隣接間を補間した連続グラデーション
+ * 重複は除去し最大8色を返す。
+ */
+export function generatePaletteFromMultiple(
+  baseHexes: string[],
+  pattern: MultiColorPattern,
+): string[] {
+  if (baseHexes.length === 0) return []
+  if (baseHexes.length === 1) return generateScheme(baseHexes[0], 'analogous')
+
+  const hslValues = baseHexes.map((h) => hexToHsl(h))
+
+  switch (pattern) {
+    case 'blend': {
+      // 色相順にソートして隣接ペアを補間
+      const sorted = hslValues
+        .map((hsl, i) => ({ hsl, hex: baseHexes[i] }))
+        .sort((a, b) => a.hsl[0] - b.hsl[0])
+      const result: string[] = []
+      for (let i = 0; i < sorted.length; i++) {
+        result.push(sorted[i].hex)
+        if (i < sorted.length - 1) {
+          const [h1, s1, l1] = sorted[i].hsl
+          const [h2, s2, l2] = sorted[i + 1].hsl
+          let diff = h2 - h1
+          if (diff > 180) diff -= 360
+          if (diff < -180) diff += 360
+          result.push(
+            hslToHex(
+              ((h1 + diff * 0.5) + 360) % 360,
+              Math.round((s1 + s2) / 2),
+              Math.round((l1 + l2) / 2),
+            ),
+          )
+        }
+      }
+      return [...new Set(result)].slice(0, 8)
+    }
+
+    case 'harmony': {
+      // 起点色の平均色相を中心に30°ずつ5色を生成して混合
+      const avgH = circularMeanHue(hslValues.map((h) => h[0]))
+      const avgS = Math.round(hslValues.reduce((s, h) => s + h[1], 0) / hslValues.length)
+      const avgL = Math.round(hslValues.reduce((s, h) => s + h[2], 0) / hslValues.length)
+      const harmonics = [-30, -15, 0, 15, 30].map((offset) =>
+        hslToHex((avgH + offset + 360) % 360, avgS, avgL),
+      )
+      return [...new Set([...baseHexes, ...harmonics])].slice(0, 8)
+    }
+
+    case 'contrast': {
+      // 各起点色に補色を追加
+      const result = [...baseHexes]
+      for (const [h, s, l] of hslValues) {
+        result.push(hslToHex((h + 180) % 360, s, l))
+      }
+      return [...new Set(result)].slice(0, 8)
+    }
+  }
+}
+
+/**
+ * 2色間を橋渡しする配色を生成する。
+ * 2色の色相を均等に補間した5色パレットを返す。
+ */
+export function generateBridgeScheme(hex1: string, hex2: string): string[] {
+  const [h1, s1, l1] = hexToHsl(hex1)
+  const [h2, s2, l2] = hexToHsl(hex2)
+
+  // 短い方向の色相差
+  let hueDiff = h2 - h1
+  if (hueDiff > 180) hueDiff -= 360
+  if (hueDiff < -180) hueDiff += 360
+
+  const midS = Math.round((s1 + s2) / 2)
+  const midL = Math.round(Math.max(30, Math.min(70, (l1 + l2) / 2)))
+
+  return [
+    hex1,
+    hslToHex((h1 + hueDiff * 0.25 + 360) % 360, midS, midL),
+    hslToHex((h1 + hueDiff * 0.5 + 360) % 360, midS, midL),
+    hslToHex((h1 + hueDiff * 0.75 + 360) % 360, midS, midL),
+    hex2,
+  ]
+}

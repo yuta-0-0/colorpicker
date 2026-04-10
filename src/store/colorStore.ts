@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
-import { getColorName } from '@/lib/colorUtils'
 import { useToastStore } from '@/store/toastStore'
 import type { Color, ColorInsert, ColorUpdate } from '@/types/database'
 
@@ -22,7 +21,10 @@ interface ColorStore {
   fetchColors: (folderId?: string | null) => Promise<void>
 
   // 色追加（同一HEXは重複しない）
-  addColor: (hex: string, alpha?: number, folderId?: string | null) => Promise<Color | null>
+  addColor: (hex: string, alpha?: number, folderId?: string | null, options?: { name?: string }) => Promise<Color | null>
+
+  // 初回ログイン時のデフォルト色シード
+  seedDefaultColors: () => Promise<void>
 
   // 色更新（名前・メモ・お気に入り・ロック・アーカイブ等）
   updateColor: (id: string, updates: ColorUpdate) => Promise<void>
@@ -108,7 +110,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     }
   },
 
-  addColor: async (hex, alpha = 1.0, folderId = null) => {
+  addColor: async (hex, alpha = 1.0, folderId = null, options) => {
     get()._snapshot()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
@@ -127,8 +129,8 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       return existing
     }
 
-    // 新規追加
-    const name = await getColorName(hex)
+    // 新規追加（デフォルト名はHEXコード）
+    const name = options?.name ?? hex.toUpperCase()
     const newColor: ColorInsert = {
       user_id: user.id,
       folder_id: folderId,
@@ -245,5 +247,24 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     if (hasError) {
       set({ colors: previousColors, error: '並び替えの保存に失敗しました' })
     }
+  },
+
+  seedDefaultColors: async () => {
+    if (localStorage.getItem('colorpicker_defaults_seeded')) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const color = await get().addColor('#000000', 1.0, null, { name: 'リッチブラック' })
+    if (color) {
+      await db.from('colors')
+        .update({ c: 60, m: 40, y: 40, k: 100, cmyk_source: 'print_spec' })
+        .eq('id', color.id)
+      set((state) => ({
+        colors: state.colors.map((c) =>
+          c.id === color.id ? { ...c, c: 60, m: 40, y: 40, k: 100, cmyk_source: 'print_spec' } : c
+        ),
+      }))
+    }
+    localStorage.setItem('colorpicker_defaults_seeded', 'true')
   },
 }))

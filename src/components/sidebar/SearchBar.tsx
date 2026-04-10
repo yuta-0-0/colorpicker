@@ -14,7 +14,7 @@ export function SearchBar() {
 
   return (
     <div className="relative">
-      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted text-xs">
+      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted text-xs pointer-events-none">
         ⌘F
       </span>
       <input
@@ -23,8 +23,21 @@ export function SearchBar() {
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         placeholder="検索"
-        className="w-full pl-9 pr-3 py-1.5 bg-surface-overlay border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:outline-dashed focus:outline-2 focus:outline-offset-1 focus:outline-accent/50 transition-colors"
+        className="w-full pl-9 pr-7 py-1.5 bg-surface-overlay border border-border rounded-lg text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:outline-dashed focus:outline-2 focus:outline-offset-1 focus:outline-accent/50 transition-colors"
       />
+      {searchQuery && (
+        <button
+          type="button"
+          onClick={() => {
+            setSearchQuery('')
+            inputRef.current?.focus()
+          }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors text-xs leading-none"
+          aria-label="検索をクリア"
+        >
+          ✕
+        </button>
+      )}
     </div>
   )
 }

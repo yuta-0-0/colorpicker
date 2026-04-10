@@ -20,8 +20,21 @@ export function getContrastRatio(hex1: string, hex2: string): number {
   return Math.round(((lighter + 0.05) / (darker + 0.05)) * 100) / 100
 }
 
-export function getWCAGLevel(ratio: number): { AA: boolean; AAA: boolean } {
-  return { AA: ratio >= 4.5, AAA: ratio >= 7 }
+export type TextWeight = 'thin' | 'normal' | 'bold'
+
+/**
+ * WCAG 2.1 基準値（テキスト太さ別）
+ * - thin/normal（細め/標準）：通常テキスト AA=4.5, AAA=7
+ * - bold（太め）：太字は大きいテキスト扱い AA=3, AAA=4.5
+ */
+export function getWCAGThresholds(weight: TextWeight): { AA: number; AAA: number } {
+  if (weight === 'bold') return { AA: 3, AAA: 4.5 }
+  return { AA: 4.5, AAA: 7 }
+}
+
+export function getWCAGLevel(ratio: number, weight: TextWeight = 'normal'): { AA: boolean; AAA: boolean } {
+  const t = getWCAGThresholds(weight)
+  return { AA: ratio >= t.AA, AAA: ratio >= t.AAA }
 }
 
 /**
