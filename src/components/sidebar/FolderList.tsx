@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   DndContext,
   closestCenter,
@@ -150,16 +151,25 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
     <div className="space-y-0.5">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={folders.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-          {folders.map((folder) => (
-            <SortableFolderItem
-              key={folder.id}
-              folder={folder}
-              isActive={activeFolderId === folder.id}
-              onSelect={() => onSelectFolder(folder.id)}
-              onRename={(name) => renameFolder(folder.id, name)}
-              onDelete={() => deleteFolder(folder.id)}
-            />
-          ))}
+          <AnimatePresence initial={false}>
+            {folders.map((folder) => (
+              <motion.div
+                key={folder.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10, height: 0, overflow: 'hidden' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              >
+                <SortableFolderItem
+                  folder={folder}
+                  isActive={activeFolderId === folder.id}
+                  onSelect={() => onSelectFolder(folder.id)}
+                  onRename={(name) => renameFolder(folder.id, name)}
+                  onDelete={() => deleteFolder(folder.id)}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </SortableContext>
       </DndContext>
 
