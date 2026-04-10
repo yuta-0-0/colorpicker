@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { getPaletteSync } from 'colorthief'
 import { ColorSwatch } from './ColorSwatch'
 import { useColorStore } from '@/store/colorStore'
@@ -19,14 +19,26 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
   // スポイト
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const imgElementRef = useRef<HTMLImageElement | null>(null)
   const [eyedropperHex, setEyedropperHex] = useState<string | null>(null)
   const [savingEyedropper, setSavingEyedropper] = useState(false)
 
   // パレット
-  const imgElementRef = useRef<HTMLImageElement | null>(null)
   const [palette, setPalette] = useState<string[]>([])
   const [selectedHexes, setSelectedHexes] = useState<Set<string>>(new Set())
   const [savingPalette, setSavingPalette] = useState(false)
+
+  // imageLoaded が true になった後（canvasがDOMに現れた後）に描画する
+  useEffect(() => {
+    if (!imageLoaded) return
+    const img = imgElementRef.current
+    const canvas = canvasRef.current
+    if (!img || !canvas) return
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+    const ctx = canvas.getContext('2d')
+    if (ctx) ctx.drawImage(img, 0, 0)
+  }, [imageLoaded])
 
   // 画像ファイルを読み込んでcanvasに描画 + colorthiefでパレット抽出
   const loadImageFile = (file: File) => {
@@ -39,14 +51,7 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
 
     const img = new Image()
     img.onload = () => {
-      // canvas に描画（スポイト用）
-      const canvas = canvasRef.current
-      if (canvas) {
-        canvas.width = img.naturalWidth
-        canvas.height = img.naturalHeight
-        const ctx = canvas.getContext('2d')
-        if (ctx) ctx.drawImage(img, 0, 0)
-      }
+      // imgを先にrefに保存してからstateを更新（useEffectで描画するため）
       imgElementRef.current = img
       setImageLoaded(true)
 
@@ -131,6 +136,7 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
     if (imageObjectUrl) URL.revokeObjectURL(imageObjectUrl)
     setImageObjectUrl(null)
     setImageLoaded(false)
+    imgElementRef.current = null
     setEyedropperHex(null)
     setPalette([])
     setSelectedHexes(new Set())
@@ -138,11 +144,11 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
       onClick={onClose}
     >
       <div
-        className="bg-surface-raised border border-border rounded-2xl p-6 w-[420px] max-h-[90vh] overflow-y-auto shadow-2xl"
+        className="bg-surface-raised/90 backdrop-blur-md border border-border/50 rounded-2xl p-6 w-[420px] max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-sm font-medium text-text-primary mb-4">画像から色を取得</h2>

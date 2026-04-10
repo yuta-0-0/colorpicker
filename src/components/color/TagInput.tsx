@@ -123,7 +123,7 @@ export function TagInput({ colorId, isLocked }: TagInputProps) {
           {isOpen && (filteredTags.length > 0 || showCreateOption) && (
             <div
               ref={dropdownRef}
-              className="absolute top-full left-0 right-0 mt-1 bg-surface-raised border border-border rounded-lg shadow-lg z-50 overflow-hidden"
+              className="absolute top-full left-0 right-0 mt-1 bg-surface-raised/85 backdrop-blur-md border border-border/50 rounded-lg z-50 overflow-hidden"
             >
               {filteredTags.map((tag) => (
                 <button

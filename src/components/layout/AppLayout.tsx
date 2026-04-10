@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { ListView } from '@/components/views/ListView'
 import { GalleryView } from '@/components/views/GalleryView'
@@ -366,9 +367,19 @@ export function AppLayout() {
                 <GalleryView colors={displayColors} />
               )}
             </div>
-            {isDetailPanelOpen && selectedColor && (
-              <DetailPanel color={selectedColor} />
-            )}
+            <AnimatePresence>
+              {isDetailPanelOpen && selectedColor && (
+                <motion.div
+                  key="detail-panel"
+                  initial={{ x: 40, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: 40, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                >
+                  <DetailPanel color={selectedColor} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -428,7 +439,7 @@ function ExportMenu({ onVisualExport, onPaletteExport, onImport, onExportAll }: 
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 w-52 bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+          <div className="absolute right-0 top-full mt-1 w-52 bg-surface/85 backdrop-blur-md border border-border/50 rounded-lg z-50 overflow-hidden">
             {items.map((item) => (
               <button
                 key={item.label}

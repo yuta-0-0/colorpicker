@@ -1,4 +1,5 @@
 import React from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   DndContext,
   closestCenter,
@@ -172,8 +173,16 @@ export function ListView({ colors }: ListViewProps) {
   if (sortBy !== 'order') {
     return (
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+        <AnimatePresence initial={false}>
         {visibleColors.map((color, index) => (
-          <div key={color.id} className="flex items-center">
+          <motion.div
+            key={color.id}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6, height: 0, overflow: 'hidden' }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25, delay: Math.min(index, 8) * 0.03 }}
+            className="flex items-center"
+          >
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); toggleBulkSelect(color.id) }}
@@ -202,8 +211,9 @@ export function ListView({ colors }: ListViewProps) {
                 onDelete={(e) => handleDelete(color, e)}
               />
             </div>
-          </div>
+          </motion.div>
         ))}
+        </AnimatePresence>
       </div>
     )
   }
