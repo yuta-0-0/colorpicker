@@ -38,7 +38,7 @@ export function ColorSwatch({
         'relative rounded-full flex-shrink-0 transition-transform',
         SIZE_MAP[size],
         onClick ? 'cursor-pointer hover:scale-105' : 'cursor-default',
-        isSelected ? 'ring-2 ring-offset-2 ring-offset-surface ring-accent' : '',
+        isSelected ? 'ring-selection' : '',
         className,
       ].join(' ')}
       style={{ outline: 'none' }}

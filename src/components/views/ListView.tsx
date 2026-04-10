@@ -1,3 +1,4 @@
+import React from 'react'
 import {
   DndContext,
   closestCenter,
@@ -19,6 +20,8 @@ import { ColorListItem } from '@/components/color/ColorListItem'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import type { Color } from '@/types/database'
+import { copyColorToClipboard } from '@/lib/exportUtils'
+
 
 function SortableColorItem({
   color,
@@ -35,7 +38,7 @@ function SortableColorItem({
   isSelected: boolean
   isChecked: boolean
   isBulkMode: boolean
-  onSelect: () => void
+  onSelect: (e: React.MouseEvent) => void
   onCheck: () => void
   onCopy: (e: React.MouseEvent) => void
   onToggleFavorite: (e: React.MouseEvent) => void
@@ -104,8 +107,9 @@ interface ListViewProps {
 }
 
 export function ListView({ colors }: ListViewProps) {
-  const { selectedColorId, setSelectedColorId, showArchived, bulkSelectedIds, toggleBulkSelect, isBulkMode } = useUIStore()
+  const { selectedColorId, setSelectedColorId, showArchived, bulkSelectedIds, toggleBulkSelect, setBulkSelectedIds, isBulkMode, sortBy } = useUIStore()
   const { updateColor, deleteColor, incrementUsedCount, reorderColors } = useColorStore()
+  const lastSelectedIndexRef = React.useRef<number>(-1)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -113,6 +117,21 @@ export function ListView({ colors }: ListViewProps) {
   )
 
   const visibleColors = showArchived ? colors : colors.filter((c) => !c.is_archived)
+
+  // Shift+クリックで範囲選択
+  const handleSelect = (color: Color, index: number, e: React.MouseEvent) => {
+    if (e.shiftKey && lastSelectedIndexRef.current >= 0) {
+      const from = Math.min(lastSelectedIndexRef.current, index)
+      const to = Math.max(lastSelectedIndexRef.current, index)
+      const rangeIds = visibleColors.slice(from, to + 1).map((c) => c.id)
+      // 既存の選択と合わせてuniqueにする
+      const merged = Array.from(new Set([...bulkSelectedIds, ...rangeIds]))
+      setBulkSelectedIds(merged)
+    } else {
+      lastSelectedIndexRef.current = index
+      setSelectedColorId(color.id)
+    }
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -125,7 +144,7 @@ export function ListView({ colors }: ListViewProps) {
 
   const handleCopy = (color: Color, e: React.MouseEvent) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(color.hex)
+    copyColorToClipboard(color.hex, color.alpha, color.hex)
     incrementUsedCount(color.id)
   }
 
@@ -149,18 +168,59 @@ export function ListView({ colors }: ListViewProps) {
     )
   }
 
+  // 追加順以外はDnD無効・ヘッダーなしフラット表示（hue / used_count 共通）
+  if (sortBy !== 'order') {
+    return (
+      <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+        {visibleColors.map((color, index) => (
+          <div key={color.id} className="flex items-center">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toggleBulkSelect(color.id) }}
+              className={[
+                'flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-opacity mr-0.5',
+                isBulkMode ? 'opacity-100' : 'opacity-0 hover:opacity-100',
+                bulkSelectedIds.includes(color.id)
+                  ? 'bg-accent text-white'
+                  : 'border border-border text-transparent hover:border-text-muted',
+              ].join(' ')}
+              title="選択"
+            >
+              {bulkSelectedIds.includes(color.id) && (
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
+            <div className="flex-1 min-w-0">
+              <ColorListItem
+                color={color}
+                isSelected={selectedColorId === color.id}
+                onSelect={(e) => handleSelect(color, index, e)}
+                onCopy={(e) => handleCopy(color, e)}
+                onToggleFavorite={(e) => handleToggleFavorite(color, e)}
+                onDelete={(e) => handleDelete(color, e)}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // 追加順（order）: DnD 有効
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={visibleColors.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {visibleColors.map((color) => (
+          {visibleColors.map((color, index) => (
             <SortableColorItem
               key={color.id}
               color={color}
               isSelected={selectedColorId === color.id}
               isChecked={bulkSelectedIds.includes(color.id)}
               isBulkMode={isBulkMode}
-              onSelect={() => setSelectedColorId(color.id)}
+              onSelect={(e) => handleSelect(color, index, e)}
               onCheck={() => toggleBulkSelect(color.id)}
               onCopy={(e) => handleCopy(color, e)}
               onToggleFavorite={(e) => handleToggleFavorite(color, e)}

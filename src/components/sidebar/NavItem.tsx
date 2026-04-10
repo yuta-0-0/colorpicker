@@ -14,9 +14,9 @@ export function NavItem({ label, icon, isActive = false, count, onClick }: NavIt
       onClick={onClick}
       type="button"
       className={[
-        'w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-sm transition-colors text-left',
+        'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors text-left',
         isActive
-          ? 'bg-surface-overlay text-text-primary'
+          ? 'bg-accent text-white glow-accent'
           : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay/50',
       ].join(' ')}
     >

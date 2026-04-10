@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 
 export type ViewMode = 'list' | 'gallery'
-export type NavSection = 'all' | 'favorites' | 'history' | 'generator'
+export type NavSection = 'all' | 'favorites' | 'history' | 'generator' | 'ui-test'
+export type ToneCategory = 'vivid' | 'pastel' | 'dark' | 'light' | 'neutral'
 
 interface UIStore {
   viewMode: ViewMode
@@ -32,6 +33,7 @@ interface UIStore {
   // バルク選択
   bulkSelectedIds: string[]
   toggleBulkSelect: (id: string) => void
+  setBulkSelectedIds: (ids: string[]) => void
   clearBulkSelect: () => void
   isBulkMode: boolean
 
@@ -52,8 +54,22 @@ interface UIStore {
   setActiveTagId: (id: string | null) => void
 
   // ソート
-  sortBy: 'order' | 'used_count'
-  setSortBy: (sort: 'order' | 'used_count') => void
+  sortBy: 'order' | 'used_count' | 'hue'
+  setSortBy: (sort: 'order' | 'used_count' | 'hue') => void
+  sortDirection: 'asc' | 'desc'
+  toggleSortDirection: () => void
+
+  // 伝統色フィルター（伝統色が割り当てられている色のみ表示）
+  activeTraditionalFilter: boolean
+  setActiveTraditionalFilter: (active: boolean) => void
+
+  // トーンフィルター
+  activeToneFilter: ToneCategory | null
+  setActiveToneFilter: (tone: ToneCategory | null) => void
+
+  // テーマ
+  theme: 'dark' | 'light' | 'system'
+  setTheme: (theme: 'dark' | 'light' | 'system') => void
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -93,6 +109,7 @@ export const useUIStore = create<UIStore>((set) => ({
         : [...state.bulkSelectedIds, id]
       return { bulkSelectedIds: next, isBulkMode: next.length > 0 }
     }),
+  setBulkSelectedIds: (ids) => set({ bulkSelectedIds: ids, isBulkMode: ids.length > 0 }),
   clearBulkSelect: () => set({ bulkSelectedIds: [], isBulkMode: false }),
 
   // 検索フォーカス
@@ -114,4 +131,18 @@ export const useUIStore = create<UIStore>((set) => ({
   // ソート
   sortBy: 'order',
   setSortBy: (sort) => set({ sortBy: sort }),
+  sortDirection: 'asc',
+  toggleSortDirection: () => set((s) => ({ sortDirection: s.sortDirection === 'asc' ? 'desc' : 'asc' })),
+
+  // 伝統色フィルター
+  activeTraditionalFilter: false,
+  setActiveTraditionalFilter: (active) => set({ activeTraditionalFilter: active }),
+
+  // トーンフィルター
+  activeToneFilter: null,
+  setActiveToneFilter: (tone) => set({ activeToneFilter: tone }),
+
+  // テーマ
+  theme: 'dark',
+  setTheme: (theme) => set({ theme }),
 }))
