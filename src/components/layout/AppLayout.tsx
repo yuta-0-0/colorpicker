@@ -28,6 +28,7 @@ import { useHistoryStore } from '@/store/historyStore'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useToastStore } from '@/store/toastStore'
 import { ToastContainer } from '@/components/ui/ToastContainer'
+import { isOutOfGamut } from '@/lib/printUtils'
 
 // 色相カテゴリを返す（FilterBar の HUE_FILTERS ラベルと一致させる）
 // 10分類：赤/橙/黄/緑/青/紫/ピンク/白/グレー/黒
@@ -120,6 +121,23 @@ export function AppLayout() {
     openAddModal: handleOpenAddModal,
     openScreenPicker: handleScreenPick,
   })
+
+  // 選択色が変わったら Prism Tile へプッシュ（Electron のみ）
+  useEffect(() => {
+    if (!selectedColorId) return
+    const electronAPI = (window as Window & { electronAPI?: { pushColorToPrismTile?: (d: unknown) => void } }).electronAPI
+    if (!electronAPI?.pushColorToPrismTile) return
+
+    const color = colors.find((c) => c.id === selectedColorId)
+    if (!color) return
+
+    electronAPI.pushColorToPrismTile({
+      hex: color.hex,
+      alpha: color.alpha,
+      name: color.name,
+      hasGamutWarning: isOutOfGamut(color.hex),
+    })
+  }, [selectedColorId, colors])
 
   // ネットワーク状態監視
   useEffect(() => {
@@ -322,6 +340,21 @@ export function AppLayout() {
               </div>
             </>
           )}
+          {/* Prism Tile 起動ボタン（Electron Macのみ） */}
+          {(window as Window & { electronAPI?: { platform?: string; openPrismTile?: () => void } }).electronAPI?.platform === 'darwin' && (
+            <button
+              type="button"
+              onClick={() => (window as Window & { electronAPI?: { openPrismTile?: () => void } }).electronAPI?.openPrismTile?.()}
+              className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors"
+              title="Prism Tile を開く (⌘+Shift+T)"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="5" width="12" height="8" rx="2"/>
+                <path d="M5 5V4a3 3 0 0 1 6 0v1"/>
+              </svg>
+            </button>
+          )}
+
           {/* テーマトグル */}
           <button
             type="button"
