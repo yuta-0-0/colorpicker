@@ -60,7 +60,19 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className="overflow-hidden"
     >
-      <div className="mx-6 mb-1 border border-border/40 rounded-lg overflow-hidden">
+      <motion.div
+        initial={{ scale: 0.98, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.98, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+        className="mx-6 mb-1 rounded-lg overflow-hidden"
+        style={{
+          backdropFilter: 'blur(16px)',
+          backgroundColor: 'rgba(8, 9, 15, 0.9)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.2)',
+        }}
+      >
         <div className="flex gap-0 min-h-[88px]">
           {/* 左：画像エリア */}
           <motion.div
@@ -89,7 +101,7 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
             </div>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   )
 }
