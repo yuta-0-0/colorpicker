@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import { useToastStore } from '@/store/toastStore'
-import type { Folder, FolderInsert } from '@/types/database'
+import type { Folder, FolderInsert, FolderUpdate } from '@/types/database'
 
 interface FolderStore {
   folders: Folder[]
@@ -9,8 +9,9 @@ interface FolderStore {
   error: string | null
 
   fetchFolders: () => Promise<void>
-  createFolder: (name: string) => Promise<Folder | null>
+  createFolder: (name: string, parentId?: string | null) => Promise<Folder | null>
   renameFolder: (id: string, name: string) => Promise<void>
+  updateFolder: (id: string, updates: FolderUpdate) => Promise<void>
   deleteFolder: (id: string) => Promise<void>
   toggleFolderLock: (id: string, isLocked: boolean) => Promise<void>
   reorderFolders: (orderedIds: string[]) => Promise<void>
@@ -36,7 +37,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
     set({ folders: data ?? [], loading: false })
   },
 
-  createFolder: async (name) => {
+  createFolder: async (name, parentId = null) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
@@ -44,6 +45,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
     const newFolder: FolderInsert = {
       user_id: user.id,
       name,
+      parent_id: parentId,
       order: maxOrder + 1,
     }
 
@@ -78,6 +80,21 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
       folders: state.folders.map((f) =>
         f.id === id ? { ...f, name } : f
       ),
+    }))
+  },
+
+  updateFolder: async (id, updates) => {
+    const { error } = await supabase
+      .from('folders')
+      .update(updates)
+      .eq('id', id)
+
+    if (error) {
+      set({ error: error.message })
+      return
+    }
+    set((state) => ({
+      folders: state.folders.map((f) => f.id === id ? { ...f, ...updates } : f),
     }))
   },
 

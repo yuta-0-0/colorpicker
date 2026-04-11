@@ -34,6 +34,17 @@ interface ColorStore {
   // ドラッグ並び替え後の順序保存
   reorderColors: (orderedIds: string[]) => Promise<void>
 
+  // ゴミ箱
+  trashColor: (id: string) => Promise<void>
+  restoreColor: (id: string) => Promise<void>
+  permanentlyDeleteColor: (id: string) => Promise<void>
+  fetchTrashedColors: () => Promise<void>
+
+  // color_folders（多対多）
+  addColorToFolder: (colorId: string, folderId: string) => Promise<void>
+  removeColorFromFolder: (colorId: string, folderId: string) => Promise<void>
+  fetchColorsByFolder: (folderId: string) => Promise<void>
+
   // Undo/Redo
   undo: () => void
   redo: () => void
@@ -88,6 +99,9 @@ export const useColorStore = create<ColorStore>((set, get) => ({
         .select('*')
         .order('order', { ascending: true })
         .order('updated_at', { ascending: false })
+
+      // ゴミ箱に入っていない色のみ取得
+      query = query.eq('is_trashed', false)
 
       if (folderId !== undefined) {
         if (folderId === null) {
@@ -243,6 +257,104 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     if (hasError) {
       set({ colors: previousColors, error: '並び替えの保存に失敗しました' })
     }
+  },
+
+  trashColor: async (id) => {
+    get()._snapshot()
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('colors')
+      .update({ is_trashed: true, trashed_at: now })
+      .eq('id', id)
+
+    if (error) {
+      useToastStore.getState().addToast('ゴミ箱への移動に失敗しました。', 'error')
+      return
+    }
+    set((state) => ({ colors: state.colors.filter((c) => c.id !== id) }))
+    useToastStore.getState().addToast('ゴミ箱に移動しました。', 'info')
+  },
+
+  restoreColor: async (id) => {
+    const { error } = await supabase
+      .from('colors')
+      .update({ is_trashed: false, trashed_at: null })
+      .eq('id', id)
+
+    if (error) {
+      useToastStore.getState().addToast('元に戻すのに失敗しました。', 'error')
+      return
+    }
+    set((state) => ({ colors: state.colors.filter((c) => c.id !== id) }))
+    useToastStore.getState().addToast('コレクションに戻しました。', 'success')
+  },
+
+  permanentlyDeleteColor: async (id) => {
+    const { error } = await supabase
+      .from('colors')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      useToastStore.getState().addToast('完全削除に失敗しました。', 'error')
+      return
+    }
+    set((state) => ({ colors: state.colors.filter((c) => c.id !== id) }))
+  },
+
+  fetchTrashedColors: async () => {
+    set({ loading: true, error: null })
+    const { data, error } = await supabase
+      .from('colors')
+      .select('*')
+      .eq('is_trashed', true)
+      .order('trashed_at', { ascending: false })
+
+    if (error) {
+      set({ error: error.message, loading: false })
+      return
+    }
+    set({ colors: (data as Color[]) ?? [], loading: false })
+  },
+
+  addColorToFolder: async (colorId, folderId) => {
+    const { error } = await supabase
+      .from('color_folders')
+      .insert({ color_id: colorId, folder_id: folderId })
+
+    if (error && !error.message.includes('duplicate')) {
+      useToastStore.getState().addToast('フォルダへの追加に失敗しました。', 'error')
+    }
+  },
+
+  removeColorFromFolder: async (colorId, folderId) => {
+    const { error } = await supabase
+      .from('color_folders')
+      .delete()
+      .eq('color_id', colorId)
+      .eq('folder_id', folderId)
+
+    if (error) {
+      useToastStore.getState().addToast('フォルダからの削除に失敗しました。', 'error')
+    }
+  },
+
+  fetchColorsByFolder: async (folderId) => {
+    set({ loading: true, error: null })
+    const { data, error } = await supabase
+      .from('color_folders')
+      .select('colors(*)')
+      .eq('folder_id', folderId)
+
+    if (error) {
+      set({ error: error.message, loading: false })
+      return
+    }
+
+    const colors = (data ?? [])
+      .map((row) => (row as { colors: Color | null }).colors)
+      .filter((c): c is Color => c !== null && !c.is_trashed)
+    set({ colors, loading: false })
   },
 
   seedDefaultColors: async () => {

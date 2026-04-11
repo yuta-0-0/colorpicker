@@ -5,6 +5,7 @@ import { ListView } from '@/components/views/ListView'
 import { GalleryView } from '@/components/views/GalleryView'
 import { GeneratorView } from '@/components/generator/GeneratorView'
 import { UITestView } from '@/components/uitest/UITestView'
+import { TrashView } from '@/components/trash/TrashView'
 import { ViewToggle } from '@/components/views/ViewToggle'
 import { FilterBar } from '@/components/views/FilterBar'
 import { DetailPanel } from '@/components/detail/DetailPanel'
@@ -278,10 +279,12 @@ export function AppLayout() {
     activeSection === 'history' ? '最近使った色' :
     activeSection === 'generator' ? 'カラージェネレーター' :
     activeSection === 'ui-test' ? 'UIテスト' :
+    activeSection === 'trash' ? 'ゴミ箱' :
     'すべての色'
 
   const isGenerator = activeSection === 'generator'
   const isUITest = activeSection === 'ui-test'
+  const isTrash = activeSection === 'trash'
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface text-text-primary">
@@ -297,7 +300,7 @@ export function AppLayout() {
         <header className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
           <button onClick={() => setSidebarOpen(true)} type="button" className="md:hidden text-text-secondary hover:text-text-primary"><IconMenu size={18} /></button>
           <h1 className="text-sm font-medium text-text-primary flex-1">{sectionTitle}</h1>
-          {!isGenerator && !isUITest && (
+          {!isGenerator && !isUITest && !isTrash && (
             <>
               <ViewToggle mode={viewMode} onChange={setViewMode} />
               <div className="relative">
@@ -351,7 +354,7 @@ export function AppLayout() {
           />
         </header>
 
-        {!isGenerator && !isUITest && <FilterBar />}
+        {!isGenerator && !isUITest && !isTrash && <FilterBar />}
 
         <div className="flex-1 flex flex-col overflow-hidden">
           {isBulkMode && <BulkActionBar />}
@@ -362,6 +365,8 @@ export function AppLayout() {
                 <GeneratorView />
               ) : isUITest ? (
                 <UITestView />
+              ) : isTrash ? (
+                <TrashView />
               ) : colorsLoading ? (
                 <div className="flex-1 flex items-center justify-center">
                   <p className="text-text-muted text-sm">読み込み中...</p>

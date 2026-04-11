@@ -109,7 +109,7 @@ interface ListViewProps {
 
 export function ListView({ colors }: ListViewProps) {
   const { selectedColorId, setSelectedColorId, showArchived, bulkSelectedIds, toggleBulkSelect, setBulkSelectedIds, isBulkMode, sortBy } = useUIStore()
-  const { updateColor, deleteColor, incrementUsedCount, reorderColors } = useColorStore()
+  const { updateColor, trashColor, incrementUsedCount, reorderColors } = useColorStore()
   const lastSelectedIndexRef = React.useRef<number>(-1)
 
   const sensors = useSensors(
@@ -157,7 +157,7 @@ export function ListView({ colors }: ListViewProps) {
   const handleDelete = (color: Color, e: React.MouseEvent) => {
     e.stopPropagation()
     if (color.is_locked) return
-    deleteColor(color.id)
+    trashColor(color.id)
     if (selectedColorId === color.id) setSelectedColorId(null)
   }
 

@@ -267,3 +267,12 @@ export function IconTag(p: IconProps) {
     </svg>
   )
 }
+
+/** ゴミ箱 */
+export function IconTrash(p: IconProps) {
+  return (
+    <svg {...defaults(p)}>
+      <path d="M3 4.5h10M6 4.5V3h4v1.5M5 4.5l.5 8h5l.5-8" />
+    </svg>
+  )
+}

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 export type ViewMode = 'list' | 'gallery'
-export type NavSection = 'all' | 'favorites' | 'history' | 'generator' | 'ui-test'
+export type NavSection = 'all' | 'favorites' | 'history' | 'generator' | 'ui-test' | 'trash'
 export type ToneCategory = 'vivid' | 'pastel' | 'dark' | 'light' | 'neutral'
 
 interface UIStore {

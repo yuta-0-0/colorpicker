@@ -18,6 +18,7 @@ import {
   IconDownload,
   IconFolder,
   IconTag,
+  IconTrash,
 } from '@/components/ui/Icons'
 
 interface SidebarProps {
@@ -36,8 +37,8 @@ export function Sidebar({ onVisualExport }: SidebarProps) {
   const [foldersOpen, setFoldersOpen] = useState(true)
   const [tagsOpen, setTagsOpen] = useState(true)
 
-  const allCount = colors.filter((c) => !c.is_archived).length
-  const favoriteCount = colors.filter((c) => c.is_favorite && !c.is_archived).length
+  const allCount = colors.filter((c) => !c.is_archived && !c.is_trashed).length
+  const favoriteCount = colors.filter((c) => c.is_favorite && !c.is_archived && !c.is_trashed).length
 
   const navItems: { id: NavSection; label: string; icon: React.ReactNode; count?: number }[] = [
     { id: 'all', label: 'すべての色', icon: <IconGrid />, count: allCount },
@@ -136,8 +137,18 @@ export function Sidebar({ onVisualExport }: SidebarProps) {
         )}
       </div>
 
+      {/* ゴミ箱 */}
+      <div className="mt-auto">
+        <NavItem
+          label="ゴミ箱"
+          icon={<IconTrash />}
+          isActive={activeSection === 'trash' && !activeFolderId}
+          onClick={() => setActiveSection('trash')}
+        />
+      </div>
+
       {/* ビジュアル書き出し */}
-      <div className="mt-auto pt-2 border-t border-border">
+      <div className="pt-2 border-t border-border">
         <button
           type="button"
           onClick={onVisualExport}
