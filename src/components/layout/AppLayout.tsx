@@ -214,11 +214,12 @@ export function AppLayout() {
     // getHueCategory() と同じ HSV 彩度式・同じ閾値で無彩色判定を統一
     const s = max === 0 ? 0 : d / max
 
-    // 無彩色（彩度 12% 未満）→ 末尾: グレー(700) / 白(800) / 黒(900)
+    // 無彩色（彩度 12% 未満）→ 末尾: 白(700) / グレー(800) / 黒(900)
+    // 昇順: 赤…ピンク → 白 → グレー → 黒
     if (s < 0.12) {
-      if (l >= 0.85) return 800  // 白
+      if (l >= 0.85) return 700  // 白
       if (l <= 0.20) return 900  // 黒
-      return 700                 // グレー
+      return 800                 // グレー
     }
 
     // 有彩色: HSL 色相を計算
@@ -260,6 +261,10 @@ export function AppLayout() {
     }
     if (sortBy === 'hue') {
       return [...step6].sort((a, b) => dir * (getHue(a.hex) - getHue(b.hex)))
+    }
+    // ギャラリービューのデフォルトは色相順（追加順のドラッグ並び替えはギャラリーでは意味がないため）
+    if (viewMode === 'gallery' && sortBy === 'order') {
+      return [...step6].sort((a, b) => getHue(a.hex) - getHue(b.hex))
     }
     // 追加順
     if (sortDirection === 'desc') {
