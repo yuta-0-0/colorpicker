@@ -3,10 +3,6 @@ import { supabase } from '@/lib/supabase'
 import { useToastStore } from '@/store/toastStore'
 import type { Color, ColorInsert, ColorUpdate } from '@/types/database'
 
-// supabase-js v2 の型推論を回避するためのユーティリティ
-// Database 型のバージョン差異により .update() / .insert() の引数が never になる場合の対処
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any
 
 interface ColorStore {
   colors: Color[]
@@ -87,7 +83,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
   fetchColors: async (folderId) => {
     set({ loading: true, error: null })
     try {
-      let query = db
+      let query = supabase
         .from('colors')
         .select('*')
         .order('order', { ascending: true })
@@ -119,7 +115,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     const existing = get().colors.find((c) => c.hex.toUpperCase() === hex.toUpperCase())
     if (existing) {
       // updated_atを更新してリスト最上部へ
-      const { error } = await db
+      const { error } = await supabase
         .from('colors')
         .update({ updated_at: new Date().toISOString(), order: -1 })
         .eq('id', existing.id)
@@ -140,7 +136,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       order: 0,
     }
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from('colors')
       .insert(newColor)
       .select()
@@ -161,7 +157,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
 
   updateColor: async (id, updates) => {
     get()._snapshot()
-    const { error } = await db
+    const { error } = await supabase
       .from('colors')
       .update(updates)
       .eq('id', id)
@@ -182,7 +178,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
 
   deleteColor: async (id) => {
     get()._snapshot()
-    const { error } = await db
+    const { error } = await supabase
       .from('colors')
       .delete()
       .eq('id', id)
@@ -205,7 +201,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
 
     const newCount = color.used_count + 1
     const now = new Date().toISOString()
-    const { error } = await db
+    const { error } = await supabase
       .from('colors')
       .update({ used_count: newCount, last_used_at: now })
       .eq('id', id)
@@ -234,7 +230,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     // Supabaseに順序を保存
     let hasError = false
     for (const [index, id] of orderedIds.entries()) {
-      const { error } = await db
+      const { error } = await supabase
         .from('colors')
         .update({ order: index })
         .eq('id', id)
@@ -256,7 +252,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
 
     const color = await get().addColor('#000000', 1.0, null, { name: 'リッチブラック' })
     if (color) {
-      await db.from('colors')
+      await supabase.from('colors')
         .update({ c: 60, m: 40, y: 40, k: 100, cmyk_source: 'print_spec' })
         .eq('id', color.id)
       set((state) => ({

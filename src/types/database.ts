@@ -8,6 +8,14 @@ export type Json =
 
 export type CmykSource = 'manual' | 'converted' | 'print_spec'
 
+export type GenericRelationship = {
+  foreignKeyName: string
+  columns: string[]
+  isOneToOne: boolean
+  referencedRelation: string
+  referencedColumns: string[]
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -81,6 +89,7 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
       }
       folders: {
         Row: {
@@ -107,6 +116,7 @@ export interface Database {
           order?: number
           created_at?: string
         }
+        Relationships: []
       }
       tags: {
         Row: {
@@ -124,6 +134,7 @@ export interface Database {
           user_id?: string
           name?: string
         }
+        Relationships: []
       }
       color_tags: {
         Row: {
@@ -138,6 +149,22 @@ export interface Database {
           color_id?: string
           tag_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "color_tags_color_id_fkey"
+            columns: ["color_id"]
+            isOneToOne: false
+            referencedRelation: "colors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "color_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       invitations: {
         Row: {
@@ -161,6 +188,7 @@ export interface Database {
           used_at?: string | null
           created_at?: string
         }
+        Relationships: []
       }
     }
     Views: Record<string, never>

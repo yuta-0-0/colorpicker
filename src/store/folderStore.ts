@@ -23,7 +23,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
 
   fetchFolders: async () => {
     set({ loading: true, error: null })
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('folders')
       .select('*')
       .order('order', { ascending: true })
@@ -47,7 +47,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
       order: maxOrder + 1,
     }
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('folders')
       .insert(newFolder)
       .select()
@@ -64,7 +64,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
   },
 
   renameFolder: async (id, name) => {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('folders')
       .update({ name })
       .eq('id', id)
@@ -83,7 +83,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
 
   deleteFolder: async (id) => {
     // フォルダ削除時、中の色の folder_id は SET NULL（DBの ON DELETE SET NULL）
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('folders')
       .delete()
       .eq('id', id)
@@ -99,7 +99,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
   },
 
   toggleFolderLock: async (id, isLocked) => {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('folders')
       .update({ is_locked: isLocked })
       .eq('id', id)
@@ -128,7 +128,7 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
 
     let hasError = false
     for (const [index, id] of orderedIds.entries()) {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('folders')
         .update({ order: index })
         .eq('id', id)

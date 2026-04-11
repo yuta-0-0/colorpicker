@@ -2,9 +2,6 @@ import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
 import type { Tag } from '@/types/database'
 
-// supabase-js v2 の型推論を回避
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any
 
 interface TagStore {
   tags: Tag[]
@@ -46,7 +43,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
 
   fetchTags: async () => {
     set({ loading: true, error: null })
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from('tags')
       .select('*')
       .order('name', { ascending: true })
@@ -71,7 +68,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from('tags')
       .insert({ user_id: user.id, name: trimmed })
       .select()
@@ -90,7 +87,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
   },
 
   deleteTag: async (id) => {
-    const { error } = await db
+    const { error } = await supabase
       .from('tags')
       .delete()
       .eq('id', id)
@@ -116,7 +113,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
   updateTag: async (id, name) => {
     const trimmed = name.trim()
     if (!trimmed) return
-    const { error } = await db
+    const { error } = await supabase
       .from('tags')
       .update({ name: trimmed })
       .eq('id', id)
@@ -136,7 +133,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
   },
 
   fetchAllColorTags: async () => {
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from('color_tags')
       .select('color_id, tags(id, user_id, name)')
 
@@ -158,7 +155,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
   },
 
   fetchColorTags: async (colorId) => {
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from('color_tags')
       .select('tag_id, tags(id, user_id, name)')
       .eq('color_id', colorId)
@@ -193,7 +190,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
       },
     }))
 
-    const { error } = await db
+    const { error } = await supabase
       .from('color_tags')
       .insert({ color_id: colorId, tag_id: tagId })
 
@@ -220,7 +217,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
       },
     }))
 
-    const { error } = await db
+    const { error } = await supabase
       .from('color_tags')
       .delete()
       .eq('color_id', colorId)
