@@ -6,3 +6,6 @@ dist-electron/
 .DS_Store
 *.log
 release/
+.npm-cache/
+.npm-cache/**
+.npx/

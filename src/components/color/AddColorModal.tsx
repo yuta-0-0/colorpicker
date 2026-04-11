@@ -49,9 +49,9 @@ export function AddColorModal({ onClose }: AddColorModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
+    <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
       <div
-        className="bg-surface-raised/90 backdrop-blur-md border border-border/50 rounded-2xl p-6 w-80"
+        className="glass-popup rounded-2xl p-6 w-80"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-sm font-medium text-text-primary mb-4">色を追加</h2>

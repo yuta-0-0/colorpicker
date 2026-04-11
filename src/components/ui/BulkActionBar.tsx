@@ -67,7 +67,7 @@ export function BulkActionBar() {
           フォルダ移動 ▾
         </button>
         {showFolderMenu && (
-          <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] rounded-lg border border-border bg-surface-overlay shadow-lg py-1">
+          <div className="absolute top-full left-0 mt-1 z-50 min-w-[160px] glass-popup rounded-lg py-1">
             <button
               type="button"
               onClick={() => handleBulkMoveToFolder(null)}

@@ -483,7 +483,7 @@ function ExportMenu({ onVisualExport, onPaletteExport, onImport, onExportAll }: 
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 w-52 bg-surface/85 backdrop-blur-md border border-border/50 rounded-lg z-50 overflow-hidden">
+          <div className="absolute right-0 top-full mt-1 w-52 glass-popup rounded-lg z-50 overflow-hidden">
             {items.map((item) => (
               <button
                 key={item.label}
