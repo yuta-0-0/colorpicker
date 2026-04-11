@@ -38,8 +38,8 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker, displayCo
 
       // ─── 修飾キーなし：Up / Down / Left / Right ───
       if (!e.metaKey && !e.ctrlKey && !e.altKey) {
-        // Up / Down: 色ナビゲーション（リストビューのみ）
-        if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && viewMode === 'list') {
+        // Up / Down: 色ナビゲーション（リスト・ギャラリー両対応）
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
           e.preventDefault()
           const visibleColors = displayColors.filter((c) => !c.is_archived)
           if (visibleColors.length === 0) return

@@ -24,11 +24,11 @@ export function GalleryView({ colors }: GalleryViewProps) {
         {visibleColors.map((color) => {
           const isChecked = bulkSelectedIds.includes(color.id)
           return (
-            <div key={color.id} className="relative group/gallery">
+            <div key={color.id} data-color-id={color.id} className="relative group/gallery">
               <ColorGalleryItem
                 color={color}
                 isSelected={selectedColorId === color.id}
-                onSelect={() => setSelectedColorId(color.id)}
+                onSelect={() => setSelectedColorId(selectedColorId === color.id ? null : color.id)}
               />
               {/* チェックボックス：バルクモード中は常時表示、それ以外はホバー時のみ */}
               <button

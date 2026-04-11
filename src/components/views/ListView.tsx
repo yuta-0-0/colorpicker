@@ -127,12 +127,12 @@ export function ListView({ colors }: ListViewProps) {
       const from = Math.min(lastSelectedIndexRef.current, index)
       const to = Math.max(lastSelectedIndexRef.current, index)
       const rangeIds = visibleColors.slice(from, to + 1).map((c) => c.id)
-      // 既存の選択と合わせてuniqueにする
       const merged = Array.from(new Set([...bulkSelectedIds, ...rangeIds]))
       setBulkSelectedIds(merged)
     } else {
       lastSelectedIndexRef.current = index
-      setSelectedColorId(color.id)
+      // 再クリックでトグル（パネルを閉じる）
+      setSelectedColorId(selectedColorId === color.id ? null : color.id)
     }
   }
 
