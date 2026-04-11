@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { TagInput } from '@/components/color/TagInput'
+import { MoodImageSlots } from '@/components/color/MoodImageSlots'
 import { useColorStore } from '@/store/colorStore'
 import type { Color } from '@/types/database'
 
 interface ContextualPanelProps {
   color: Color
-  /** Task 8 で差し込む画像エリア（省略時は空スロット表示） */
-  imageSlot?: React.ReactNode
 }
 
 function MemoArea({ color }: { color: Color }) {
@@ -52,23 +51,7 @@ function MemoArea({ color }: { color: Color }) {
   )
 }
 
-/** 画像スロットのプレースホルダー（Task 8 で実装まで） */
-function EmptyImageSlots() {
-  return (
-    <div className="flex gap-2 flex-shrink-0">
-      {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="w-16 h-16 rounded border border-dashed border-border/50 flex items-center justify-center text-text-muted/40 text-lg select-none"
-        >
-          +
-        </div>
-      ))}
-    </div>
-  )
-}
-
-export function ContextualPanel({ color, imageSlot }: ContextualPanelProps) {
+export function ContextualPanel({ color }: ContextualPanelProps) {
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
@@ -86,7 +69,7 @@ export function ContextualPanel({ color, imageSlot }: ContextualPanelProps) {
             transition={{ delay: 0.1 }}
             className="flex-shrink-0 px-3 py-3 flex items-center"
           >
-            {imageSlot ?? <EmptyImageSlots />}
+            <MoodImageSlots colorId={color.id} />
           </motion.div>
 
           {/* セパレーター */}
