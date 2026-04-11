@@ -1,5 +1,6 @@
 import React from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { Center } from '@/components/primitives'
 import {
   DndContext,
   closestCenter,
@@ -163,9 +164,9 @@ export function ListView({ colors }: ListViewProps) {
 
   if (visibleColors.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <Center full>
         <p className="text-text-muted text-sm">色がありません</p>
-      </div>
+      </Center>
     )
   }
 

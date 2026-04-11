@@ -6,6 +6,7 @@ import { GalleryView } from '@/components/views/GalleryView'
 import { GeneratorView } from '@/components/generator/GeneratorView'
 import { UITestView } from '@/components/uitest/UITestView'
 import { TrashView } from '@/components/trash/TrashView'
+import { Center } from '@/components/primitives'
 import { ViewToggle } from '@/components/views/ViewToggle'
 import { FilterBar } from '@/components/views/FilterBar'
 import { DetailPanel } from '@/components/detail/DetailPanel'
@@ -401,9 +402,9 @@ export function AppLayout() {
               ) : isTrash ? (
                 <TrashView />
               ) : colorsLoading ? (
-                <div className="flex-1 flex items-center justify-center">
+                <Center full>
                   <p className="text-text-muted text-sm">読み込み中...</p>
-                </div>
+                </Center>
               ) : viewMode === 'list' ? (
                 <ListView colors={displayColors} />
               ) : (

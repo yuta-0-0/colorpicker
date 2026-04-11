@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Center } from '@/components/primitives'
 import { ColorSwatch } from '@/components/color/ColorSwatch'
 import { useColorStore } from '@/store/colorStore'
 import { useUIStore } from '@/store/uiStore'
@@ -558,13 +559,13 @@ export function GeneratorView() {
 
         {/* 空状態 */}
         {generatedColors.length === 0 && (
-          <div className="flex items-center justify-center py-12 text-text-muted text-sm">
+          <Center className="py-12 text-text-muted text-sm">
             {mode === 'bridge' && !isSubValid
               ? 'サブ色を入力してください'
               : mode === 'multi'
               ? '有効な HEX カラーコードを2色以上入力してください'
               : '有効な HEX カラーコードを入力してください'}
-          </div>
+          </Center>
         )}
       </div>
     </div>

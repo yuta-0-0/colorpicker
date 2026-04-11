@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Lism ハイブリッド — 余白ステップシステム ── */
+@import './styles/spacing.css';
+
 /* ── テーマトークン（Dark = デフォルト） ── */
 :root {
   --color-surface:          8 9 15;        /* #08090f */
