@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { AppLayout } from '@/components/layout/AppLayout'
+import { PrismTileView } from '@/components/prism/PrismTileView'
 import type { Session } from '@supabase/supabase-js'
 
+// Prism Tile モードの判定（URL クエリ: ?prism-tile=1）
+const isPrismTileMode = new URLSearchParams(window.location.search).get('prism-tile') === '1'
+
 export default function App() {
+  // Prism Tile モードのときはサイズの小さいウィンドウとして描画
+  if (isPrismTileMode) {
+    return <PrismTileView />
+  }
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
