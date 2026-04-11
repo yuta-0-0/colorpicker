@@ -57,9 +57,9 @@ export function ImportModal({ onClose }: ImportModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+    <div className="modal-overlay fixed inset-0 flex items-center justify-center z-50" onClick={onClose}>
       <div
-        className="bg-surface/90 backdrop-blur-md border border-border/50 rounded-xl w-96 p-6 space-y-4"
+        className="glass-popup rounded-xl w-96 p-6 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">

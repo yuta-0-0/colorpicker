@@ -18,6 +18,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useFolderStore } from '@/store/folderStore'
 import { useUIStore } from '@/store/uiStore'
 import type { Folder } from '@/types/database'
+import { FolderIconPicker } from './FolderIconPicker'
 
 function SortableFolderItem({
   folder,
@@ -25,15 +26,18 @@ function SortableFolderItem({
   onSelect,
   onRename,
   onDelete,
+  onIconChange,
 }: {
   folder: Folder
   isActive: boolean
   onSelect: () => void
   onRename: (name: string) => void
   onDelete: () => void
+  onIconChange: (icon: string) => void
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(folder.name)
+  const [showIconPicker, setShowIconPicker] = useState(false)
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: folder.id,
@@ -66,7 +70,24 @@ function SortableFolderItem({
         ⠿
       </span>
 
-      <span className="text-xs flex-shrink-0">📁</span>
+      {/* アイコン（クリックでピッカー） */}
+      <div className="relative flex-shrink-0">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setShowIconPicker((v) => !v) }}
+          className="text-xs leading-none hover:opacity-70 transition-opacity"
+          title="アイコンを変更"
+        >
+          {folder.icon ?? '📁'}
+        </button>
+        {showIconPicker && (
+          <FolderIconPicker
+            currentIcon={folder.icon}
+            onSelect={onIconChange}
+            onClose={() => setShowIconPicker(false)}
+          />
+        )}
+      </div>
 
       {isEditing ? (
         <input
@@ -115,7 +136,7 @@ interface FolderListProps {
 }
 
 export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) {
-  const { folders, createFolder, renameFolder, deleteFolder, reorderFolders } = useFolderStore()
+  const { folders, createFolder, renameFolder, deleteFolder, reorderFolders, updateFolder } = useFolderStore()
   const [isCreating, setIsCreating] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
 
@@ -166,6 +187,7 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
                   onSelect={() => onSelectFolder(folder.id)}
                   onRename={(name) => renameFolder(folder.id, name)}
                   onDelete={() => deleteFolder(folder.id)}
+                  onIconChange={(icon) => updateFolder(folder.id, { icon })}
                 />
               </motion.div>
             ))}

@@ -41,30 +41,75 @@
   --color-accent-ring:      0 206 255;     /* #00ceff */
 }
 
-/* ── グローユーティリティ ── */
+/* ── グローユーティリティ（Notion思想: 20%薄め） ── */
 .glow-accent {
-  box-shadow: 0 0 14px rgba(10,62,216,.44), 0 2px 8px rgba(10,62,216,.24);
+  box-shadow: 0 0 12px rgba(10,62,216,.36), 0 2px 6px rgba(10,62,216,.18);
 }
 [data-theme="light"] .glow-accent {
-  box-shadow: 0 0 12px rgba(10,62,216,.28), 0 2px 6px rgba(10,62,216,.16);
+  box-shadow: 0 0 10px rgba(10,62,216,.22), 0 2px 5px rgba(10,62,216,.12);
 }
 .glow-accent-sm {
-  box-shadow: 0 0 10px rgba(10,62,216,.20);
-}
-[data-theme="light"] .glow-accent-sm {
   box-shadow: 0 0 8px rgba(10,62,216,.16);
 }
+[data-theme="light"] .glow-accent-sm {
+  box-shadow: 0 0 6px rgba(10,62,216,.12);
+}
 .glow-accent-btn {
-  box-shadow: 0 0 16px rgba(10,62,216,.40), 0 2px 8px rgba(10,62,216,.20);
+  box-shadow: 0 0 12px rgba(10,62,216,.32), 0 2px 6px rgba(10,62,216,.16);
 }
 [data-theme="light"] .glow-accent-btn {
-  box-shadow: 0 0 14px rgba(10,62,216,.32), 0 2px 6px rgba(10,62,216,.16);
+  box-shadow: 0 0 10px rgba(10,62,216,.26), 0 2px 5px rgba(10,62,216,.13);
 }
 .ring-selection {
-  box-shadow: 0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(var(--color-accent-ring)), 0 0 8px rgba(0,206,255,.45);
+  box-shadow: 0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(var(--color-accent-ring)), 0 0 6px rgba(0,206,255,.35);
 }
 [data-theme="light"] .ring-selection {
-  box-shadow: 0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(var(--color-accent-ring)), 0 0 8px rgba(0,206,255,.35);
+  box-shadow: 0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(var(--color-accent-ring)), 0 0 6px rgba(0,206,255,.28);
+}
+
+/* ── Notion思想: ウィスパーボーダー ── */
+/* ポップアップ・ドロップダウン専用のガラス効果 */
+.glass-popup {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(12, 13, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.4),
+    0 1px 4px rgba(0, 0, 0, 0.2);
+}
+[data-theme="light"] .glass-popup {
+  background: rgba(245, 247, 250, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* モーダルオーバーレイ */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+[data-theme="light"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Notion思想: 精密な1pxボーダー（カラム間・パネル間） */
+.whisper-border {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+[data-theme="light"] .whisper-border {
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Notion思想: 文字間隔の精密化 */
+.tracking-tight-ui {
+  letter-spacing: -0.01em;
+}
+.tracking-display {
+  letter-spacing: -0.02em;
 }
 
 /* ── 色相スライダー サム ── */

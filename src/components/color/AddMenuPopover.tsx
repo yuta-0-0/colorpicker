@@ -51,7 +51,7 @@ export function AddMenuPopover({
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full mt-1 w-52 bg-surface-raised/85 backdrop-blur-md border border-border/50 rounded-xl z-50 overflow-hidden"
+      className="absolute right-0 top-full mt-1 w-52 glass-popup rounded-xl z-50 overflow-hidden"
     >
       {items
         .filter((item) => item.show)
