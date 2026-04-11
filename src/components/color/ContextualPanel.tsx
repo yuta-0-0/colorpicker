@@ -65,12 +65,10 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.98, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
-        className="mx-6 mb-1 rounded-lg overflow-hidden"
+        className="mx-6 mb-1 rounded-lg overflow-hidden bg-surface/90 border border-border/50"
         style={{
           backdropFilter: 'blur(16px)',
-          backgroundColor: 'rgba(8, 9, 15, 0.9)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 3px rgba(0,0,0,0.2)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.1)',
         }}
       >
         <div className="flex gap-0 min-h-[88px]">
