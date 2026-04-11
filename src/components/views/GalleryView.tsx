@@ -1,6 +1,7 @@
 import { ColorGalleryItem } from '@/components/color/ColorGalleryItem'
 import { useUIStore } from '@/store/uiStore'
 import type { Color } from '@/types/database'
+import { Center } from '@/components/primitives'
 
 interface GalleryViewProps { colors: Color[] }
 
@@ -11,9 +12,9 @@ export function GalleryView({ colors }: GalleryViewProps) {
 
   if (visibleColors.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <Center full>
         <p className="text-text-muted text-sm">色がありません</p>
-      </div>
+      </Center>
     )
   }
 

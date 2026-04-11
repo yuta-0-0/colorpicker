@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Cluster } from '@/components/primitives'
 import { SearchBar } from './SearchBar'
 import { NavItem } from './NavItem'
 import { FolderList } from './FolderList'
@@ -121,7 +122,7 @@ export function Sidebar({ onVisualExport }: SidebarProps) {
         {historyColors.length === 0 ? (
           <p className="px-2.5 text-xs text-text-muted">履歴はありません</p>
         ) : (
-          <div className="flex flex-wrap gap-1.5 px-1">
+          <Cluster gap="1" className="px-1">
             {historyColors.map((c) => (
               <button
                 key={c.id}
@@ -133,7 +134,7 @@ export function Sidebar({ onVisualExport }: SidebarProps) {
                 <ColorSwatch hex={c.hex} alpha={c.alpha} size="sm" />
               </button>
             ))}
-          </div>
+          </Cluster>
         )}
       </div>
 

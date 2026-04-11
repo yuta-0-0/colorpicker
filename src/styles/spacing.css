@@ -1,0 +1,18 @@
+/**
+ * Lism CSS ハイブリッド — 余白ステップシステム
+ *
+ * 8px グリッドをベースにした7段階の余白スケール。
+ * Tailwind の spacing と同じ値を CSS Variables としても提供することで、
+ * インラインスタイルや CSS Modules からも参照可能にする。
+ */
+
+:root {
+  --space-1: 0.25rem;   /*  4px — xs  */
+  --space-2: 0.5rem;    /*  8px — sm  */
+  --space-3: 0.75rem;   /* 12px       */
+  --space-4: 1rem;      /* 16px — md  */
+  --space-6: 1.5rem;    /* 24px — lg  */
+  --space-8: 2rem;      /* 32px — xl  */
+  --space-12: 3rem;     /* 48px — 2xl */
+  --space-16: 4rem;     /* 64px — 3xl */
+}

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useColorStore } from '@/store/colorStore'
 import { ColorSwatch } from '@/components/color/ColorSwatch'
 import { IconTrash } from '@/components/ui/Icons'
+import { Center, Stack } from '@/components/primitives'
 
 export function TrashView() {
   const { colors, loading, fetchTrashedColors, restoreColor, permanentlyDeleteColor } = useColorStore()
@@ -12,9 +13,9 @@ export function TrashView() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
-        読み込み中...
-      </div>
+      <Center full>
+        <p className="text-text-muted text-sm">読み込み中...</p>
+      </Center>
     )
   }
 
@@ -48,10 +49,12 @@ export function TrashView() {
 
       {/* コンテンツ */}
       {colors.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted">
-          <IconTrash size={32} />
-          <p className="text-sm">ゴミ箱は空です</p>
-        </div>
+        <Center full>
+          <Stack gap="3" className="items-center text-text-muted">
+            <IconTrash size={32} />
+            <p className="text-sm">ゴミ箱は空です</p>
+          </Stack>
+        </Center>
       ) : (
         <div className="flex-1 overflow-y-auto">
           <ul className="divide-y divide-border">
