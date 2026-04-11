@@ -31,12 +31,15 @@ export interface Database {
           y: number | null
           k: number | null
           cmyk_source: CmykSource | null
+          cmyk_profile: string | null
           name: string
           spot_color: string | null
           memo: string | null
           is_locked: boolean
           is_favorite: boolean
           is_archived: boolean
+          is_trashed: boolean
+          trashed_at: string | null
           order: number
           used_count: number
           last_used_at: string | null
@@ -54,12 +57,15 @@ export interface Database {
           y?: number | null
           k?: number | null
           cmyk_source?: CmykSource | null
+          cmyk_profile?: string | null
           name: string
           spot_color?: string | null
           memo?: string | null
           is_locked?: boolean
           is_favorite?: boolean
           is_archived?: boolean
+          is_trashed?: boolean
+          trashed_at?: string | null
           order?: number
           used_count?: number
           last_used_at?: string | null
@@ -77,12 +83,15 @@ export interface Database {
           y?: number | null
           k?: number | null
           cmyk_source?: CmykSource | null
+          cmyk_profile?: string | null
           name?: string
           spot_color?: string | null
           memo?: string | null
           is_locked?: boolean
           is_favorite?: boolean
           is_archived?: boolean
+          is_trashed?: boolean
+          trashed_at?: string | null
           order?: number
           used_count?: number
           last_used_at?: string | null
@@ -96,6 +105,8 @@ export interface Database {
           id: string
           user_id: string
           name: string
+          icon: string | null
+          parent_id: string | null
           is_locked: boolean
           order: number
           created_at: string
@@ -104,6 +115,8 @@ export interface Database {
           id?: string
           user_id: string
           name: string
+          icon?: string | null
+          parent_id?: string | null
           is_locked?: boolean
           order?: number
           created_at?: string
@@ -112,11 +125,21 @@ export interface Database {
           id?: string
           user_id?: string
           name?: string
+          icon?: string | null
+          parent_id?: string | null
           is_locked?: boolean
           order?: number
           created_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       tags: {
         Row: {
@@ -166,6 +189,36 @@ export interface Database {
           }
         ]
       }
+      color_folders: {
+        Row: {
+          color_id: string
+          folder_id: string
+        }
+        Insert: {
+          color_id: string
+          folder_id: string
+        }
+        Update: {
+          color_id?: string
+          folder_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "color_folders_color_id_fkey"
+            columns: ["color_id"]
+            isOneToOne: false
+            referencedRelation: "colors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "color_folders_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       invitations: {
         Row: {
           id: string
@@ -204,6 +257,8 @@ export type ColorInsert = Database['public']['Tables']['colors']['Insert']
 export type ColorUpdate = Database['public']['Tables']['colors']['Update']
 export type Folder = Database['public']['Tables']['folders']['Row']
 export type FolderInsert = Database['public']['Tables']['folders']['Insert']
+export type FolderUpdate = Database['public']['Tables']['folders']['Update']
 export type Tag = Database['public']['Tables']['tags']['Row']
 export type ColorTag = Database['public']['Tables']['color_tags']['Row']
+export type ColorFolder = Database['public']['Tables']['color_folders']['Row']
 export type Invitation = Database['public']['Tables']['invitations']['Row']

@@ -5,7 +5,7 @@ import { useFolderStore } from '@/store/folderStore'
 
 export function BulkActionBar() {
   const { bulkSelectedIds, clearBulkSelect } = useUIStore()
-  const { colors, deleteColor, updateColor } = useColorStore()
+  const { colors, trashColor, updateColor } = useColorStore()
   const { folders } = useFolderStore()
   const [showFolderMenu, setShowFolderMenu] = useState(false)
 
@@ -15,7 +15,7 @@ export function BulkActionBar() {
     for (const id of bulkSelectedIds) {
       const color = colors.find((c) => c.id === id)
       if (color && !color.is_locked) {
-        await deleteColor(id)
+        await trashColor(id)
       }
     }
     clearBulkSelect()
@@ -47,7 +47,7 @@ export function BulkActionBar() {
         onClick={handleBulkDelete}
         className="px-3 py-1 text-xs rounded-md bg-red-900/40 text-red-300 hover:bg-red-900/60 transition-colors"
       >
-        一括削除
+        ゴミ箱へ
       </button>
 
       <button
