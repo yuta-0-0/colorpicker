@@ -57,14 +57,14 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: 'auto' }}
       exit={{ opacity: 0, height: 0 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
       className="overflow-hidden"
     >
       <motion.div
         initial={{ scale: 0.98, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.98, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
         className="mx-6 mb-1 rounded-lg overflow-hidden"
         style={{
           backdropFilter: 'blur(16px)',
@@ -78,7 +78,7 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.04 }}
             className="flex-shrink-0 px-3 py-3 flex items-center"
           >
             <MoodImageSlots colorId={color.id} />
@@ -91,7 +91,7 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.04 }}
             className="flex-1 min-w-0 px-3 py-3 space-y-3"
           >
             <MemoArea color={color} />

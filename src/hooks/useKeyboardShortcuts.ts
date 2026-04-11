@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
+import type { Color } from '@/types/database'
 
 interface ShortcutHandlers {
   openAddModal: () => void
   openScreenPicker: () => void
+  displayColors: Color[]
 }
 
 function isInputFocused(): boolean {
@@ -16,9 +18,11 @@ function isInputFocused(): boolean {
   return false
 }
 
-export function useKeyboardShortcuts({ openAddModal, openScreenPicker }: ShortcutHandlers) {
+export function useKeyboardShortcuts({ openAddModal, openScreenPicker, displayColors }: ShortcutHandlers) {
   const {
     selectedColorId,
+    setSelectedColorId,
+    viewMode,
     setViewMode,
     setActiveSection,
     triggerSearchFocus,
@@ -29,10 +33,45 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker }: Shortcu
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Mac: metaKey = ⌘
-      if (!e.metaKey) return
       // 入力中は全スキップ
       if (isInputFocused()) return
+
+      // ─── 修飾キーなし：Up / Down / Left / Right ───
+      if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+        // Up / Down: 色ナビゲーション（リストビューのみ）
+        if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && viewMode === 'list') {
+          e.preventDefault()
+          const visibleColors = displayColors.filter((c) => !c.is_archived)
+          if (visibleColors.length === 0) return
+          const currentIndex = selectedColorId
+            ? visibleColors.findIndex((c) => c.id === selectedColorId)
+            : -1
+          let nextIndex: number
+          if (e.key === 'ArrowUp') {
+            nextIndex = currentIndex <= 0 ? visibleColors.length - 1 : currentIndex - 1
+          } else {
+            nextIndex = currentIndex >= visibleColors.length - 1 ? 0 : currentIndex + 1
+          }
+          const nextColor = visibleColors[nextIndex]
+          setSelectedColorId(nextColor.id)
+          // 画面外なら scrollIntoView
+          requestAnimationFrame(() => {
+            const el = document.querySelector(`[data-color-id="${nextColor.id}"]`)
+            if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+          })
+          return
+        }
+
+        // Left / Right: ビュー切り替え
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault()
+          setViewMode(viewMode === 'list' ? 'gallery' : 'list')
+          return
+        }
+      }
+
+      // ─── ⌘ ショートカット ───
+      if (!e.metaKey) return
 
       const key = e.key.toLowerCase()
       const shift = e.shiftKey
@@ -132,6 +171,9 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker }: Shortcu
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [
     selectedColorId,
+    setSelectedColorId,
+    displayColors,
+    viewMode,
     colors,
     setViewMode,
     setActiveSection,

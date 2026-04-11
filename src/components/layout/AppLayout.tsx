@@ -118,11 +118,6 @@ export function AppLayout() {
 
   const handleOpenAddModal = useCallback(() => setShowAddModal(true), [])
 
-  useKeyboardShortcuts({
-    openAddModal: handleOpenAddModal,
-    openScreenPicker: handleScreenPick,
-  })
-
   // 選択色が変わったら Prism Tile へプッシュ（Electron のみ）
   useEffect(() => {
     if (!selectedColorId) return
@@ -292,6 +287,12 @@ export function AppLayout() {
     }
     return step6
   })()
+
+  useKeyboardShortcuts({
+    openAddModal: handleOpenAddModal,
+    openScreenPicker: handleScreenPick,
+    displayColors,
+  })
 
   const sectionTitle =
     activeSection === 'favorites' ? 'お気に入り' :
