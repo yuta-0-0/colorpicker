@@ -5,7 +5,6 @@ import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import { calcTAC, isTACWarning, isOutOfGamut, cmykSourceLabel } from '@/lib/printUtils'
 import type { Color } from '@/types/database'
-import { TagInput } from '@/components/color/TagInput'
 import { ContrastChecker } from '@/components/detail/ContrastChecker'
 import { copyColorToClipboard } from '@/lib/exportUtils'
 import { getEnglishColorName, getKatakanaColorName, getTraditionalColorNameSync } from '@/lib/colorUtils'
@@ -131,8 +130,6 @@ export function DetailPanel({ color }: DetailPanelProps) {
     getEnglishColorName(color.hex).then(setEnName)
     getKatakanaColorName(color.hex).then(setKatakanaName)
   }, [color?.hex])
-  const [isEditingMemo, setIsEditingMemo] = useState(false)
-  const [memoValue, setMemoValue] = useState('')
   const [isEditingSpotColor, setIsEditingSpotColor] = useState(false)
   const [spotColorValue, setSpotColorValue] = useState('')
   const [cmykDraft, setCmykDraft] = useState<CmykDraft>({ c: 0, m: 0, y: 0, k: 0 })
@@ -151,12 +148,6 @@ export function DetailPanel({ color }: DetailPanelProps) {
       updateColor(color.id, { name: nameValue.trim() })
     }
     setIsEditingName(false)
-  }
-
-  const handleMemoSubmit = () => {
-    if (!color) return
-    updateColor(color.id, { memo: memoValue.trim() || null })
-    setIsEditingMemo(false)
   }
 
   const handleSpotColorSubmit = () => {
@@ -539,36 +530,6 @@ export function DetailPanel({ color }: DetailPanelProps) {
               {color.spot_color || <span className="text-text-muted">クリックして追加...</span>}
             </button>
           )}
-        </div>
-
-        {/* 一言メモ（クリックで編集） */}
-        <div>
-          <p className="text-xs text-text-muted mb-1">メモ</p>
-          {isEditingMemo ? (
-            <textarea
-              value={memoValue}
-              onChange={(e) => setMemoValue(e.target.value)}
-              onBlur={handleMemoSubmit}
-              onKeyDown={(e) => { if (e.key === 'Escape') setIsEditingMemo(false) }}
-              autoFocus
-              rows={3}
-              className="w-full bg-surface-overlay border border-accent rounded px-2 py-1 text-sm text-text-primary focus:outline-none resize-none"
-            />
-          ) : (
-            <button
-              onClick={() => { if (!color.is_locked) { setMemoValue(color.memo ?? ''); setIsEditingMemo(true) } }}
-              type="button"
-              className="w-full text-left text-sm text-text-secondary hover:text-text-primary transition-colors"
-            >
-              {color.memo || <span className="text-text-muted">クリックしてメモを追加...</span>}
-            </button>
-          )}
-        </div>
-
-        {/* タグ */}
-        <div>
-          <p className="text-xs text-text-muted mb-1.5">タグ</p>
-          <TagInput colorId={color.id} isLocked={color.is_locked} />
         </div>
 
         {/* コントラストチェッカー・色覚シミュレーション */}

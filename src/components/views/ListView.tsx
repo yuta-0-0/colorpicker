@@ -19,6 +19,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ColorListItem } from '@/components/color/ColorListItem'
+import { ContextualPanel } from '@/components/color/ContextualPanel'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import type { Color } from '@/types/database'
@@ -182,36 +183,42 @@ export function ListView({ colors }: ListViewProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6, height: 0, overflow: 'hidden' }}
             transition={{ type: 'spring', stiffness: 400, damping: 25, delay: Math.min(index, 8) * 0.03 }}
-            className="flex items-center"
           >
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); toggleBulkSelect(color.id) }}
-              className={[
-                'flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-opacity mr-0.5',
-                isBulkMode ? 'opacity-100' : 'opacity-0 hover:opacity-100',
-                bulkSelectedIds.includes(color.id)
-                  ? 'bg-accent text-white'
-                  : 'border border-border text-transparent hover:border-text-muted',
-              ].join(' ')}
-              title="選択"
-            >
-              {bulkSelectedIds.includes(color.id) && (
-                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </button>
-            <div className="flex-1 min-w-0">
-              <ColorListItem
-                color={color}
-                isSelected={selectedColorId === color.id}
-                onSelect={(e) => handleSelect(color, index, e)}
-                onCopy={(e) => handleCopy(color, e)}
-                onToggleFavorite={(e) => handleToggleFavorite(color, e)}
-                onDelete={(e) => handleDelete(color, e)}
-              />
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toggleBulkSelect(color.id) }}
+                className={[
+                  'flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-opacity mr-0.5',
+                  isBulkMode ? 'opacity-100' : 'opacity-0 hover:opacity-100',
+                  bulkSelectedIds.includes(color.id)
+                    ? 'bg-accent text-white'
+                    : 'border border-border text-transparent hover:border-text-muted',
+                ].join(' ')}
+                title="選択"
+              >
+                {bulkSelectedIds.includes(color.id) && (
+                  <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+              <div className="flex-1 min-w-0">
+                <ColorListItem
+                  color={color}
+                  isSelected={selectedColorId === color.id}
+                  onSelect={(e) => handleSelect(color, index, e)}
+                  onCopy={(e) => handleCopy(color, e)}
+                  onToggleFavorite={(e) => handleToggleFavorite(color, e)}
+                  onDelete={(e) => handleDelete(color, e)}
+                />
+              </div>
             </div>
+            <AnimatePresence>
+              {selectedColorId === color.id && (
+                <ContextualPanel color={color} />
+              )}
+            </AnimatePresence>
           </motion.div>
         ))}
         </AnimatePresence>
@@ -225,18 +232,24 @@ export function ListView({ colors }: ListViewProps) {
       <SortableContext items={visibleColors.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {visibleColors.map((color, index) => (
-            <SortableColorItem
-              key={color.id}
-              color={color}
-              isSelected={selectedColorId === color.id}
-              isChecked={bulkSelectedIds.includes(color.id)}
-              isBulkMode={isBulkMode}
-              onSelect={(e) => handleSelect(color, index, e)}
-              onCheck={() => toggleBulkSelect(color.id)}
-              onCopy={(e) => handleCopy(color, e)}
-              onToggleFavorite={(e) => handleToggleFavorite(color, e)}
-              onDelete={(e) => handleDelete(color, e)}
-            />
+            <div key={color.id}>
+              <SortableColorItem
+                color={color}
+                isSelected={selectedColorId === color.id}
+                isChecked={bulkSelectedIds.includes(color.id)}
+                isBulkMode={isBulkMode}
+                onSelect={(e) => handleSelect(color, index, e)}
+                onCheck={() => toggleBulkSelect(color.id)}
+                onCopy={(e) => handleCopy(color, e)}
+                onToggleFavorite={(e) => handleToggleFavorite(color, e)}
+                onDelete={(e) => handleDelete(color, e)}
+              />
+              <AnimatePresence>
+                {selectedColorId === color.id && (
+                  <ContextualPanel color={color} />
+                )}
+              </AnimatePresence>
+            </div>
           ))}
         </div>
       </SortableContext>
