@@ -252,19 +252,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
         className="flex items-center justify-center py-8 relative transition-colors"
         style={{ backgroundColor: bgMode === 'dark' ? '#111' : '#f5f5f5' }}
       >
-        {/* alpha < 1 の場合は CSS rgba で実際の透過を表現（チェッカー柄ではなく背景が透けて見える） */}
-        {color.alpha < 1 ? (
-          <div
-            className="rounded-full flex-shrink-0"
-            style={{
-              width: 72,
-              height: 72,
-              backgroundColor: `rgba(${parseInt(color.hex.slice(1,3),16)}, ${parseInt(color.hex.slice(3,5),16)}, ${parseInt(color.hex.slice(5,7),16)}, ${color.alpha})`,
-            }}
-          />
-        ) : (
-          <ColorSwatch hex={color.hex} alpha={color.alpha} size="lg" />
-        )}
+        <ColorSwatch hex={color.hex} alpha={color.alpha} size="lg" />
         <div className="absolute bottom-2 right-2 flex gap-1">
           <button onClick={() => setBgMode('dark')} type="button" className={['w-5 h-5 rounded-full bg-black border transition-all', bgMode === 'dark' ? 'border-accent scale-110' : 'border-border'].join(' ')} />
           <button onClick={() => setBgMode('light')} type="button" className={['w-5 h-5 rounded-full bg-white border transition-all', bgMode === 'light' ? 'border-accent scale-110' : 'border-border'].join(' ')} />
@@ -281,7 +269,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
               value={nameValue}
               onChange={(e) => setNameValue(e.target.value)}
               onBlur={handleNameSubmit}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleNameSubmit(); if (e.key === 'Escape') setIsEditingName(false) }}
+              onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleNameSubmit(); if (e.key === 'Escape') setIsEditingName(false) }}
               autoFocus
               className="w-full bg-surface-overlay border border-accent rounded px-2 py-1 text-base font-medium text-text-primary focus:outline-none"
             />
@@ -332,6 +320,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 value={hexDraft}
                 onChange={(e) => setHexDraft(e.target.value.toUpperCase())}
                 onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing) return
                   if (e.key === 'Enter' && isValidHex) handleHexSave()
                   if (e.key === 'Escape') setIsEditingHex(false)
                 }}
@@ -509,6 +498,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
               onChange={(e) => setSpotColorValue(e.target.value)}
               onBlur={handleSpotColorSubmit}
               onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing) return
                 if (e.key === 'Enter') handleSpotColorSubmit()
                 if (e.key === 'Escape') setIsEditingSpotColor(false)
               }}

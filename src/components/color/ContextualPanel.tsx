@@ -33,7 +33,7 @@ function MemoArea({ color }: { color: Color }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onBlur={handleSubmit}
-          onKeyDown={(e) => { if (e.key === 'Escape') setIsEditing(false) }}
+          onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Escape') setIsEditing(false) }}
           autoFocus
           rows={3}
           className="w-full bg-surface-overlay border border-accent rounded px-2 py-1 text-xs text-text-primary focus:outline-none resize-none"

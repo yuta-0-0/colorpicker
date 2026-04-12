@@ -22,6 +22,7 @@ import { useColorStore } from '@/store/colorStore'
 import { useFolderStore } from '@/store/folderStore'
 import { useTagStore } from '@/store/tagStore'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useDynamicFavicon } from '@/hooks/useDynamicFavicon'
 import { downloadAllDataJSON } from '@/lib/exportUtils'
 import { hasTraditionalColor } from '@/lib/colorUtils'
 import { IconMenu, IconDotsHorizontal } from '@/components/ui/Icons'
@@ -95,6 +96,8 @@ export function AppLayout() {
   const isOnline = useNetworkStatus()
   const { addToast } = useToastStore()
   const prevIsOnline = useRef(true)
+  const [sidebarWidth, setSidebarWidth] = useState(152)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
@@ -294,6 +297,8 @@ export function AppLayout() {
     displayColors,
   })
 
+  useDynamicFavicon(selectedColor?.hex ?? null)
+
   const sectionTitle =
     activeSection === 'favorites' ? 'お気に入り' :
     activeSection === 'history' ? '最近使った色' :
@@ -307,13 +312,31 @@ export function AppLayout() {
   const isTrash = activeSection === 'trash'
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface text-text-primary">
+    <div className="flex h-screen overflow-hidden bg-surface bg-grid text-text-primary">
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <div className={['fixed inset-y-0 left-0 z-30 transition-transform md:relative md:translate-x-0 pb-safe', isSidebarOpen ? 'translate-x-0' : '-translate-x-full'].join(' ')}>
-        <Sidebar onVisualExport={() => setShowVisualExport(true)} />
+      <div className={['fixed inset-y-0 left-0 z-30 transition-transform md:relative md:translate-x-0 pb-safe flex', isSidebarOpen ? 'translate-x-0' : '-translate-x-full'].join(' ')}>
+        <Sidebar
+          onVisualExport={() => setShowVisualExport(true)}
+          width={sidebarWidth}
+          onResize={setSidebarWidth}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(true)}
+        />
+        {sidebarCollapsed && (
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed(false)}
+            title="サイドバーを開く"
+            className="self-start mt-3 ml-1 p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M6.5 4l4 4-4 4" />
+            </svg>
+          </button>
+        )}
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -327,7 +350,7 @@ export function AppLayout() {
                 <button
                   onClick={() => setShowMenu((v) => !v)}
                   type="button"
-                  className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-sm rounded-full glow-accent-btn transition-all"
+                  className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-sm rounded-full glow-accent-btn transition-all tactile"
                 >
                   ＋ 追加
                 </button>

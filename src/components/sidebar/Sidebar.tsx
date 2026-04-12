@@ -1,4 +1,16 @@
 import React, { useEffect, useState } from 'react'
+import {
+  LayoutGrid,
+  Star,
+  Clock,
+  Sparkles,
+  Monitor,
+  ChevronDown,
+  Download,
+  Folder,
+  Tag,
+  Trash2,
+} from 'lucide-react'
 import { Cluster } from '@/components/primitives'
 import { SearchBar } from './SearchBar'
 import { NavItem } from './NavItem'
@@ -9,24 +21,16 @@ import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import { useHistoryStore } from '@/store/historyStore'
 import type { NavSection } from '@/store/uiStore'
-import {
-  IconGrid,
-  IconStar,
-  IconClock,
-  IconSparkle,
-  IconMonitor,
-  IconChevronDown,
-  IconDownload,
-  IconFolder,
-  IconTag,
-  IconTrash,
-} from '@/components/ui/Icons'
 
 interface SidebarProps {
   onVisualExport: () => void
+  width?: number
+  onResize?: (width: number) => void
+  collapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
-export function Sidebar({ onVisualExport }: SidebarProps) {
+export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = false, onToggleCollapse }: SidebarProps) {
   const { activeSection, setActiveSection, activeFolderId, setActiveFolderId, activeTagId, setActiveTagId } = useUIStore()
   const { colors } = useColorStore()
   const { historyColors, loadHistory, clearHistory } = useHistoryStore()
@@ -38,15 +42,32 @@ export function Sidebar({ onVisualExport }: SidebarProps) {
   const [foldersOpen, setFoldersOpen] = useState(true)
   const [tagsOpen, setTagsOpen] = useState(true)
 
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    if (!onResize) return
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = width
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.min(280, Math.max(120, startWidth + ev.clientX - startX))
+      onResize(next)
+    }
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
   const allCount = colors.filter((c) => !c.is_archived && !c.is_trashed).length
   const favoriteCount = colors.filter((c) => c.is_favorite && !c.is_archived && !c.is_trashed).length
 
   const navItems: { id: NavSection; label: string; icon: React.ReactNode; count?: number }[] = [
-    { id: 'all', label: 'すべての色', icon: <IconGrid />, count: allCount },
-    { id: 'favorites', label: 'お気に入り', icon: <IconStar />, count: favoriteCount },
-    { id: 'history', label: '最近使った色', icon: <IconClock /> },
-    { id: 'generator', label: 'カラージェネレーター', icon: <IconSparkle /> },
-    { id: 'ui-test', label: 'UIテスト', icon: <IconMonitor /> },
+    { id: 'all', label: 'すべての色', icon: <LayoutGrid size={14} />, count: allCount },
+    { id: 'favorites', label: 'お気に入り', icon: <Star size={14} />, count: favoriteCount },
+    { id: 'history', label: '最近使った色', icon: <Clock size={14} /> },
+    { id: 'generator', label: 'カラージェネレーター', icon: <Sparkles size={14} /> },
+    { id: 'ui-test', label: 'UIテスト', icon: <Monitor size={14} /> },
   ]
 
   const handleSelectTag = (id: string) => {
@@ -55,7 +76,10 @@ export function Sidebar({ onVisualExport }: SidebarProps) {
   }
 
   return (
-    <aside className="w-[152px] flex-shrink-0 flex flex-col gap-5 px-3 py-4 bg-surface-sidebar border-r border-border-sidebar overflow-y-auto h-full">
+    <aside
+      className="relative flex-shrink-0 flex flex-col gap-5 px-3 py-4 bg-surface-sidebar border-r border-border-sidebar overflow-y-auto h-full transition-[width] duration-150"
+      style={{ width: collapsed ? 0 : width, overflow: collapsed ? 'hidden' : undefined }}
+    >
       <SearchBar />
 
       <nav className="space-y-0.5">
@@ -78,11 +102,11 @@ export function Sidebar({ onVisualExport }: SidebarProps) {
           className="w-full flex items-center justify-between px-3 mb-2 group"
         >
           <div className="flex items-center gap-1.5 text-text-muted">
-            <IconFolder size={12} />
+            <Folder size={12} />
             <p className="text-xs font-medium uppercase tracking-wider">フォルダ</p>
           </div>
           <span className={['text-text-muted transition-transform', foldersOpen ? '' : '-rotate-90'].join(' ')}>
-            <IconChevronDown size={12} />
+            <ChevronDown size={12} />
           </span>
         </button>
         {foldersOpen && <FolderList activeFolderId={activeFolderId} onSelectFolder={setActiveFolderId} />}
@@ -95,11 +119,11 @@ export function Sidebar({ onVisualExport }: SidebarProps) {
           className="w-full flex items-center justify-between px-3 mb-2 group"
         >
           <div className="flex items-center gap-1.5 text-text-muted">
-            <IconTag size={12} />
+            <Tag size={12} />
             <p className="text-xs font-medium uppercase tracking-wider">タグ</p>
           </div>
           <span className={['text-text-muted transition-transform', tagsOpen ? '' : '-rotate-90'].join(' ')}>
-            <IconChevronDown size={12} />
+            <ChevronDown size={12} />
           </span>
         </button>
         {tagsOpen && <TagList activeTagId={activeTagId} onSelectTag={handleSelectTag} />}
@@ -142,23 +166,43 @@ export function Sidebar({ onVisualExport }: SidebarProps) {
       <div className="mt-auto">
         <NavItem
           label="ゴミ箱"
-          icon={<IconTrash />}
+          icon={<Trash2 size={14} />}
           isActive={activeSection === 'trash' && !activeFolderId}
           onClick={() => setActiveSection('trash')}
         />
       </div>
 
       {/* ビジュアル書き出し */}
-      <div className="pt-2 border-t border-border">
+      <div className="pt-2 border-t border-border space-y-0.5">
         <button
           type="button"
           onClick={onVisualExport}
           className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-text-muted hover:bg-surface-overlay hover:text-text-primary transition-colors"
         >
-          <IconDownload size={14} />
+          <Download size={14} />
           ビジュアル書き出し
         </button>
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            title="サイドバーを閉じる"
+            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-text-muted hover:bg-surface-overlay hover:text-text-primary transition-colors"
+          >
+            <ChevronDown size={14} className="-rotate-90" />
+            閉じる
+          </button>
+        )}
       </div>
+
+      {/* リサイザーハンドル */}
+      {onResize && (
+        <div
+          onMouseDown={handleResizeMouseDown}
+          className="absolute top-0 right-0 w-1 h-full cursor-col-resize opacity-0 hover:opacity-100 hover:bg-accent/40 transition-opacity"
+          title="ドラッグで幅を調整"
+        />
+      )}
     </aside>
   )
 }

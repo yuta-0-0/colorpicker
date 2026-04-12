@@ -70,9 +70,9 @@
 /* ── Notion思想: ウィスパーボーダー ── */
 /* ポップアップ・ドロップダウン専用のガラス効果 */
 .glass-popup {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  background: rgba(12, 13, 20, 0.85);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background: rgba(12, 13, 20, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.4),
@@ -136,6 +136,37 @@
   border: 2px solid rgba(0,0,0,0.25);
   box-shadow: 0 1px 4px rgba(0,0,0,0.4);
   cursor: grab;
+}
+
+/* ── 背景グリッド（色が主役になる繊細なドット） ── */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+[data-theme="light"] .bg-grid {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* ── Vibrancy（強化版 backdrop-filter） ── */
+.vibrancy {
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* ── タクタイルフィードバック ── */
+.tactile {
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+.tactile:hover {
+  transform: translateY(-1px);
+}
+.tactile:active {
+  transform: scale(0.97);
 }
 
 /* ── iPhone ノッチ・ホームバー対応 ── */
