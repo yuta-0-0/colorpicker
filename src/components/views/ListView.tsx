@@ -190,7 +190,9 @@ export function ListView({ colors }: ListViewProps) {
               background: 'rgb(var(--color-surface) / 0.9)',
               border: '1px solid rgb(var(--color-accent) / 0.25)',
               boxShadow: '0 10px 30px -10px rgba(0,0,0,0.2)',
-            } : {}}
+            } : {
+              border: '1px solid transparent',
+            }}
           >
             <div className="flex items-center">
               <button
