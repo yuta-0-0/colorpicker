@@ -312,7 +312,7 @@ export function AppLayout() {
   const isTrash = activeSection === 'trash'
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface bg-grid text-text-primary">
+    <div className="flex h-screen overflow-hidden bg-surface text-text-primary">
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}

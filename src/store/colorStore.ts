@@ -122,6 +122,36 @@ export const useColorStore = create<ColorStore>((set, get) => ({
 
   addColor: async (hex, alpha = 1.0, folderId = null, options) => {
     get()._snapshot()
+
+    // dev bypass モード: Supabase を使わずローカル state のみで追加
+    if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
+      const existing = get().colors.find((c) => c.hex.toUpperCase() === hex.toUpperCase())
+      if (existing) return existing
+      const devColor: Color = {
+        id: crypto.randomUUID(),
+        user_id: 'dev-user',
+        folder_id: folderId,
+        hex: hex.toUpperCase(),
+        alpha,
+        name: options?.name ?? hex.toUpperCase(),
+        order: 0,
+        is_favorite: false,
+        is_locked: false,
+        is_archived: false,
+        is_trashed: false,
+        used_count: 0,
+        last_used_at: null,
+        memo: null,
+        spot_color: null,
+        c: null, m: null, y: null, k: null,
+        cmyk_source: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      set((state) => ({ colors: [devColor, ...state.colors] }))
+      return devColor
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 

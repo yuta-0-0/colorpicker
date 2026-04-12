@@ -123,7 +123,7 @@ export function FilterBar() {
               : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay',
           ].join(' ')}
         >
-          {showArchived ? '📦 表示中' : '📦'}
+          {showArchived ? 'アーカイブ表示中' : 'アーカイブ'}
         </button>
 
         <div className="w-px h-4 bg-border mx-0.5" />
