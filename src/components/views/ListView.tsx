@@ -185,13 +185,17 @@ export function ListView({ colors }: ListViewProps) {
             exit={{ opacity: 0, y: -6, height: 0, overflow: 'hidden' }}
             transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5, delay: Math.min(index, 8) * 0.02 }}
             className="rounded-xl transition-all"
-            style={selectedColorId === color.id ? {
+            style={{
               backdropFilter: 'blur(16px)',
-              background: 'rgb(var(--color-surface) / 0.9)',
-              border: '1px solid rgb(var(--color-accent) / 0.25)',
-              boxShadow: '0 10px 30px -10px rgba(0,0,0,0.2)',
-            } : {
-              border: '1px solid transparent',
+              background: selectedColorId === color.id
+                ? 'rgb(var(--color-surface) / 0.9)'
+                : 'transparent',
+              border: selectedColorId === color.id
+                ? '1px solid rgb(var(--color-accent) / 0.25)'
+                : '1px solid transparent',
+              boxShadow: selectedColorId === color.id
+                ? '0 10px 30px -10px rgba(0,0,0,0.2)'
+                : 'none',
             }}
           >
             <div className="flex items-center">
