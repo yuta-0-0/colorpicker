@@ -31,6 +31,11 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // 開発環境バイパス（.env.local に VITE_DEV_BYPASS_AUTH=true を設定）
+  if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
+    return <AppLayout />
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
