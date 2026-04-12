@@ -60,44 +60,30 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
       transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
       className="overflow-hidden"
     >
+      {/* セパレーター：行とパネルの境目を薄く */}
+      <div className="mx-3 border-t border-border/30" />
+
       <motion.div
-        initial={{ scale: 0.98, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.98, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
-        className="mx-6 mb-1 rounded-lg overflow-hidden bg-surface/90 border border-border/50"
-        style={{
-          backdropFilter: 'blur(16px)',
-          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.1)',
-        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.04 }}
+        className="flex gap-0 min-h-[88px]"
       >
-        <div className="flex gap-0 min-h-[88px]">
-          {/* 左：画像エリア */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.04 }}
-            className="flex-shrink-0 px-3 py-3 flex items-center"
-          >
-            <MoodImageSlots colorId={color.id} />
-          </motion.div>
+        {/* 左：画像エリア */}
+        <div className="flex-shrink-0 px-3 py-3 flex items-center">
+          <MoodImageSlots colorId={color.id} />
+        </div>
 
-          {/* セパレーター */}
-          <div className="w-px bg-border/40 flex-shrink-0 my-3" />
+        {/* セパレーター */}
+        <div className="w-px bg-border/30 flex-shrink-0 my-3" />
 
-          {/* 右：メモ + タグ */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.04 }}
-            className="flex-1 min-w-0 px-3 py-3 space-y-3"
-          >
-            <MemoArea color={color} />
-            <div>
-              <p className="text-xs text-text-muted mb-1">タグ</p>
-              <TagInput colorId={color.id} isLocked={color.is_locked} />
-            </div>
-          </motion.div>
+        {/* 右：メモ + タグ */}
+        <div className="flex-1 min-w-0 px-3 py-3 space-y-3">
+          <MemoArea color={color} />
+          <div>
+            <p className="text-xs text-text-muted mb-1">タグ</p>
+            <TagInput colorId={color.id} isLocked={color.is_locked} />
+          </div>
         </div>
       </motion.div>
     </motion.div>

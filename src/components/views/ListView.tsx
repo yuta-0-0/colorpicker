@@ -184,7 +184,13 @@ export function ListView({ colors }: ListViewProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6, height: 0, overflow: 'hidden' }}
             transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5, delay: Math.min(index, 8) * 0.02 }}
-            className={['rounded-xl transition-colors', selectedColorId === color.id ? 'bg-accent/10' : ''].join(' ')}
+            className="rounded-xl transition-all"
+            style={selectedColorId === color.id ? {
+              backdropFilter: 'blur(16px)',
+              background: 'rgb(var(--color-surface) / 0.9)',
+              border: '1px solid rgb(var(--color-accent) / 0.25)',
+              boxShadow: '0 10px 30px -10px rgba(0,0,0,0.2)',
+            } : {}}
           >
             <div className="flex items-center">
               <button
@@ -237,7 +243,13 @@ export function ListView({ colors }: ListViewProps) {
             <div
               key={color.id}
               data-color-id={color.id}
-              className={['rounded-xl transition-colors', selectedColorId === color.id ? 'bg-accent/10' : ''].join(' ')}
+              className="rounded-xl transition-all"
+              style={selectedColorId === color.id ? {
+                backdropFilter: 'blur(16px)',
+                background: 'rgb(var(--color-surface) / 0.9)',
+                border: '1px solid rgb(var(--color-accent) / 0.25)',
+                boxShadow: '0 10px 30px -10px rgba(0,0,0,0.2)',
+              } : {}}
             >
               <SortableColorItem
                 color={color}
