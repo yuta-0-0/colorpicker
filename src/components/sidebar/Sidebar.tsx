@@ -148,15 +148,13 @@ export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = fal
         ) : (
           <Cluster gap="1" className="px-1">
             {historyColors.map((c) => (
-              <button
+              <ColorSwatch
                 key={c.id}
-                type="button"
-                title={c.hex}
+                hex={c.hex}
+                alpha={c.alpha}
+                size="sm"
                 onClick={() => setActiveSection('history')}
-                className="hover:scale-110 transition-transform"
-              >
-                <ColorSwatch hex={c.hex} alpha={c.alpha} size="sm" />
-              </button>
+              />
             ))}
           </Cluster>
         )}
