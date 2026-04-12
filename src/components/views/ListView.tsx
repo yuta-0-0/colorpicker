@@ -127,12 +127,12 @@ export function ListView({ colors }: ListViewProps) {
       const from = Math.min(lastSelectedIndexRef.current, index)
       const to = Math.max(lastSelectedIndexRef.current, index)
       const rangeIds = visibleColors.slice(from, to + 1).map((c) => c.id)
-      // 既存の選択と合わせてuniqueにする
       const merged = Array.from(new Set([...bulkSelectedIds, ...rangeIds]))
       setBulkSelectedIds(merged)
     } else {
       lastSelectedIndexRef.current = index
-      setSelectedColorId(color.id)
+      // 再クリックでトグル（パネルを閉じる）
+      setSelectedColorId(selectedColorId === color.id ? null : color.id)
     }
   }
 
@@ -179,10 +179,23 @@ export function ListView({ colors }: ListViewProps) {
         {visibleColors.map((color, index) => (
           <motion.div
             key={color.id}
+            data-color-id={color.id}
             initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{
+              opacity: 1,
+              y: 0,
+              backgroundColor: selectedColorId === color.id ? 'rgba(10,62,216,0.07)' : 'rgba(10,62,216,0)',
+              borderColor: selectedColorId === color.id ? 'rgba(10,62,216,0.25)' : 'rgba(10,62,216,0)',
+              boxShadow: selectedColorId === color.id ? '0 10px 30px -10px rgba(0,0,0,0.2)' : '0 0px 0px rgba(0,0,0,0)',
+            }}
             exit={{ opacity: 0, y: -6, height: 0, overflow: 'hidden' }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25, delay: Math.min(index, 8) * 0.03 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5, delay: Math.min(index, 8) * 0.02 }}
+            className="rounded-xl"
+            style={{
+              backdropFilter: 'blur(16px)',
+              borderWidth: '1px',
+              borderStyle: 'solid',
+            }}
           >
             <div className="flex items-center">
               <button
@@ -232,7 +245,22 @@ export function ListView({ colors }: ListViewProps) {
       <SortableContext items={visibleColors.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {visibleColors.map((color, index) => (
-            <div key={color.id}>
+            <motion.div
+              key={color.id}
+              data-color-id={color.id}
+              animate={{
+                backgroundColor: selectedColorId === color.id ? 'rgba(10,62,216,0.07)' : 'rgba(10,62,216,0)',
+                borderColor: selectedColorId === color.id ? 'rgba(10,62,216,0.25)' : 'rgba(10,62,216,0)',
+                boxShadow: selectedColorId === color.id ? '0 10px 30px -10px rgba(0,0,0,0.2)' : '0 0px 0px rgba(0,0,0,0)',
+              }}
+              transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
+              className="rounded-xl"
+              style={{
+                backdropFilter: 'blur(16px)',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+              }}
+            >
               <SortableColorItem
                 color={color}
                 isSelected={selectedColorId === color.id}
@@ -249,7 +277,7 @@ export function ListView({ colors }: ListViewProps) {
                   <ContextualPanel color={color} />
                 )}
               </AnimatePresence>
-            </div>
+            </motion.div>
           ))}
         </div>
       </SortableContext>
