@@ -49,104 +49,109 @@ export function FilterBar() {
   }
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border overflow-x-auto flex-shrink-0">
-      {HUE_FILTERS.map((filter) => {
-        const isActive = activeHueFilter === filter.label
-        return (
-          <button
-            key={filter.label}
-            type="button"
-            onClick={() => handleHueClick(filter.label)}
-            className={[
-              'flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors flex-shrink-0',
-              isActive
-                ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay border border-transparent',
-            ].join(' ')}
-          >
-            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: filter.hex }} />
-            {filter.label}
-          </button>
-        )
-      })}
+    <div className="flex items-center border-b border-border flex-shrink-0 overflow-hidden">
+      {/* 左：スクロール可能なフィルター群 */}
+      <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto flex-1 min-w-0">
+        {/* 色相フィルター（ドットのみ） */}
+        {HUE_FILTERS.map((filter) => {
+          const isActive = activeHueFilter === filter.label
+          return (
+            <button
+              key={filter.label}
+              type="button"
+              title={filter.label}
+              onClick={() => handleHueClick(filter.label)}
+              className={[
+                'flex items-center justify-center w-6 h-6 rounded-full transition-all flex-shrink-0',
+                isActive
+                  ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface scale-110'
+                  : 'hover:scale-110 opacity-70 hover:opacity-100',
+              ].join(' ')}
+            >
+              <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: filter.hex }} />
+            </button>
+          )
+        })}
 
-      {/* セパレーター */}
-      <div className="w-px h-4 bg-border flex-shrink-0" />
+        <div className="w-px h-4 bg-border flex-shrink-0 mx-0.5" />
 
-      {/* トーンフィルター */}
-      {TONE_FILTERS.map((tone) => {
-        const isActive = activeToneFilter === tone.value
-        return (
-          <button
-            key={tone.value}
-            type="button"
-            onClick={() => setActiveToneFilter(activeToneFilter === tone.value ? null : tone.value)}
-            className={[
-              'px-2 py-1 rounded-full text-xs transition-colors flex-shrink-0',
-              isActive
-                ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
-                : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay border border-transparent',
-            ].join(' ')}
-          >
-            {tone.label}
-          </button>
-        )
-      })}
+        {/* トーンフィルター */}
+        {TONE_FILTERS.map((tone) => {
+          const isActive = activeToneFilter === tone.value
+          return (
+            <button
+              key={tone.value}
+              type="button"
+              onClick={() => setActiveToneFilter(activeToneFilter === tone.value ? null : tone.value)}
+              className={[
+                'px-2 py-1 rounded-full text-xs transition-colors flex-shrink-0',
+                isActive
+                  ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay border border-transparent',
+              ].join(' ')}
+            >
+              {tone.label}
+            </button>
+          )
+        })}
 
-      {/* 伝統色フィルター */}
-      <button
-        type="button"
-        onClick={() => setActiveTraditionalFilter(!activeTraditionalFilter)}
-        className={[
-          'flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors flex-shrink-0',
-          activeTraditionalFilter
-            ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
-            : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay border border-transparent',
-        ].join(' ')}
-      >
-        伝統色
-      </button>
+        {/* 伝統色フィルター */}
+        <button
+          type="button"
+          onClick={() => setActiveTraditionalFilter(!activeTraditionalFilter)}
+          className={[
+            'px-2 py-1 rounded-full text-xs transition-colors flex-shrink-0',
+            activeTraditionalFilter
+              ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
+              : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay border border-transparent',
+          ].join(' ')}
+        >
+          伝統色
+        </button>
+      </div>
 
-      <div className="ml-auto flex-shrink-0 flex items-center gap-1">
-        {/* ソート選択 */}
+      {/* 右：固定のソートコントロール */}
+      <div className="flex items-center gap-1 px-3 py-2 border-l border-border flex-shrink-0">
+        {/* アーカイブ */}
+        <button
+          onClick={() => setShowArchived(!showArchived)}
+          type="button"
+          className={[
+            'px-2 py-1 rounded text-xs transition-colors',
+            showArchived
+              ? 'bg-accent/10 text-accent-soft font-medium'
+              : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay',
+          ].join(' ')}
+        >
+          {showArchived ? '📦 表示中' : '📦'}
+        </button>
+
+        <div className="w-px h-4 bg-border mx-0.5" />
+
+        {/* 並び順グループ */}
+        <span className="text-[10px] text-text-muted mr-0.5 tracking-wide">並び順</span>
         {SORT_OPTIONS.map((opt) => (
           <button
             key={opt.value}
             onClick={() => setSortBy(opt.value)}
             type="button"
             className={[
-              'px-2 py-1 rounded-full text-xs transition-colors',
+              'px-2 py-1 rounded text-xs transition-colors',
               sortBy === opt.value
-                ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
-                : 'text-text-muted hover:text-text-secondary border border-transparent',
+                ? 'bg-accent/10 text-accent-soft font-medium'
+                : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay',
             ].join(' ')}
           >
             {opt.label}
           </button>
         ))}
-
-        {/* 昇降切り替え */}
         <button
           onClick={toggleSortDirection}
           type="button"
-          className="px-1.5 py-1 rounded text-xs text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors"
-          title={sortDirection === 'asc' ? '昇順（降順に変更）' : '降順（昇順に変更）'}
+          className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors"
+          title={sortDirection === 'asc' ? '昇順 → 降順に変更' : '降順 → 昇順に変更'}
         >
-          {sortDirection === 'asc' ? <IconSortAsc size={14} /> : <IconSortDesc size={14} />}
-        </button>
-
-        {/* アーカイブ表示 */}
-        <button
-          onClick={() => setShowArchived(!showArchived)}
-          type="button"
-          className={[
-            'px-2 py-1 rounded-full text-xs transition-colors',
-            showArchived
-              ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
-              : 'text-text-muted hover:text-text-secondary border border-transparent',
-          ].join(' ')}
-        >
-          アーカイブ {showArchived ? '非表示' : '表示'}
+          {sortDirection === 'asc' ? <IconSortAsc size={13} /> : <IconSortDesc size={13} />}
         </button>
       </div>
     </div>
