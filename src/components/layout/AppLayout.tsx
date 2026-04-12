@@ -23,6 +23,7 @@ import { useFolderStore } from '@/store/folderStore'
 import { useTagStore } from '@/store/tagStore'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useDynamicFavicon } from '@/hooks/useDynamicFavicon'
+import { LiquidDock } from '@/components/dock/LiquidDock'
 import { downloadAllDataJSON } from '@/lib/exportUtils'
 import { hasTraditionalColor } from '@/lib/colorUtils'
 import { IconMenu, IconDotsHorizontal } from '@/components/ui/Icons'
@@ -471,6 +472,7 @@ export function AppLayout() {
       )}
       {showImport && <ImportModal onClose={() => setShowImport(false)} />}
       <ToastContainer />
+      <LiquidDock />
     </div>
   )
 }

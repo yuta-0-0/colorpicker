@@ -145,6 +145,8 @@ export const useColorStore = create<ColorStore>((set, get) => ({
         spot_color: null,
         c: null, m: null, y: null, k: null,
         cmyk_source: null,
+        cmyk_profile: null,
+        trashed_at: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }
