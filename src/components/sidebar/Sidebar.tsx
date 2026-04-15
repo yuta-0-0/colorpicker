@@ -77,8 +77,17 @@ export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = fal
 
   return (
     <aside
-      className="relative flex-shrink-0 flex flex-col gap-5 px-3 py-4 bg-surface-sidebar border-r border-border-sidebar overflow-y-auto h-full transition-[width] duration-150"
-      style={{ width: collapsed ? 0 : width, overflow: collapsed ? 'hidden' : undefined }}
+      className="relative flex-shrink-0 flex flex-col gap-5 bg-surface-sidebar border-r border-border-sidebar overflow-y-auto h-full transition-[width,padding] duration-200"
+      style={{
+        width: collapsed ? 0 : width,
+        minWidth: collapsed ? 0 : undefined,
+        padding: collapsed ? 0 : undefined,
+        overflow: 'hidden',
+        paddingTop: collapsed ? 0 : '1rem',
+        paddingBottom: collapsed ? 0 : '1rem',
+        paddingLeft: collapsed ? 0 : '0.75rem',
+        paddingRight: collapsed ? 0 : '0.75rem',
+      }}
     >
       <SearchBar />
 

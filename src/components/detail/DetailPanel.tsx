@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ColorSwatch } from '@/components/color/ColorSwatch'
+import { findLegendaryColor } from '@/lib/data/legendaryColors'
 import { IconButton } from '@/components/ui/IconButton'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
@@ -122,6 +124,40 @@ export function DetailPanel({ color }: DetailPanelProps) {
   const [katakanaName, setKatakanaName] = useState('')
   const [traditionalName, setTraditionalName] = useState('')
 
+  // Legendary Match
+  const legendary = color ? findLegendaryColor(color.hex) : null
+  const [showGlow, setShowGlow] = useState(false)
+  const [autofilled, setAutofilled] = useState(false)
+  const prevHexRef = useRef<string | null>(null)
+
+  // HEXが変わったときにautofilled状態をリセット
+  useEffect(() => {
+    setAutofilled(false)
+  }, [color?.hex])
+
+  useEffect(() => {
+    if (!color) return
+    if (legendary && color.hex !== prevHexRef.current) {
+      setShowGlow(true)
+      const t = setTimeout(() => setShowGlow(false), 1200)
+      return () => clearTimeout(t)
+    }
+    prevHexRef.current = color.hex
+  }, [color?.hex, legendary])
+
+  const handleLegendaryAutofill = () => {
+    if (!color || !legendary) return
+    const updates: Record<string, string> = {}
+    // メモが空ならブランド説明を流し込む
+    if (!color.memo) updates.memo = legendary.description
+    // 色名がHEX文字列（#で始まる）またはデフォルトのままならブランド名に上書き
+    if (!color.name || /^#[0-9A-Fa-f]{6}$/i.test(color.name)) updates.name = legendary.brand
+    if (Object.keys(updates).length > 0) {
+      updateColor(color.id, updates)
+    }
+    setAutofilled(true)
+  }
+
   useEffect(() => {
     if (!color) return
     setEnName('')
@@ -214,8 +250,35 @@ export function DetailPanel({ color }: DetailPanelProps) {
   const draftTac = isEditingCmyk ? calcTAC(cmykDraft.c, cmykDraft.m, cmykDraft.y, cmykDraft.k) : null
   const draftTacWarning = draftTac !== null ? isTACWarning(draftTac) : false
 
+  const { r, g, b } = color ? hexToRgb(color.hex) : { r: 10, g: 62, b: 216 }
+
   return (
-    <aside className="w-64 flex-shrink-0 flex flex-col border-l border-border bg-surface overflow-y-auto">
+    <aside
+      className="w-64 flex-shrink-0 flex flex-col overflow-y-auto relative"
+      style={{
+        background: `rgba(10, 62, 216, 0.05)`,
+        borderLeft: `1px solid rgba(10, 62, 216, 0.18)`,
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+      }}
+    >
+      {/* Legendary Glow オーバーレイ */}
+      <AnimatePresence>
+        {showGlow && legendary && (
+          <motion.div
+            key="legendary-glow"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="absolute inset-0 z-10 pointer-events-none rounded-r-none"
+            style={{
+              background: `radial-gradient(ellipse at center, rgba(${r},${g},${b},0.28) 0%, rgba(${r},${g},${b},0) 70%)`,
+              boxShadow: `inset 0 0 60px rgba(${r},${g},${b},0.2)`,
+            }}
+          />
+        )}
+      </AnimatePresence>
       {/* ヘッダー */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
@@ -298,6 +361,97 @@ export function DetailPanel({ color }: DetailPanelProps) {
           {traditionalName && (
             <p className="text-xs text-text-muted truncate">{traditionalName}</p>
           )}
+
+          {/* Legendary Match バッジ */}
+          <AnimatePresence>
+            {legendary && (
+              <motion.div
+                key="legendary-badge"
+                initial={{ opacity: 0, scale: 0.85, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.85, y: 4 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                className="mt-2 rounded-xl overflow-hidden"
+                style={{
+                  backdropFilter: 'blur(16px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                  background: `rgba(${r},${g},${b},0.12)`,
+                  border: `1px solid rgba(${r},${g},${b},0.3)`,
+                  boxShadow: `0 0 16px rgba(${r},${g},${b},0.18), inset 0 1px 0 rgba(255,255,255,0.08)`,
+                }}
+              >
+                {/* ヘッダー行：ラベル + ロゴ */}
+                <div className="flex items-center justify-between px-2.5 pt-2 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm leading-none">★</span>
+                    <div>
+                      <p className="text-[9px] font-semibold tracking-widest uppercase leading-none mb-0.5" style={{ color: `rgb(${r},${g},${b})` }}>
+                        Legendary Match
+                      </p>
+                      <p className="text-xs text-text-primary font-medium leading-none">{legendary.brand}</p>
+                    </div>
+                  </div>
+                  {/* ブランドロゴ */}
+                  {legendary.imageUrl && (
+                    <img
+                      src={legendary.imageUrl}
+                      alt={legendary.brand}
+                      className="w-7 h-7 rounded-md object-contain bg-white/10 p-0.5 flex-shrink-0"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                    />
+                  )}
+                </div>
+
+                {/* 説明文 */}
+                <p className="px-2.5 pb-2 text-[10px] text-text-muted leading-relaxed">
+                  {legendary.description}
+                </p>
+
+                {/* アクション行 */}
+                <div
+                  className="flex items-center gap-1 px-2 pb-2"
+                  style={{ borderTop: `1px solid rgba(${r},${g},${b},0.15)`, paddingTop: '6px' }}
+                >
+                  {/* 自動フィルボタン */}
+                  <button
+                    type="button"
+                    onClick={handleLegendaryAutofill}
+                    disabled={autofilled}
+                    className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all flex-1 justify-center"
+                    style={{
+                      background: autofilled ? `rgba(${r},${g},${b},0.08)` : `rgba(${r},${g},${b},0.22)`,
+                      color: autofilled ? `rgba(${r},${g},${b},0.6)` : `rgb(${r},${g},${b})`,
+                      border: `1px solid rgba(${r},${g},${b},0.25)`,
+                    }}
+                  >
+                    {autofilled ? (
+                      <><span>✓</span> フィル済み</>
+                    ) : (
+                      <><span>✦</span> メモ・名前を自動フィル</>
+                    )}
+                  </button>
+                  {/* 公式サイトリンク */}
+                  {legendary.url && (
+                    <a
+                      href={legendary.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center w-7 h-7 rounded-md text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
+                      style={{
+                        background: `rgba(${r},${g},${b},0.1)`,
+                        border: `1px solid rgba(${r},${g},${b},0.2)`,
+                      }}
+                      title={`${legendary.brand} 公式サイト`}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M2 8L8 2M8 2H4M8 2V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </a>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* カラーコード */}

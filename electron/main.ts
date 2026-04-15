@@ -1,7 +1,7 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, screen } from 'electron'
 import path from 'path'
 
-const isDev = process.env.NODE_ENV === 'development'
+const isDev = !app.isPackaged
 
 // Prism Tile ウィンドウの参照
 let prismTileWin: BrowserWindow | null = null
@@ -12,8 +12,11 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#00000000',
     titleBarStyle: 'hiddenInset',
+    transparent: true,
+    vibrancy: 'under-window',
+    hasShadow: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -78,7 +81,22 @@ function createPrismTileWindow() {
   return prismTileWin
 }
 
+// 2重起動防止：2つ目のインスタンスは即終了して1つ目を前面に出す
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  app.quit()
+}
+
+app.on('second-instance', () => {
+  const wins = BrowserWindow.getAllWindows()
+  if (wins.length > 0) {
+    if (wins[0].isMinimized()) wins[0].restore()
+    wins[0].focus()
+  }
+})
+
 app.whenReady().then(() => {
+  if (!gotLock) return
   const win = createWindow()
 
   // メインウィンドウ呼び出し

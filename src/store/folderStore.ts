@@ -23,6 +23,10 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
   error: null,
 
   fetchFolders: async () => {
+    if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
+      set({ loading: false })
+      return
+    }
     set({ loading: true, error: null })
     const { data, error } = await supabase
       .from('folders')
@@ -38,10 +42,26 @@ export const useFolderStore = create<FolderStore>((set, get) => ({
   },
 
   createFolder: async (name, parentId = null) => {
+    const maxOrder = get().folders.reduce((max, f) => Math.max(max, f.order), -1)
+
+    if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
+      const devFolder: Folder = {
+        id: crypto.randomUUID(),
+        user_id: 'dev-user',
+        name,
+        icon: null,
+        parent_id: parentId ?? null,
+        is_locked: false,
+        order: maxOrder + 1,
+        created_at: new Date().toISOString(),
+      }
+      set((state) => ({ folders: [...state.folders, devFolder] }))
+      return devFolder
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const maxOrder = get().folders.reduce((max, f) => Math.max(max, f.order), -1)
     const newFolder: FolderInsert = {
       user_id: user.id,
       name,

@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { Sparkles, Monitor } from 'lucide-react'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import { useFolderStore } from '@/store/folderStore'
 
 export function BulkActionBar() {
-  const { bulkSelectedIds, clearBulkSelect } = useUIStore()
+  const { bulkSelectedIds, clearBulkSelect, setActiveSection } = useUIStore()
   const { colors, trashColor, updateColor } = useColorStore()
   const { folders } = useFolderStore()
   const [showFolderMenu, setShowFolderMenu] = useState(false)
@@ -36,16 +38,58 @@ export function BulkActionBar() {
     setShowFolderMenu(false)
   }
 
+  const handleGoToGenerator = () => {
+    setActiveSection('generator')
+    // bulkSelectedIds はストアに残しておくことで GeneratorView 側で参照可能
+  }
+
+  const handleGoToUITest = () => {
+    setActiveSection('ui-test')
+  }
+
   return (
-    <div className="relative flex items-center gap-2 px-4 py-2 bg-surface-overlay border-b border-border flex-shrink-0">
-      <span className="text-xs text-text-secondary mr-2">
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      className="relative flex items-center gap-2 px-4 py-2 bg-accent/8 border-b border-accent/20 flex-shrink-0"
+    >
+      {/* 選択数 */}
+      <span className="text-xs font-medium text-accent-soft mr-1 tabular-nums">
         {count}件選択中
       </span>
 
+      <div className="w-px h-3.5 bg-border mx-0.5 flex-shrink-0" />
+
+      {/* ── ツールショートカット（Figma ツールバー風） ── */}
+      <button
+        type="button"
+        onClick={handleGoToGenerator}
+        title={`${count}色をジェネレーターへ`}
+        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md bg-accent/10 text-accent-soft border border-accent/20 hover:bg-accent/20 transition-colors"
+      >
+        <Sparkles size={11} />
+        ジェネレーター
+      </button>
+
+      <button
+        type="button"
+        onClick={handleGoToUITest}
+        title={`${count}色をUIテストへ`}
+        className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md bg-accent/10 text-accent-soft border border-accent/20 hover:bg-accent/20 transition-colors"
+      >
+        <Monitor size={11} />
+        UIテスト
+      </button>
+
+      <div className="w-px h-3.5 bg-border mx-0.5 flex-shrink-0" />
+
+      {/* ── 一括操作 ── */}
       <button
         type="button"
         onClick={handleBulkDelete}
-        className="px-3 py-1 text-xs rounded-md bg-red-900/40 text-red-300 hover:bg-red-900/60 transition-colors"
+        className="px-2.5 py-1 text-xs rounded-md bg-red-900/30 text-red-300 hover:bg-red-900/50 transition-colors border border-red-900/30"
       >
         ゴミ箱へ
       </button>
@@ -53,16 +97,16 @@ export function BulkActionBar() {
       <button
         type="button"
         onClick={handleBulkArchive}
-        className="px-3 py-1 text-xs rounded-md bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors border border-border"
+        className="px-2.5 py-1 text-xs rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors border border-border"
       >
-        一括アーカイブ
+        アーカイブ
       </button>
 
       <div className="relative">
         <button
           type="button"
           onClick={() => setShowFolderMenu((v) => !v)}
-          className="px-3 py-1 text-xs rounded-md bg-surface text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors border border-border"
+          className="px-2.5 py-1 text-xs rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors border border-border"
         >
           フォルダ移動 ▾
         </button>
@@ -96,6 +140,6 @@ export function BulkActionBar() {
       >
         キャンセル
       </button>
-    </div>
+    </motion.div>
   )
 }

@@ -1,3 +1,4 @@
+import { Archive, Clock, Palette, TrendingUp } from 'lucide-react'
 import { useUIStore, type ToneCategory } from '@/store/uiStore'
 import { IconSortAsc, IconSortDesc } from '@/components/ui/Icons'
 
@@ -15,9 +16,9 @@ const HUE_FILTERS = [
 ]
 
 const SORT_OPTIONS = [
-  { value: 'order', label: '追加順' },
-  { value: 'hue', label: '色相順' },
-  { value: 'used_count', label: 'よく使う順' },
+  { value: 'order',      label: '追加順', icon: <Clock size={12} /> },
+  { value: 'hue',        label: '色相順', icon: <Palette size={12} /> },
+  { value: 'used_count', label: '使用順', icon: <TrendingUp size={12} /> },
 ] as const
 
 const TONE_FILTERS: { value: ToneCategory; label: string }[] = [
@@ -44,14 +45,10 @@ export function FilterBar() {
     setActiveToneFilter,
   } = useUIStore()
 
-  const handleHueClick = (label: string) => {
-    setActiveHueFilter(activeHueFilter === label ? null : label)
-  }
-
   return (
-    <div className="flex items-center border-b border-border flex-shrink-0 overflow-hidden">
-      {/* 左：スクロール可能なフィルター群 */}
-      <div className="flex items-center gap-1.5 px-3 py-2 overflow-x-auto flex-1 min-w-0">
+    <div className="flex items-stretch border-b border-border flex-shrink-0 overflow-hidden h-9">
+      {/* 左：スクロール可能なフィルター群（scrollbar-hide） */}
+      <div className="flex items-center gap-1 px-2 overflow-x-auto flex-1 min-w-0 scrollbar-hide">
         {/* 色相フィルター（ドットのみ） */}
         {HUE_FILTERS.map((filter) => {
           const isActive = activeHueFilter === filter.label
@@ -60,20 +57,20 @@ export function FilterBar() {
               key={filter.label}
               type="button"
               title={filter.label}
-              onClick={() => handleHueClick(filter.label)}
+              onClick={() => setActiveHueFilter(activeHueFilter === filter.label ? null : filter.label)}
               className={[
-                'flex items-center justify-center w-6 h-6 rounded-full transition-all flex-shrink-0',
+                'flex items-center justify-center w-5 h-5 rounded-full transition-all flex-shrink-0',
                 isActive
                   ? 'ring-2 ring-accent ring-offset-1 ring-offset-surface scale-110'
-                  : 'hover:scale-110 opacity-70 hover:opacity-100',
+                  : 'hover:scale-110 opacity-60 hover:opacity-100',
               ].join(' ')}
             >
-              <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: filter.hex }} />
+              <span className="w-3.5 h-3.5 rounded-full flex-shrink-0" style={{ backgroundColor: filter.hex }} />
             </button>
           )
         })}
 
-        <div className="w-px h-4 bg-border flex-shrink-0 mx-0.5" />
+        <div className="w-px h-3 bg-border flex-shrink-0 mx-0.5" />
 
         {/* トーンフィルター */}
         {TONE_FILTERS.map((tone) => {
@@ -84,10 +81,10 @@ export function FilterBar() {
               type="button"
               onClick={() => setActiveToneFilter(activeToneFilter === tone.value ? null : tone.value)}
               className={[
-                'px-2 py-1 rounded-full text-xs transition-colors flex-shrink-0',
+                'px-1.5 py-0.5 rounded text-[10px] transition-colors flex-shrink-0 leading-none',
                 isActive
-                  ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay border border-transparent',
+                  ? 'bg-accent/15 text-accent-soft font-medium'
+                  : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
               ].join(' ')}
             >
               {tone.label}
@@ -100,10 +97,10 @@ export function FilterBar() {
           type="button"
           onClick={() => setActiveTraditionalFilter(!activeTraditionalFilter)}
           className={[
-            'px-2 py-1 rounded-full text-xs transition-colors flex-shrink-0',
+            'px-1.5 py-0.5 rounded text-[10px] transition-colors flex-shrink-0 leading-none',
             activeTraditionalFilter
-              ? 'bg-accent/10 text-accent-soft border border-accent glow-accent-sm font-medium'
-              : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay border border-transparent',
+              ? 'bg-accent/15 text-accent-soft font-medium'
+              : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
           ].join(' ')}
         >
           伝統色
@@ -111,47 +108,53 @@ export function FilterBar() {
       </div>
 
       {/* 右：固定のソートコントロール */}
-      <div className="flex items-center gap-1 px-3 py-2 border-l border-border flex-shrink-0">
+      <div className="flex items-center gap-0.5 px-2 border-l border-border flex-shrink-0">
         {/* アーカイブ */}
         <button
           onClick={() => setShowArchived(!showArchived)}
           type="button"
+          title={showArchived ? 'アーカイブを非表示' : 'アーカイブを表示'}
           className={[
-            'px-2 py-1 rounded text-xs transition-colors',
+            'flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded transition-colors min-w-[28px]',
             showArchived
-              ? 'bg-accent/10 text-accent-soft font-medium'
-              : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay',
+              ? 'text-accent-soft bg-accent/10'
+              : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
           ].join(' ')}
         >
-          {showArchived ? 'アーカイブ表示中' : 'アーカイブ'}
+          <Archive size={11} />
+          <span className="text-[9px] leading-none hidden sm:block">保管</span>
         </button>
 
-        <div className="w-px h-4 bg-border mx-0.5" />
+        <div className="w-px h-3 bg-border mx-0.5" />
 
-        {/* 並び順グループ */}
-        <span className="text-[10px] text-text-muted mr-0.5 tracking-wide">並び順</span>
+        {/* 並び順：縦レイアウト（アイコン＋10pxテキスト） */}
         {SORT_OPTIONS.map((opt) => (
           <button
             key={opt.value}
             onClick={() => setSortBy(opt.value)}
             type="button"
+            title={opt.label}
             className={[
-              'px-2 py-1 rounded text-xs transition-colors',
+              'flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded transition-colors min-w-[28px]',
               sortBy === opt.value
-                ? 'bg-accent/10 text-accent-soft font-medium'
-                : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay',
+                ? 'text-accent-soft bg-accent/10'
+                : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
             ].join(' ')}
           >
-            {opt.label}
+            {opt.icon}
+            <span className="text-[9px] leading-none hidden sm:block">{opt.label}</span>
           </button>
         ))}
+
+        {/* ソート方向 */}
         <button
           onClick={toggleSortDirection}
           type="button"
-          className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors"
-          title={sortDirection === 'asc' ? '昇順 → 降順に変更' : '降順 → 昇順に変更'}
+          title={sortDirection === 'asc' ? '昇順' : '降順'}
+          className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors min-w-[28px]"
         >
-          {sortDirection === 'asc' ? <IconSortAsc size={13} /> : <IconSortDesc size={13} />}
+          {sortDirection === 'asc' ? <IconSortAsc size={11} /> : <IconSortDesc size={11} />}
+          <span className="text-[9px] leading-none hidden sm:block">{sortDirection === 'asc' ? '昇順' : '降順'}</span>
         </button>
       </div>
     </div>

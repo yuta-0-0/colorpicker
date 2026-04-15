@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Electron vibrancy: html/body を透過にして OS の摩りガラスを通す */
+html, body, #root {
+  background: transparent;
+}
+
 /* ── Lism ハイブリッド — 余白ステップシステム ── */
 @import './styles/spacing.css';
 
@@ -167,6 +172,28 @@
 }
 .tactile:active {
   transform: scale(0.97);
+}
+
+/* ── スクロールバー非表示 ── */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Gallery カラーチップ 0.5px ボーダー ── */
+.chip-border {
+  border-width: 0.5px;
+}
+
+/* ── Electron ウィンドウドラッグ領域 ── */
+.app-drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
 }
 
 /* ── iPhone ノッチ・ホームバー対応 ── */

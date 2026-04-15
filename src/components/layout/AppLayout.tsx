@@ -313,7 +313,7 @@ export function AppLayout() {
   const isTrash = activeSection === 'trash'
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface text-text-primary">
+    <div className="flex h-screen overflow-hidden bg-surface/90 text-text-primary backdrop-blur-2xl">
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
@@ -324,30 +324,26 @@ export function AppLayout() {
           width={sidebarWidth}
           onResize={setSidebarWidth}
           collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(true)}
+          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
         />
-        {sidebarCollapsed && (
-          <button
-            type="button"
-            onClick={() => setSidebarCollapsed(false)}
-            title="サイドバーを開く"
-            className="self-start mt-3 ml-1 p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              <path d="M6.5 4l4 4-4 4" />
-            </svg>
-          </button>
-        )}
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-border flex-shrink-0">
-          <button onClick={() => setSidebarOpen(true)} type="button" className="md:hidden text-text-secondary hover:text-text-primary"><IconMenu size={18} /></button>
-          <h1 className="text-sm font-medium text-text-primary flex-1">{sectionTitle}</h1>
+        <header className="app-drag flex items-center gap-2 border-b border-border flex-shrink-0" style={{ paddingLeft: (window as Window & { electronAPI?: unknown }).electronAPI ? '84px' : '12px', paddingRight: '12px', paddingTop: '10px', paddingBottom: '10px' }}>
+          {/* サイドバートグル：常時固定表示 */}
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            title={sidebarCollapsed ? 'サイドバーを開く' : 'サイドバーを閉じる'}
+            className="no-drag flex-shrink-0 p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/8 transition-colors"
+          >
+            <IconMenu size={15} />
+          </button>
+          <h1 className="text-sm font-medium text-text-primary flex-1 select-none">{sectionTitle}</h1>
           {!isGenerator && !isUITest && !isTrash && (
             <>
-              <ViewToggle mode={viewMode} onChange={setViewMode} />
-              <div className="relative">
+              <div className="no-drag"><ViewToggle mode={viewMode} onChange={setViewMode} /></div>
+              <div className="relative no-drag">
                 <button
                   onClick={() => setShowMenu((v) => !v)}
                   type="button"
@@ -371,7 +367,7 @@ export function AppLayout() {
             <button
               type="button"
               onClick={() => (window as Window & { electronAPI?: { openPrismTile?: () => void } }).electronAPI?.openPrismTile?.()}
-              className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors"
+              className="no-drag p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors"
               title="Prism Tile を開く (⌘+Shift+T)"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -385,7 +381,7 @@ export function AppLayout() {
           <button
             type="button"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors"
+            className="no-drag p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors"
             title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
           >
             {theme === 'dark' ? (
@@ -402,7 +398,7 @@ export function AppLayout() {
             )}
           </button>
           {/* エクスポート・インポートメニュー */}
-          <ExportMenu
+          <div className="no-drag"><ExportMenu
             onVisualExport={() => setShowVisualExport(true)}
             onPaletteExport={() => setShowPaletteExport(true)}
             onImport={() => setShowImport(true)}
@@ -410,7 +406,7 @@ export function AppLayout() {
               const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
               downloadAllDataJSON(colors, folders, filename)
             }}
-          />
+          /></div>
         </header>
 
         {!isGenerator && !isUITest && !isTrash && <FilterBar />}

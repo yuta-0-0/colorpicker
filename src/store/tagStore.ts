@@ -42,6 +42,10 @@ export const useTagStore = create<TagStore>((set, get) => ({
   error: null,
 
   fetchTags: async () => {
+    if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
+      set({ loading: false })
+      return
+    }
     set({ loading: true, error: null })
     const { data, error } = await supabase
       .from('tags')
@@ -133,6 +137,7 @@ export const useTagStore = create<TagStore>((set, get) => ({
   },
 
   fetchAllColorTags: async () => {
+    if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') return
     const { data, error } = await supabase
       .from('color_tags')
       .select('color_id, tags(id, user_id, name)')

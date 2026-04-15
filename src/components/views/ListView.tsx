@@ -121,14 +121,21 @@ export function ListView({ colors }: ListViewProps) {
 
   const visibleColors = showArchived ? colors : colors.filter((c) => !c.is_archived)
 
-  // Shift+クリックで範囲選択
+  // Shift+クリック：範囲選択 / Cmd|Ctrl+クリック：個別トグル選択
   const handleSelect = (color: Color, index: number, e: React.MouseEvent) => {
     if (e.shiftKey && lastSelectedIndexRef.current >= 0) {
+      // 範囲選択
       const from = Math.min(lastSelectedIndexRef.current, index)
       const to = Math.max(lastSelectedIndexRef.current, index)
       const rangeIds = visibleColors.slice(from, to + 1).map((c) => c.id)
       const merged = Array.from(new Set([...bulkSelectedIds, ...rangeIds]))
       setBulkSelectedIds(merged)
+    } else if (e.metaKey || e.ctrlKey) {
+      // 個別トグル選択（Cmd / Ctrl）
+      lastSelectedIndexRef.current = index
+      toggleBulkSelect(color.id)
+      // 単一選択パネルは閉じる
+      setSelectedColorId(null)
     } else {
       lastSelectedIndexRef.current = index
       // 再クリックでトグル（パネルを閉じる）

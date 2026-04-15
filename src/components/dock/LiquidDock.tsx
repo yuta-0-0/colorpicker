@@ -86,9 +86,10 @@ export function LiquidDock() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute inset-0 flex items-center"
+            style={{ paddingLeft: 8 }}
           >
-            {/* Liquid Dot */}
+            {/* Liquid Dot：左側配置 */}
             <motion.div
               animate={{ backgroundColor: colorHex }}
               transition={{ duration: 0.6, ease: 'easeInOut' }}
@@ -150,15 +151,15 @@ export function LiquidDock() {
               </p>
             </div>
 
-            {/* Liquid Dot（右下） */}
+            {/* Liquid Dot（左下：左側配置） */}
             <motion.div
               animate={{ backgroundColor: colorHex }}
               transition={{ duration: 0.6, ease: 'easeInOut' }}
-              className="absolute bottom-3 right-4 rounded-full"
+              className="absolute bottom-2.5 left-4 rounded-full"
               style={{
-                width: 8,
-                height: 8,
-                boxShadow: `0 0 8px rgba(${r},${g},${b},0.8)`,
+                width: 6,
+                height: 6,
+                boxShadow: `0 0 6px rgba(${r},${g},${b},0.8)`,
               }}
             />
           </motion.div>

@@ -91,7 +91,12 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     })
   },
 
-  fetchColors: async (folderId) => {
+  fetchColors: async (_folderId) => {
+    if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') {
+      set({ loading: false })
+      return
+    }
+    const folderId = _folderId
     set({ loading: true, error: null })
     try {
       let query = supabase
