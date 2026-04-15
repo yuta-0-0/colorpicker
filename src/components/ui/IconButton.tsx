@@ -26,7 +26,7 @@ export function IconButton({
       disabled={disabled}
       type="button"
       className={[
-        'w-7 h-7 flex items-center justify-center rounded-md transition-colors text-sm',
+        'w-7 h-7 flex items-center justify-center rounded-md transition-colors text-sm tactile',
         disabled
           ? 'opacity-30 cursor-not-allowed text-text-muted'
           : danger

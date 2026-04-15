@@ -20,7 +20,7 @@ export function ColorGalleryItem({ color, isSelected, onSelect }: ColorGalleryIt
   return (
     <div
       onClick={onSelect}
-      className={['flex flex-col items-center gap-1.5 cursor-pointer group', color.is_archived ? 'opacity-40' : ''].join(' ')}
+      className={['flex flex-col items-center gap-1.5 cursor-pointer group tactile', color.is_archived ? 'opacity-40' : ''].join(' ')}
       title={`${color.name}\n${color.hex}`}
     >
       {/* 丸チップ */}

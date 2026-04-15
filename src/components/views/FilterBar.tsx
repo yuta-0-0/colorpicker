@@ -81,7 +81,7 @@ export function FilterBar() {
               type="button"
               onClick={() => setActiveToneFilter(activeToneFilter === tone.value ? null : tone.value)}
               className={[
-                'px-1.5 py-0.5 rounded text-[10px] transition-colors flex-shrink-0 leading-none',
+                'px-1.5 py-0.5 rounded text-[10px] transition-colors flex-shrink-0 leading-none tactile',
                 isActive
                   ? 'bg-accent/15 text-accent-soft font-medium'
                   : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
@@ -97,7 +97,7 @@ export function FilterBar() {
           type="button"
           onClick={() => setActiveTraditionalFilter(!activeTraditionalFilter)}
           className={[
-            'px-1.5 py-0.5 rounded text-[10px] transition-colors flex-shrink-0 leading-none',
+            'px-1.5 py-0.5 rounded text-[10px] transition-colors flex-shrink-0 leading-none tactile',
             activeTraditionalFilter
               ? 'bg-accent/15 text-accent-soft font-medium'
               : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
@@ -115,7 +115,7 @@ export function FilterBar() {
           type="button"
           title={showArchived ? 'アーカイブを非表示' : 'アーカイブを表示'}
           className={[
-            'flex items-center justify-center w-7 h-7 rounded transition-colors',
+            'flex items-center justify-center w-7 h-7 rounded transition-colors tactile',
             showArchived
               ? 'text-accent-soft bg-accent/10'
               : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
@@ -134,7 +134,7 @@ export function FilterBar() {
             type="button"
             title={opt.label}
             className={[
-              'flex items-center justify-center w-7 h-7 rounded transition-colors',
+              'flex items-center justify-center w-7 h-7 rounded transition-colors tactile',
               sortBy === opt.value
                 ? 'text-accent-soft bg-accent/10'
                 : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
@@ -149,7 +149,7 @@ export function FilterBar() {
           onClick={toggleSortDirection}
           type="button"
           title={sortDirection === 'asc' ? '昇順' : '降順'}
-          className="flex items-center justify-center w-7 h-7 rounded text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+          className="flex items-center justify-center w-7 h-7 rounded text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors tactile"
         >
           {sortDirection === 'asc' ? <IconSortAsc size={11} /> : <IconSortDesc size={11} />}
         </button>
