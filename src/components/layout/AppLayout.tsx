@@ -327,25 +327,55 @@ export function AppLayout() {
   const isUITest = activeSection === 'ui-test'
   const isTrash = activeSection === 'trash'
 
+  const isElectron = !!(window as Window & { electronAPI?: unknown }).electronAPI
+
   return (
-    <div className="flex h-screen overflow-hidden bg-surface/90 text-text-primary backdrop-blur-2xl">
+    <div
+      className="flex h-screen overflow-hidden text-text-primary"
+      style={{
+        background: 'rgb(var(--color-bg))',
+        gap: '10px',
+        padding: '10px',
+      }}
+    >
+      {/* モバイル用オーバーレイ */}
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <div className={['fixed inset-y-0 left-0 z-30 transition-transform md:relative md:translate-x-0 pb-safe flex', isSidebarOpen ? 'translate-x-0' : '-translate-x-full'].join(' ')}>
-        <Sidebar
-          onVisualExport={() => setShowVisualExport(true)}
-          width={sidebarWidth}
-          onResize={setSidebarWidth}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-        />
-      </div>
+      {/* ── Sidebar Bento Pane ── */}
+      {!sidebarCollapsed && (
+        <aside
+          className="bento-pane flex-shrink-0 flex flex-col overflow-hidden pb-safe"
+          style={{ width: `${sidebarWidth}px`, minWidth: 140, maxWidth: 280 }}
+        >
+          {/* 信号機セーフエリア（Electronのみ）— ドラッグ可能な上部余白 */}
+          {isElectron && (
+            <div className="app-drag flex-shrink-0" style={{ height: 28 }} />
+          )}
+          <Sidebar
+            onVisualExport={() => setShowVisualExport(true)}
+            width={sidebarWidth}
+            onResize={setSidebarWidth}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
+          />
+        </aside>
+      )}
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="app-drag flex items-center gap-2 border-b border-border flex-shrink-0" style={{ paddingLeft: (window as Window & { electronAPI?: unknown }).electronAPI ? '84px' : '12px', paddingRight: '12px', paddingTop: '10px', paddingBottom: '10px' }}>
-          {/* サイドバートグル：常時固定表示 */}
+      {/* ── Main Bento Pane ── */}
+      <div className="bento-pane flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* 内部ヘッダー（ドラッグ領域 + コントロール） */}
+        <header
+          className="app-drag flex items-center gap-2 flex-shrink-0 rounded-t-2xl"
+          style={{
+            paddingLeft: sidebarCollapsed && isElectron ? '84px' : '12px',
+            paddingRight: '12px',
+            paddingTop: '10px',
+            paddingBottom: '10px',
+          }}
+        >
+          {/* サイドバートグル */}
           <button
             type="button"
             onClick={() => setSidebarCollapsed((v) => !v)}
@@ -354,7 +384,7 @@ export function AppLayout() {
           >
             <IconMenu size={15} />
           </button>
-          <h1 className="text-sm font-medium text-text-primary flex-1 select-none">{sectionTitle}</h1>
+          <h1 className="text-sm font-medium text-text-primary flex-1 select-none no-drag">{sectionTitle}</h1>
           {!isGenerator && !isUITest && !isTrash && (
             <>
               <div className="no-drag"><ViewToggle mode={viewMode} onChange={setViewMode} /></div>
@@ -412,17 +442,20 @@ export function AppLayout() {
               </svg>
             )}
           </button>
+
           {/* エクスポート・インポートメニュー */}
-          <div className="no-drag"><ExportMenu
-            onVisualExport={() => setShowVisualExport(true)}
-            onPaletteExport={() => setShowPaletteExport(true)}
-            onImport={() => setShowImport(true)}
-            onExportAll={() => {
-              const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
-              downloadAllDataJSON(colors, folders, filename)
-            }}
-            onShortcutHelp={() => setShowShortcutHelp(true)}
-          /></div>
+          <div className="no-drag">
+            <ExportMenu
+              onVisualExport={() => setShowVisualExport(true)}
+              onPaletteExport={() => setShowPaletteExport(true)}
+              onImport={() => setShowImport(true)}
+              onExportAll={() => {
+                const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
+                downloadAllDataJSON(colors, folders, filename)
+              }}
+              onShortcutHelp={() => setShowShortcutHelp(true)}
+            />
+          </div>
         </header>
 
         {!isGenerator && !isUITest && !isTrash && <FilterBar />}
