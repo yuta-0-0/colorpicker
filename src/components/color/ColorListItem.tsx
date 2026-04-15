@@ -84,6 +84,7 @@ export function ColorListItem({ color, isSelected, onSelect, onCopy, onToggleFav
         </IconButton>
         <IconButton onClick={onDelete} title="削除" danger disabled={color.is_locked}><IconX size={13} /></IconButton>
       </div>
+
     </div>
   )
 }
