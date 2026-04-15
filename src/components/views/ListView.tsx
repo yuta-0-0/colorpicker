@@ -185,28 +185,17 @@ export function ListView({ colors }: ListViewProps) {
   // 追加順以外はDnD無効・ヘッダーなしフラット表示（hue / used_count 共通）
   if (sortBy !== 'order') {
     return (
-      <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+      <div className="flex-1 overflow-y-auto scrollbar-hide p-2 space-y-0.5">
         <AnimatePresence initial={false}>
         {visibleColors.map((color, index) => (
           <motion.div
             key={color.id}
             data-color-id={color.id}
             initial={{ opacity: 0, y: -6 }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              backgroundColor: selectedColorId === color.id ? 'rgba(10,62,216,0.07)' : 'rgba(10,62,216,0)',
-              borderColor: selectedColorId === color.id ? 'rgba(10,62,216,0.25)' : 'rgba(10,62,216,0)',
-              boxShadow: selectedColorId === color.id ? '0 10px 30px -10px rgba(0,0,0,0.2)' : '0 0px 0px rgba(0,0,0,0)',
-            }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6, height: 0, overflow: 'hidden' }}
             transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5, delay: Math.min(index, 8) * 0.02 }}
-            className="rounded-xl"
-            style={{
-              backdropFilter: 'blur(16px)',
-              borderWidth: '1px',
-              borderStyle: 'solid',
-            }}
+            className={['rounded-xl', selectedColorId === color.id ? 'list-item-active' : 'list-item'].join(' ')}
           >
             <div className="flex items-center">
               <button
@@ -254,23 +243,12 @@ export function ListView({ colors }: ListViewProps) {
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={visibleColors.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+        <div className="flex-1 overflow-y-auto scrollbar-hide p-2 space-y-0.5">
           {visibleColors.map((color, index) => (
             <motion.div
               key={color.id}
               data-color-id={color.id}
-              animate={{
-                backgroundColor: selectedColorId === color.id ? 'rgba(10,62,216,0.07)' : 'rgba(10,62,216,0)',
-                borderColor: selectedColorId === color.id ? 'rgba(10,62,216,0.25)' : 'rgba(10,62,216,0)',
-                boxShadow: selectedColorId === color.id ? '0 10px 30px -10px rgba(0,0,0,0.2)' : '0 0px 0px rgba(0,0,0,0)',
-              }}
-              transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
-              className="rounded-xl"
-              style={{
-                backdropFilter: 'blur(16px)',
-                borderWidth: '1px',
-                borderStyle: 'solid',
-              }}
+              className={['rounded-xl', selectedColorId === color.id ? 'list-item-active' : 'list-item'].join(' ')}
             >
               <SortableColorItem
                 color={color}

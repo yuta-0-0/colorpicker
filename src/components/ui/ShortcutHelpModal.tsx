@@ -48,24 +48,18 @@ export function ShortcutHelpModal({ open, onClose }: ShortcutHelpModalProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="modal-overlay fixed inset-0 z-50"
+            className="modal-overlay fixed inset-0 z-50 flex items-center justify-center"
             onClick={onClose}
-          />
-
-          {/* モーダル本体 */}
+          >
+          {/* モーダル本体 — ラッパー div で完全中央配置、framer-motion 競合回避 */}
           <motion.div
             key="shortcut-modal"
             initial={{ opacity: 0, scale: 0.94, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 12 }}
             transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-            className="glass-popup fixed z-50 rounded-2xl overflow-hidden"
-            style={{
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 'min(480px, 90vw)',
-            }}
+            className="glass-popup rounded-2xl overflow-hidden"
+            style={{ width: 'min(480px, 90vw)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* ヘッダー */}
@@ -96,6 +90,7 @@ export function ShortcutHelpModal({ open, onClose }: ShortcutHelpModalProps) {
                 ))}
               </div>
             </div>
+          </motion.div>
           </motion.div>
         </>
       )}

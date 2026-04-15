@@ -46,7 +46,7 @@ export function FilterBar() {
   } = useUIStore()
 
   return (
-    <div className="flex items-stretch border-b border-border flex-shrink-0 overflow-hidden h-9">
+    <div className="flex items-stretch flex-shrink-0 overflow-hidden h-9 border-b border-white/5">
       {/* 左：スクロール可能なフィルター群（scrollbar-hide） */}
       <div className="flex items-center gap-1 px-2 overflow-x-auto flex-1 min-w-0 scrollbar-hide">
         {/* 色相フィルター（ドットのみ） */}
@@ -108,7 +108,7 @@ export function FilterBar() {
       </div>
 
       {/* 右：固定のソートコントロール */}
-      <div className="flex items-center gap-0.5 px-2 border-l border-border flex-shrink-0">
+      <div className="flex items-center gap-0.5 px-2 border-l border-white/5 flex-shrink-0">
         {/* アーカイブ */}
         <button
           onClick={() => setShowArchived(!showArchived)}

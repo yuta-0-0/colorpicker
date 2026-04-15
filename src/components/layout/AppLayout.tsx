@@ -343,15 +343,28 @@ export function AppLayout() {
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
+      {/* ── Electron 専用：信号機直後の固定サイドバートグル ── */}
+      {isElectron && (
+        <button
+          type="button"
+          onClick={() => setSidebarCollapsed((v) => !v)}
+          title={sidebarCollapsed ? 'サイドバーを開く' : 'サイドバーを閉じる'}
+          className="fixed z-50 no-drag p-1.5 rounded-md text-text-muted hover:text-text-primary transition-colors"
+          style={{ top: 18, left: 84, background: 'transparent' }}
+        >
+          <IconMenu size={15} />
+        </button>
+      )}
+
       {/* ── Sidebar Bento Pane ── */}
       {!sidebarCollapsed && (
         <aside
-          className="bento-pane flex-shrink-0 flex flex-col overflow-hidden pb-safe"
+          className="bento-pane flex-shrink-0 flex flex-col pb-safe"
           style={{ width: `${sidebarWidth}px`, minWidth: 140, maxWidth: 280 }}
         >
           {/* 信号機セーフエリア（Electronのみ）— ドラッグ可能な上部余白 */}
           {isElectron && (
-            <div className="app-drag flex-shrink-0" style={{ height: 28 }} />
+            <div className="app-drag flex-shrink-0" style={{ height: 32 }} />
           )}
           <Sidebar
             onVisualExport={() => setShowVisualExport(true)}
@@ -364,26 +377,28 @@ export function AppLayout() {
       )}
 
       {/* ── Main Bento Pane ── */}
-      <div className="bento-pane flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="bento-pane flex-1 flex flex-col min-w-0">
         {/* 内部ヘッダー（ドラッグ領域 + コントロール） */}
         <header
-          className="app-drag flex items-center gap-2 flex-shrink-0 rounded-t-2xl"
+          className="app-drag flex items-center gap-2 flex-shrink-0"
           style={{
-            paddingLeft: sidebarCollapsed && isElectron ? '84px' : '12px',
+            paddingLeft: isElectron ? '84px' : '12px',
             paddingRight: '12px',
             paddingTop: '10px',
             paddingBottom: '10px',
           }}
         >
-          {/* サイドバートグル */}
-          <button
-            type="button"
-            onClick={() => setSidebarCollapsed((v) => !v)}
-            title={sidebarCollapsed ? 'サイドバーを開く' : 'サイドバーを閉じる'}
-            className="no-drag flex-shrink-0 p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/8 transition-colors"
-          >
-            <IconMenu size={15} />
-          </button>
+          {/* サイドバートグル（Web / 非Electron のみ） */}
+          {!isElectron && (
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((v) => !v)}
+              title={sidebarCollapsed ? 'サイドバーを開く' : 'サイドバーを閉じる'}
+              className="no-drag flex-shrink-0 p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/8 transition-colors"
+            >
+              <IconMenu size={15} />
+            </button>
+          )}
           <h1 className="text-sm font-medium text-text-primary flex-1 select-none no-drag">{sectionTitle}</h1>
           {!isGenerator && !isUITest && !isTrash && (
             <>

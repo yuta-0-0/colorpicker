@@ -166,6 +166,18 @@ html, body, #root {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-radius: 1rem; /* rounded-2xl = 16px */
+  overflow: hidden;    /* 角丸で子要素をクリップ */
+  /* ダークモードでのエッジ可視化 + 浮遊感 */
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,0.06),
+    0 8px 32px rgba(0,0,0,0.35),
+    0 2px 8px rgba(0,0,0,0.2);
+}
+[data-theme="light"] .bento-pane {
+  box-shadow:
+    0 0 0 0.5px rgba(0,0,0,0.06),
+    0 4px 24px rgba(0,0,0,0.08),
+    0 1px 4px rgba(0,0,0,0.04);
 }
 
 /* ── Vibrancy（強化版 backdrop-filter） ── */
