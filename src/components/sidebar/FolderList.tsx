@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, CornerDownRight } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -21,6 +21,22 @@ import { useUIStore } from '@/store/uiStore'
 import type { Folder } from '@/types/database'
 import { FolderIconPicker, FolderIconComponent } from './FolderIconPicker'
 
+/** parent_id を基にフォルダをツリー順（深さ優先）に並べる */
+function buildFolderTree(folders: Folder[]): { folder: Folder; depth: number }[] {
+  const result: { folder: Folder; depth: number }[] = []
+  const addWithChildren = (parentId: string | null, depth: number) => {
+    const items = folders
+      .filter((f) => (f.parent_id ?? null) === parentId)
+      .sort((a, b) => a.order - b.order)
+    for (const f of items) {
+      result.push({ folder: f, depth })
+      addWithChildren(f.id, depth + 1)
+    }
+  }
+  addWithChildren(null, 0)
+  return result
+}
+
 function SortableFolderItem({
   folder,
   isActive,
@@ -28,6 +44,7 @@ function SortableFolderItem({
   onRename,
   onDelete,
   onIconChange,
+  onAddChild,
 }: {
   folder: Folder
   isActive: boolean
@@ -35,6 +52,7 @@ function SortableFolderItem({
   onRename: (name: string) => void
   onDelete: () => void
   onIconChange: (icon: string) => void
+  onAddChild: () => void
 }) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState(folder.name)
@@ -59,7 +77,7 @@ function SortableFolderItem({
         transition,
         opacity: isDragging ? 0.5 : 1,
       }}
-      className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors"
+      className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors tactile"
     >
       {/* ドラッグハンドル */}
       <span
@@ -122,14 +140,26 @@ function SortableFolderItem({
       )}
 
       {!isEditing && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete() }}
-          type="button"
-          className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-400 transition-all flex-shrink-0"
-          title="フォルダを削除"
-        >
-          <X size={11} strokeWidth={1.5} />
-        </button>
+        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity flex-shrink-0">
+          {/* サブフォルダを追加 */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onAddChild() }}
+            type="button"
+            className="p-0.5 text-text-muted hover:text-text-secondary transition-colors"
+            title="サブフォルダを追加"
+          >
+            <CornerDownRight size={10} strokeWidth={1.5} />
+          </button>
+          {/* 削除 */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete() }}
+            type="button"
+            className="p-0.5 text-text-muted hover:text-red-400 transition-colors"
+            title="フォルダを削除"
+          >
+            <X size={10} strokeWidth={1.5} />
+          </button>
+        </div>
       )}
     </div>
   )
@@ -144,12 +174,15 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
   const { folders, createFolder, renameFolder, deleteFolder, reorderFolders, updateFolder } = useFolderStore()
   const [isCreating, setIsCreating] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+  // サブフォルダ作成時の親フォルダID
+  const [creatingParentId, setCreatingParentId] = useState<string | null>(null)
 
   const { isAddingFolder, setIsAddingFolder } = useUIStore()
 
   useEffect(() => {
     if (isAddingFolder) {
       setIsCreating(true)
+      setCreatingParentId(null)
       setIsAddingFolder(false)
     }
   }, [isAddingFolder, setIsAddingFolder])
@@ -167,25 +200,41 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
 
   const handleCreateSubmit = async () => {
     if (newFolderName.trim()) {
-      await createFolder(newFolderName.trim())
+      await createFolder(newFolderName.trim(), creatingParentId)
     }
     setNewFolderName('')
     setIsCreating(false)
+    setCreatingParentId(null)
   }
+
+  const handleAddChild = (parentId: string) => {
+    setCreatingParentId(parentId)
+    setIsCreating(true)
+  }
+
+  const treeItems = buildFolderTree(folders)
 
   return (
     <div className="space-y-0.5">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={folders.map((f) => f.id)} strategy={verticalListSortingStrategy}>
           <AnimatePresence initial={false}>
-            {folders.map((folder) => (
+            {treeItems.map(({ folder, depth }) => (
               <motion.div
                 key={folder.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10, height: 0, overflow: 'hidden' }}
                 transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                style={{ paddingLeft: depth * 12 }}
               >
+                {/* 深さ > 0 は先頭にガイドラインを表示 */}
+                {depth > 0 && (
+                  <div
+                    className="absolute left-0 top-0 bottom-0 border-l border-white/10"
+                    style={{ marginLeft: depth * 12 - 6 }}
+                  />
+                )}
                 <SortableFolderItem
                   folder={folder}
                   isActive={activeFolderId === folder.id}
@@ -193,6 +242,7 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
                   onRename={(name) => renameFolder(folder.id, name)}
                   onDelete={() => deleteFolder(folder.id)}
                   onIconChange={(icon) => updateFolder(folder.id, { icon })}
+                  onAddChild={() => handleAddChild(folder.id)}
                 />
               </motion.div>
             ))}
@@ -201,7 +251,7 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
       </DndContext>
 
       {isCreating ? (
-        <div className="px-2.5 py-1.5">
+        <div className="px-2.5 py-1.5" style={{ paddingLeft: creatingParentId ? 24 : undefined }}>
           <input
             type="text"
             value={newFolderName}
@@ -209,18 +259,18 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
             onBlur={handleCreateSubmit}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleCreateSubmit()
-              if (e.key === 'Escape') { setNewFolderName(''); setIsCreating(false) }
+              if (e.key === 'Escape') { setNewFolderName(''); setIsCreating(false); setCreatingParentId(null) }
             }}
             autoFocus
-            placeholder="フォルダ名"
+            placeholder={creatingParentId ? 'サブフォルダ名' : 'フォルダ名'}
             className="w-full bg-surface-overlay border border-accent rounded px-2 py-0.5 text-sm text-text-primary focus:outline-none placeholder:text-text-muted"
           />
         </div>
       ) : (
         <button
-          onClick={() => setIsCreating(true)}
+          onClick={() => { setCreatingParentId(null); setIsCreating(true) }}
           type="button"
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-text-muted hover:text-text-secondary transition-colors text-left"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-text-muted hover:text-text-secondary transition-colors text-left tactile"
         >
           <Plus size={12} strokeWidth={1.5} />
           <span>フォルダを追加</span>

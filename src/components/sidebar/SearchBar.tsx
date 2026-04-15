@@ -23,7 +23,7 @@ export function SearchBar() {
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         placeholder="検索"
-        className="w-full pl-9 pr-7 py-1.5 bg-white/5 border border-white/8 rounded-md text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/50 focus:bg-white/8 transition-colors"
+        className="w-full pl-9 pr-7 py-1.5 bg-white/5 border border-white/8 rounded-md text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-sky-500/80 focus:border-transparent transition-[box-shadow,border-color] duration-150"
       />
       {searchQuery && (
         <button

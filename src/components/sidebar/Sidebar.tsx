@@ -26,11 +26,11 @@ interface SidebarProps {
   onVisualExport: () => void
   width?: number
   onResize?: (width: number) => void
-  collapsed?: boolean
-  onToggleCollapse?: () => void
+  collapsed?: boolean          // AppLayout が外側で制御するため内部では未使用
+  onToggleCollapse?: () => void // 同上
 }
 
-export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = false, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ onVisualExport, width = 152, onResize }: SidebarProps) {
   const { activeSection, setActiveSection, activeFolderId, setActiveFolderId, activeTagId, setActiveTagId, setSelectedColorId, setIsDetailPanelOpen } = useUIStore()
   const { colors } = useColorStore()
   const { historyColors, loadHistory, clearHistory } = useHistoryStore()
@@ -76,22 +76,15 @@ export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = fal
   }
 
   return (
-    <aside
-      className="relative flex-shrink-0 flex flex-col gap-5 bg-surface-sidebar border-r border-border-sidebar overflow-y-auto h-full transition-[width,padding] duration-200"
-      style={{
-        width: collapsed ? 0 : width,
-        minWidth: collapsed ? 0 : undefined,
-        padding: collapsed ? 0 : undefined,
-        overflow: 'hidden',
-        paddingTop: collapsed ? 0 : '1rem',
-        paddingBottom: collapsed ? 0 : '1rem',
-        paddingLeft: collapsed ? 0 : '0.75rem',
-        paddingRight: collapsed ? 0 : '0.75rem',
-      }}
+    <div
+      className="relative flex-1 flex flex-col overflow-y-auto scrollbar-hide"
+      style={{ padding: '0.75rem 0.75rem 1rem' }}
     >
+      {/* 検索窓 */}
       <SearchBar />
 
-      <nav className="space-y-0.5">
+      {/* ナビゲーション */}
+      <nav className="mt-4 space-y-0.5">
         {navItems.map((item) => (
           <NavItem
             key={item.id}
@@ -104,56 +97,58 @@ export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = fal
         ))}
       </nav>
 
-      <div>
+      {/* フォルダ */}
+      <div className="mt-6">
         <button
           type="button"
           onClick={() => setFoldersOpen((v) => !v)}
-          className="w-full flex items-center justify-between px-3 mb-2 group"
+          className="w-full flex items-center justify-between px-2 mb-1.5 group tactile"
         >
           <div className="flex items-center gap-1.5 text-text-muted">
-            <Folder size={12} />
-            <p className="text-xs font-medium uppercase tracking-wider">フォルダ</p>
+            <Folder size={11} />
+            <p className="text-[10px] font-semibold uppercase tracking-widest">フォルダ</p>
           </div>
           <span className={['text-text-muted transition-transform', foldersOpen ? '' : '-rotate-90'].join(' ')}>
-            <ChevronDown size={12} />
+            <ChevronDown size={11} />
           </span>
         </button>
         {foldersOpen && <FolderList activeFolderId={activeFolderId} onSelectFolder={setActiveFolderId} />}
       </div>
 
-      <div>
+      {/* タグ */}
+      <div className="mt-6">
         <button
           type="button"
           onClick={() => setTagsOpen((v) => !v)}
-          className="w-full flex items-center justify-between px-3 mb-2 group"
+          className="w-full flex items-center justify-between px-2 mb-1.5 group tactile"
         >
           <div className="flex items-center gap-1.5 text-text-muted">
-            <Tag size={12} />
-            <p className="text-xs font-medium uppercase tracking-wider">タグ</p>
+            <Tag size={11} />
+            <p className="text-[10px] font-semibold uppercase tracking-widest">タグ</p>
           </div>
           <span className={['text-text-muted transition-transform', tagsOpen ? '' : '-rotate-90'].join(' ')}>
-            <ChevronDown size={12} />
+            <ChevronDown size={11} />
           </span>
         </button>
         {tagsOpen && <TagList activeTagId={activeTagId} onSelectTag={handleSelectTag} />}
       </div>
 
-      {/* 履歴 */}
-      <div>
-        <div className="flex items-center justify-between px-3 mb-2">
-          <p className="text-xs font-medium text-text-muted uppercase tracking-wider">最近の色</p>
+      {/* 最近の色（履歴） */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between px-2 mb-1.5">
+          <p className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">最近の色</p>
           {historyColors.length > 0 && (
             <button
               type="button"
               onClick={clearHistory}
-              className="text-xs text-text-muted hover:text-text-primary transition-colors"
+              className="text-[10px] text-text-muted hover:text-text-primary transition-colors tactile"
             >
               クリア
             </button>
           )}
         </div>
         {historyColors.length === 0 ? (
-          <p className="px-2.5 text-xs text-text-muted">履歴はありません</p>
+          <p className="px-2 text-xs text-text-muted">履歴はありません</p>
         ) : (
           <Cluster gap="1" className="px-1">
             {historyColors.map((c) => (
@@ -164,7 +159,6 @@ export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = fal
                 size="sm"
                 onClick={() => {
                   setActiveSection('all')
-                  // 少し遅らせてリストレンダリング後にスクロール
                   setTimeout(() => {
                     const el = document.querySelector(`[data-color-id="${c.id}"]`)
                     if (el) {
@@ -181,7 +175,7 @@ export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = fal
       </div>
 
       {/* ゴミ箱 */}
-      <div className="mt-auto">
+      <div className="mt-auto pt-4">
         <NavItem
           label="ゴミ箱"
           icon={<Trash2 size={14} />}
@@ -191,26 +185,15 @@ export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = fal
       </div>
 
       {/* ビジュアル書き出し */}
-      <div className="pt-2 border-t border-border space-y-0.5">
+      <div className="pt-2 border-t border-white/8 space-y-0.5">
         <button
           type="button"
           onClick={onVisualExport}
-          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-text-muted hover:bg-surface-overlay hover:text-text-primary transition-colors"
+          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-text-muted hover:bg-surface-overlay hover:text-text-primary transition-colors tactile"
         >
-          <Download size={14} />
+          <Download size={13} strokeWidth={1.5} />
           ビジュアル書き出し
         </button>
-        {onToggleCollapse && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            title="サイドバーを閉じる"
-            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-text-muted hover:bg-surface-overlay hover:text-text-primary transition-colors"
-          >
-            <ChevronDown size={14} className="-rotate-90" />
-            閉じる
-          </button>
-        )}
       </div>
 
       {/* リサイザーハンドル */}
@@ -221,6 +204,6 @@ export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = fal
           title="ドラッグで幅を調整"
         />
       )}
-    </aside>
+    </div>
   )
 }
