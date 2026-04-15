@@ -2,9 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Electron vibrancy: html/body を透過にして OS の摩りガラスを通す */
+/* Bento Glass: 窓全体は透過のまま、各 .bento-pane が独自の backdrop-filter を持つ */
 html, body, #root {
   background: transparent;
+  min-height: 100vh;
 }
 
 /* ── Lism ハイブリッド — 余白ステップシステム ── */
@@ -12,13 +13,14 @@ html, body, #root {
 
 /* ── テーマトークン（Dark = デフォルト） ── */
 :root {
-  --color-surface:          8 9 15;        /* #08090f */
-  --color-surface-raised:   12 13 20;      /* #0c0d14 */
-  --color-surface-overlay:  22 24 33;      /* #161821 */
-  --color-surface-sidebar:  12 13 20;      /* #0c0d14 */
-  --color-border:           26 27 36;      /* #1a1b24 */
-  --color-border-subtle:    18 19 26;      /* #12131a */
-  --color-border-sidebar:   26 27 36;      /* #1a1b24 */
+  --color-bg:               11 12 18;      /* #0B0C12 — ウィンドウベース背景 */
+  --color-surface:          9 12 29;       /* #090C1D — Bentoパネル */
+  --color-surface-raised:   13 17 36;      /* #0D1124 */
+  --color-surface-overlay:  16 20 42;      /* #10142A */
+  --color-surface-sidebar:  9 12 29;       /* #090C1D */
+  --color-border:           255 255 255;   /* border uses /5 opacity */
+  --color-border-subtle:    255 255 255;
+  --color-border-sidebar:   255 255 255;
   --color-text-primary:     255 255 255;   /* #ffffff */
   --color-text-secondary:   148 154 178;   /* #949ab2 */
   --color-text-muted:       82 88 108;     /* #52586c */
@@ -30,10 +32,11 @@ html, body, #root {
 
 /* ── Light Mode ── */
 [data-theme="light"] {
-  --color-surface:          255 255 255;   /* white */
-  --color-surface-raised:   250 251 255;   /* near white */
-  --color-surface-overlay:  244 246 252;   /* soft gray */
-  --color-surface-sidebar:  248 249 254;   /* sidebar white */
+  --color-bg:               253 253 253;   /* #FDFDFD — ウィンドウベース背景 */
+  --color-surface:          236 239 250;   /* #ECEFFA — Bentoパネル */
+  --color-surface-raised:   244 246 255;   /* #F4F6FF */
+  --color-surface-overlay:  240 243 255;   /* #F0F3FF */
+  --color-surface-sidebar:  236 239 250;   /* #ECEFFA */
   --color-border:           0 0 0;         /* border uses opacity */
   --color-border-subtle:    0 0 0;
   --color-border-sidebar:   0 0 0;
@@ -157,6 +160,14 @@ html, body, #root {
   background-size: 16px 16px;
 }
 
+/* ── Bento Pane — 独立コンテナ共通スタイル ── */
+.bento-pane {
+  background: rgba(var(--color-surface), 0.8);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 1rem; /* rounded-2xl = 16px */
+}
+
 /* ── Vibrancy（強化版 backdrop-filter） ── */
 .vibrancy {
   backdrop-filter: blur(24px) saturate(180%);
@@ -168,7 +179,7 @@ html, body, #root {
   background: rgba(255,255,255,0.7);
 }
 
-/* リストアイテムカプセル（ライト） */
+/* リストアイテムカプセル（ライト）— レガシー互換 */
 [data-theme="light"] .list-capsule {
   background: rgba(255,255,255,0.85);
   border: 1px solid rgba(0,0,0,0.08);
@@ -178,6 +189,27 @@ html, body, #root {
   background: rgba(255,255,255,0.95);
   border: 2px solid rgba(14,165,233,0.7);  /* sky-500/70 */
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+/* ── Bento リストアイテム（透過・border-only 選択） ── */
+.list-item {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px;
+  transition: background 80ms ease, border-color 80ms ease, box-shadow 80ms ease;
+}
+[data-theme="light"] .list-item {
+  border-color: rgba(0,0,0,0.05);
+}
+.list-item:hover {
+  background: rgba(var(--color-surface-overlay), 0.5);
+}
+.list-item-active {
+  background: transparent !important;
+  border: 2px solid rgb(14,165,233) !important; /* sky-500 */
+  box-shadow:
+    0 4px 16px rgba(14,165,233,0.25),
+    0 8px 32px rgba(0,0,0,0.2);
 }
 
 /* ダークモード — ホバー発光 */
@@ -241,7 +273,8 @@ html, body, #root {
     box-sizing: border-box;
   }
   body {
-    @apply bg-surface text-text-primary font-sans;
+    background: rgb(var(--color-bg));
+    @apply text-text-primary font-sans;
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
