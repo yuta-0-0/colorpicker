@@ -86,10 +86,14 @@ function SortableColorItem({
       <span
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 w-5 flex items-center justify-center text-text-muted opacity-0 group-hover/drag:opacity-100 cursor-grab active:cursor-grabbing transition-opacity text-xs select-none"
+        className="flex-shrink-0 w-5 flex items-center justify-center text-text-muted opacity-0 group-hover/drag:opacity-100 cursor-grab active:cursor-grabbing transition-opacity select-none"
         title="ドラッグで並び替え"
       >
-        ⠿
+        <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+          <circle cx="2.5" cy="2.5" r="1.5"/><circle cx="7.5" cy="2.5" r="1.5"/>
+          <circle cx="2.5" cy="7" r="1.5"/><circle cx="7.5" cy="7" r="1.5"/>
+          <circle cx="2.5" cy="11.5" r="1.5"/><circle cx="7.5" cy="11.5" r="1.5"/>
+        </svg>
       </span>
       <div className="flex-1 min-w-0">
         <ColorListItem

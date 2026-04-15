@@ -30,16 +30,16 @@ html, body, #root {
 
 /* ── Light Mode ── */
 [data-theme="light"] {
-  --color-surface:          245 247 250;   /* #f5f7fa */
-  --color-surface-raised:   240 242 245;   /* #f0f2f5 */
-  --color-surface-overlay:  232 235 242;   /* #e8ebf2 */
-  --color-surface-sidebar:  234 237 242;   /* #eaedf2 */
-  --color-border:           235 235 235;   /* #ebebeb */
-  --color-border-subtle:    240 240 240;   /* #f0f0f0 */
-  --color-border-sidebar:   216 220 232;   /* #d8dce8 */
+  --color-surface:          255 255 255;   /* white */
+  --color-surface-raised:   250 251 255;   /* near white */
+  --color-surface-overlay:  244 246 252;   /* soft gray */
+  --color-surface-sidebar:  248 249 254;   /* sidebar white */
+  --color-border:           0 0 0;         /* border uses opacity */
+  --color-border-subtle:    0 0 0;
+  --color-border-sidebar:   0 0 0;
   --color-text-primary:     13 13 13;      /* #0d0d0d */
-  --color-text-secondary:   154 160 178;   /* #9aa0b2 */
-  --color-text-muted:       192 196 208;   /* #c0c4d0 */
+  --color-text-secondary:   80 88 112;     /* #505870 */
+  --color-text-muted:       148 158 180;   /* #949eb4 */
   --color-accent:           10 62 216;     /* #0a3ed8 */
   --color-accent-hover:     8 50 184;      /* #0832b8 */
   --color-accent-soft:      10 62 216;     /* #0a3ed8 */
@@ -161,6 +161,38 @@ html, body, #root {
 .vibrancy {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* ── ライトモード専用 — パネル・カプセル質感 ── */
+[data-theme="light"] .vibrancy {
+  background: rgba(255,255,255,0.7);
+}
+
+/* リストアイテムカプセル（ライト） */
+[data-theme="light"] .list-capsule {
+  background: rgba(255,255,255,0.85);
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+}
+[data-theme="light"] .list-capsule-active {
+  background: rgba(255,255,255,0.95);
+  border: 2px solid rgba(14,165,233,0.7);  /* sky-500/70 */
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+/* ダークモード — ホバー発光 */
+[data-theme="dark"] .hover-glow:hover,
+:root:not([data-theme="light"]) .hover-glow:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.16);
+}
+
+/* ライトモード — ボーダー統一（暗い半透明） */
+[data-theme="light"] .border-light {
+  border-color: rgba(0,0,0,0.08);
+}
+[data-theme="light"] .shadow-light-float {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06);
 }
 
 /* ── タクタイルフィードバック ── */

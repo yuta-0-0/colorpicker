@@ -67,6 +67,7 @@ export function TagInput({ colorId, isLocked }: TagInputProps) {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return   // IME 変換中は無視
     if (e.key === 'Escape') {
       setIsOpen(false)
       setInputValue('')

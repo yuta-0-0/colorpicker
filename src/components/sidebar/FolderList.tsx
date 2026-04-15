@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { Plus, X } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -18,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useFolderStore } from '@/store/folderStore'
 import { useUIStore } from '@/store/uiStore'
 import type { Folder } from '@/types/database'
-import { FolderIconPicker } from './FolderIconPicker'
+import { FolderIconPicker, FolderIconComponent } from './FolderIconPicker'
 
 function SortableFolderItem({
   folder,
@@ -64,10 +65,14 @@ function SortableFolderItem({
       <span
         {...attributes}
         {...listeners}
-        className="text-text-muted cursor-grab opacity-0 group-hover:opacity-100 transition-opacity text-xs flex-shrink-0"
+        className="text-text-muted cursor-grab opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
         title="ドラッグで並び替え"
       >
-        ⠿
+        <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+          <circle cx="2" cy="2" r="1.5"/><circle cx="6" cy="2" r="1.5"/>
+          <circle cx="2" cy="6" r="1.5"/><circle cx="6" cy="6" r="1.5"/>
+          <circle cx="2" cy="10" r="1.5"/><circle cx="6" cy="10" r="1.5"/>
+        </svg>
       </span>
 
       {/* アイコン（クリックでピッカー） */}
@@ -75,10 +80,10 @@ function SortableFolderItem({
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setShowIconPicker((v) => !v) }}
-          className="text-xs leading-none hover:opacity-70 transition-opacity"
+          className="text-text-muted hover:text-text-secondary transition-colors flex-shrink-0"
           title="アイコンを変更"
         >
-          {folder.icon ?? '📁'}
+          <FolderIconComponent iconKey={folder.icon ?? null} size={13} />
         </button>
         {showIconPicker && (
           <FolderIconPicker
@@ -120,10 +125,10 @@ function SortableFolderItem({
         <button
           onClick={(e) => { e.stopPropagation(); onDelete() }}
           type="button"
-          className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger text-xs transition-all flex-shrink-0"
+          className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-red-400 transition-all flex-shrink-0"
           title="フォルダを削除"
         >
-          ✕
+          <X size={11} strokeWidth={1.5} />
         </button>
       )}
     </div>
@@ -215,9 +220,9 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
         <button
           onClick={() => setIsCreating(true)}
           type="button"
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-sm text-text-muted hover:text-text-secondary transition-colors text-left"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-text-muted hover:text-text-secondary transition-colors text-left"
         >
-          <span className="text-xs">＋</span>
+          <Plus size={12} strokeWidth={1.5} />
           <span>フォルダを追加</span>
         </button>
       )}

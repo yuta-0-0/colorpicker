@@ -115,19 +115,18 @@ export function FilterBar() {
           type="button"
           title={showArchived ? 'アーカイブを非表示' : 'アーカイブを表示'}
           className={[
-            'flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded transition-colors min-w-[28px]',
+            'flex items-center justify-center w-7 h-7 rounded transition-colors',
             showArchived
               ? 'text-accent-soft bg-accent/10'
               : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
           ].join(' ')}
         >
           <Archive size={11} />
-          <span className="text-[9px] leading-none hidden sm:block">保管</span>
         </button>
 
         <div className="w-px h-3 bg-border mx-0.5" />
 
-        {/* 並び順：縦レイアウト（アイコン＋10pxテキスト） */}
+        {/* 並び順：アイコンのみ */}
         {SORT_OPTIONS.map((opt) => (
           <button
             key={opt.value}
@@ -135,26 +134,24 @@ export function FilterBar() {
             type="button"
             title={opt.label}
             className={[
-              'flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded transition-colors min-w-[28px]',
+              'flex items-center justify-center w-7 h-7 rounded transition-colors',
               sortBy === opt.value
                 ? 'text-accent-soft bg-accent/10'
                 : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
             ].join(' ')}
           >
             {opt.icon}
-            <span className="text-[9px] leading-none hidden sm:block">{opt.label}</span>
           </button>
         ))}
 
-        {/* ソート方向 */}
+        {/* ソート方向（アイコンのみ） */}
         <button
           onClick={toggleSortDirection}
           type="button"
           title={sortDirection === 'asc' ? '昇順' : '降順'}
-          className="flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors min-w-[28px]"
+          className="flex items-center justify-center w-7 h-7 rounded text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
         >
           {sortDirection === 'asc' ? <IconSortAsc size={11} /> : <IconSortDesc size={11} />}
-          <span className="text-[9px] leading-none hidden sm:block">{sortDirection === 'asc' ? '昇順' : '降順'}</span>
         </button>
       </div>
     </div>

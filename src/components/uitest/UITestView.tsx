@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Save } from 'lucide-react'
 import { useUITestStore } from '@/store/uiTestStore'
 import { useColorStore } from '@/store/colorStore'
 import { isValidHex } from '@/lib/colorUtils'
@@ -6,7 +7,18 @@ import type { Color } from '@/types/database'
 
 export function UITestView() {
   const { slots, setSlotHex, isActive, applyToUI, resetUI } = useUITestStore()
-  const { colors } = useColorStore()
+  const { colors, addColor } = useColorStore()
+  const [saveMsg, setSaveMsg] = useState('')
+
+  const handleSavePalette = async () => {
+    const validSlots = slots.filter((s) => isValidHex(s.hex))
+    if (validSlots.length === 0) return
+    for (const slot of validSlots) {
+      await addColor(slot.hex, 1.0, null)
+    }
+    setSaveMsg(`${validSlots.length}色をコレクションに保存しました`)
+    setTimeout(() => setSaveMsg(''), 2500)
+  }
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -131,8 +143,23 @@ export function UITestView() {
             </button>
           </div>
 
+          {/* 配色セット保存 */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={handleSavePalette}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-border text-sm text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors"
+            >
+              <Save size={13} strokeWidth={1.5} />
+              この配色セットをコレクションに保存
+            </button>
+            {saveMsg && (
+              <p className="text-xs text-accent-soft text-center">{saveMsg}</p>
+            )}
+          </div>
+
           <p className="text-xs text-text-muted text-center">
-            メイン色のみUIに反映されます。サポート・アクセント・オプションは配色の参考用です。
+            メイン色がUIアクセントに反映されます。4色は配色セットとして保存できます。
           </p>
         </div>
       </div>
@@ -167,9 +194,9 @@ function SlotCard({ label, hex, onChange, colors, isMain }: SlotCardProps) {
           type="button"
           onClick={() => setShowCollection((v) => !v)}
           className={['text-xs px-1.5 py-0.5 rounded transition-colors', showCollection ? 'text-accent bg-accent/10' : 'text-text-muted hover:text-text-secondary hover:bg-surface-overlay'].join(' ')}
-          title="コレクションから選ぶ"
+          title="配色セットから選ぶ"
         >
-          コレクション
+          配色セット
         </button>
       </div>
 

@@ -17,6 +17,26 @@ import {
   IconX, IconCopy, IconCheck, IconPencil,
 } from '@/components/ui/Icons'
 
+// ── 一言メモ（常時表示テキストエリア） ──────────────────────────────────────
+function MemoField({ color, isLocked, onUpdate }: { color: Color; isLocked: boolean; onUpdate: (memo: string | null) => void }) {
+  const [value, setValue] = useState(color.memo ?? '')
+  useEffect(() => { setValue(color.memo ?? '') }, [color.id, color.memo])
+  return (
+    <div>
+      <p className="text-xs text-text-muted mb-1">一言メモ</p>
+      <textarea
+        value={value}
+        onChange={(e) => { if (!isLocked) setValue(e.target.value) }}
+        onBlur={() => { const next = value.trim() || null; if (next !== color.memo) onUpdate(next) }}
+        disabled={isLocked}
+        placeholder="メモを追加..."
+        rows={2}
+        className="w-full resize-none bg-surface-overlay border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-secondary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed"
+      />
+    </div>
+  )
+}
+
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return {
     r: parseInt(hex.slice(1, 3), 16),
@@ -166,8 +186,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
     getEnglishColorName(color.hex).then(setEnName)
     getKatakanaColorName(color.hex).then(setKatakanaName)
   }, [color?.hex])
-  const [isEditingSpotColor, setIsEditingSpotColor] = useState(false)
-  const [spotColorValue, setSpotColorValue] = useState('')
+  const [spotColorValue, setSpotColorValue] = useState(color?.spot_color ?? '')
   const [cmykDraft, setCmykDraft] = useState<CmykDraft>({ c: 0, m: 0, y: 0, k: 0 })
   const [isEditingCmyk, setIsEditingCmyk] = useState(false)
   const [isEditingHex, setIsEditingHex] = useState(false)
@@ -189,7 +208,6 @@ export function DetailPanel({ color }: DetailPanelProps) {
   const handleSpotColorSubmit = () => {
     if (!color) return
     updateColor(color.id, { spot_color: spotColorValue.trim() || null })
-    setIsEditingSpotColor(false)
   }
 
   const handleCmykEdit = () => {
@@ -219,6 +237,11 @@ export function DetailPanel({ color }: DetailPanelProps) {
   const handleCmykCancel = () => {
     setIsEditingCmyk(false)
   }
+
+  // color が変わったら spot_color を同期
+  useEffect(() => {
+    setSpotColorValue(color?.spot_color ?? '')
+  }, [color?.id])
 
   const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(hexDraft)
 
@@ -254,7 +277,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
 
   return (
     <aside
-      className="w-64 flex-shrink-0 flex flex-col overflow-y-auto relative"
+      className="w-64 flex-shrink-0 flex flex-col overflow-y-auto scrollbar-hide relative"
       style={{
         background: `rgba(10, 62, 216, 0.05)`,
         borderLeft: `1px solid rgba(10, 62, 216, 0.18)`,
@@ -383,7 +406,9 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 {/* ヘッダー行：ラベル + ロゴ */}
                 <div className="flex items-center justify-between px-2.5 pt-2 pb-1.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm leading-none">★</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ color: `rgb(${r},${g},${b})` }}>
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
                     <div>
                       <p className="text-[9px] font-semibold tracking-widest uppercase leading-none mb-0.5" style={{ color: `rgb(${r},${g},${b})` }}>
                         Legendary Match
@@ -642,39 +667,27 @@ export function DetailPanel({ color }: DetailPanelProps) {
           )}
         </div>
 
-        {/* 特色メモ（クリックで編集） */}
+        {/* 特色メモ（常時表示入力欄） */}
         <div>
           <p className="text-xs text-text-muted mb-1">特色メモ</p>
-          {isEditingSpotColor ? (
-            <input
-              type="text"
-              value={spotColorValue}
-              onChange={(e) => setSpotColorValue(e.target.value)}
-              onBlur={handleSpotColorSubmit}
-              onKeyDown={(e) => {
-                if (e.nativeEvent.isComposing) return
-                if (e.key === 'Enter') handleSpotColorSubmit()
-                if (e.key === 'Escape') setIsEditingSpotColor(false)
-              }}
-              autoFocus
-              placeholder="PANTONE 286 C / DIC-43"
-              className="w-full bg-surface-overlay border border-accent rounded px-2 py-1 text-sm text-text-primary focus:outline-none placeholder:text-text-muted"
-            />
-          ) : (
-            <button
-              onClick={() => {
-                if (!color.is_locked) {
-                  setSpotColorValue(color.spot_color ?? '')
-                  setIsEditingSpotColor(true)
-                }
-              }}
-              type="button"
-              className="w-full text-left text-sm text-text-secondary hover:text-text-primary transition-colors"
-            >
-              {color.spot_color || <span className="text-text-muted">クリックして追加...</span>}
-            </button>
-          )}
+          <input
+            type="text"
+            value={spotColorValue}
+            onChange={(e) => { if (!color.is_locked) setSpotColorValue(e.target.value) }}
+            onBlur={handleSpotColorSubmit}
+            onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return
+              if (e.key === 'Enter') handleSpotColorSubmit()
+              if (e.key === 'Escape') setSpotColorValue(color.spot_color ?? '')
+            }}
+            disabled={color.is_locked}
+            placeholder="PANTONE 286 C / DIC-43"
+            className="w-full bg-surface-overlay border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-text-muted"
+          />
         </div>
+
+        {/* 一言メモ（常時表示入力欄） */}
+        <MemoField color={color} isLocked={color.is_locked} onUpdate={(memo) => updateColor(color.id, { memo })} />
 
         {/* コントラストチェッカー・色覚シミュレーション */}
         <ContrastChecker color={color} />

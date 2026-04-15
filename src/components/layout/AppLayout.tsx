@@ -24,6 +24,7 @@ import { useTagStore } from '@/store/tagStore'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useDynamicFavicon } from '@/hooks/useDynamicFavicon'
 import { LiquidDock } from '@/components/dock/LiquidDock'
+import { ShortcutHelpModal } from '@/components/ui/ShortcutHelpModal'
 import { downloadAllDataJSON } from '@/lib/exportUtils'
 import { hasTraditionalColor } from '@/lib/colorUtils'
 import { IconMenu, IconDotsHorizontal } from '@/components/ui/Icons'
@@ -101,6 +102,7 @@ export function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
   const [showVisualExport, setShowVisualExport] = useState(false)
   const [showPaletteExport, setShowPaletteExport] = useState(false)
@@ -298,6 +300,19 @@ export function AppLayout() {
     displayColors,
   })
 
+  // ? キーでショートカットヘルプ
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+        const tag = (e.target as HTMLElement).tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return
+        setShowShortcutHelp((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
   useDynamicFavicon(selectedColor?.hex ?? null)
 
   const sectionTitle =
@@ -406,6 +421,7 @@ export function AppLayout() {
               const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
               downloadAllDataJSON(colors, folders, filename)
             }}
+            onShortcutHelp={() => setShowShortcutHelp(true)}
           /></div>
         </header>
 
@@ -467,6 +483,7 @@ export function AppLayout() {
         />
       )}
       {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+      <ShortcutHelpModal open={showShortcutHelp} onClose={() => setShowShortcutHelp(false)} />
       <ToastContainer />
       <LiquidDock />
     </div>
@@ -480,9 +497,10 @@ interface ExportMenuProps {
   onPaletteExport: () => void
   onImport: () => void
   onExportAll: () => void
+  onShortcutHelp: () => void
 }
 
-function ExportMenu({ onVisualExport, onPaletteExport, onImport, onExportAll }: ExportMenuProps) {
+function ExportMenu({ onVisualExport, onPaletteExport, onImport, onExportAll, onShortcutHelp }: ExportMenuProps) {
   const [open, setOpen] = useState(false)
 
   const items = [
@@ -490,6 +508,7 @@ function ExportMenu({ onVisualExport, onPaletteExport, onImport, onExportAll }: 
     { label: 'パレット書き出し（CSV/JSON/ASE）', onClick: onPaletteExport },
     { label: 'インポート', onClick: onImport },
     { label: '全データをバックアップ', onClick: onExportAll },
+    { label: 'ショートカット一覧 (?)', onClick: onShortcutHelp },
   ]
 
   return (

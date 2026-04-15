@@ -35,13 +35,13 @@ export function ColorSwatch({
     <button
       onClick={onClick}
       className={[
-        'relative rounded-full flex-shrink-0 transition-transform',
+        'relative rounded-full flex-shrink-0',
         SIZE_MAP[size],
-        onClick ? 'cursor-pointer hover:scale-105' : 'cursor-default',
+        onClick ? 'cursor-pointer hover:scale-105 transition-transform' : 'cursor-default',
         isSelected ? 'ring-selection' : '',
         className,
       ].join(' ')}
-      style={{ outline: 'none' }}
+      style={{ outline: 'none', flexShrink: 0 }}
       type="button"
     >
       {hasTransparency && (

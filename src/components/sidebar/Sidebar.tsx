@@ -31,7 +31,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = false, onToggleCollapse }: SidebarProps) {
-  const { activeSection, setActiveSection, activeFolderId, setActiveFolderId, activeTagId, setActiveTagId } = useUIStore()
+  const { activeSection, setActiveSection, activeFolderId, setActiveFolderId, activeTagId, setActiveTagId, setSelectedColorId, setIsDetailPanelOpen } = useUIStore()
   const { colors } = useColorStore()
   const { historyColors, loadHistory, clearHistory } = useHistoryStore()
 
@@ -162,7 +162,18 @@ export function Sidebar({ onVisualExport, width = 152, onResize, collapsed = fal
                 hex={c.hex}
                 alpha={c.alpha}
                 size="sm"
-                onClick={() => setActiveSection('history')}
+                onClick={() => {
+                  setActiveSection('all')
+                  // 少し遅らせてリストレンダリング後にスクロール
+                  setTimeout(() => {
+                    const el = document.querySelector(`[data-color-id="${c.id}"]`)
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      setSelectedColorId(c.id)
+                      setIsDetailPanelOpen(true)
+                    }
+                  }, 80)
+                }}
               />
             ))}
           </Cluster>

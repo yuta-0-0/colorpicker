@@ -23,11 +23,11 @@ export function ColorGalleryItem({ color, isSelected, onSelect }: ColorGalleryIt
       className={['flex flex-col items-center gap-1.5 cursor-pointer group', color.is_archived ? 'opacity-40' : ''].join(' ')}
       title={`${color.name}\n${color.hex}`}
     >
-      {/* カプセル型チップ */}
+      {/* 丸チップ */}
       <div
         className={[
-          'relative w-14 h-10 rounded-sm flex-shrink-0 overflow-hidden chip-border transition-all',
-          isSelected ? 'ring-selection' : 'border-white/10',
+          'relative w-12 h-12 rounded-full flex-shrink-0 overflow-hidden chip-border transition-all',
+          isSelected ? 'ring-selection' : 'border-white/20',
         ].join(' ')}
       >
         {/* 透明度チェッカー */}

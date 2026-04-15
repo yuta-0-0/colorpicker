@@ -58,10 +58,10 @@ export function LiquidDock() {
       onClick={handleInteraction}
       initial={{ x: typeof window !== 'undefined' ? window.innerWidth - 80 : 900, y: 200 }}
       animate={{
-        width: isMini ? 320 : 24,
-        height: isMini ? 140 : 80,
+        width: isMini ? 320 : 80,
+        height: isMini ? 140 : 24,
         opacity: isDragging ? 0.5 : 1,
-        borderRadius: isMini ? 20 : 40,
+        borderRadius: isMini ? 20 : 12,
       }}
       transition={SPRING}
       className="fixed z-50 cursor-grab active:cursor-grabbing select-none overflow-hidden"
