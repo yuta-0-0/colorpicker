@@ -203,18 +203,18 @@ html, body, #root {
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
 }
 
-/* ── Bento リストアイテム（透過・影のみ選択） ── */
+/* ── Bento リストアイテム（フラット・ボーダーなし） ── */
 .list-item {
   background: transparent;
-  border: 1px solid rgba(255,255,255,0.05);
+  border: none;
   border-radius: 10px;
-  transition: background 80ms ease, border-color 80ms ease, box-shadow 80ms ease;
-}
-[data-theme="light"] .list-item {
-  border-color: rgba(0,0,0,0.05);
+  transition: background 80ms ease, box-shadow 80ms ease;
 }
 .list-item:hover {
   background: rgba(var(--color-surface-overlay), 0.5);
+}
+[data-theme="light"] .list-item:hover {
+  background: rgba(0, 0, 0, 0.04);
 }
 .list-item-active {
   background: rgba(var(--color-surface-raised), 0.7);
