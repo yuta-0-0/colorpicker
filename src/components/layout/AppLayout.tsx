@@ -335,8 +335,7 @@ export function AppLayout() {
       style={{
         background: 'rgb(var(--color-bg))',
         gap: '10px',
-        // Electron: 左端は 0（sidebar が信号機を内包）、それ以外は 10px
-        padding: isElectron ? '10px 10px 10px 0' : '10px',
+        padding: '10px',
       }}
     >
       {/* モバイル用オーバーレイ */}
@@ -352,8 +351,6 @@ export function AppLayout() {
             width: `${sidebarWidth}px`,
             minWidth: 140,
             maxWidth: 280,
-            // Electron: 左端密着なので左側の角丸を除去
-            borderRadius: isElectron ? '0 1rem 1rem 0' : '1rem',
           }}
         >
           {/* 信号機セーフエリア＋サイドバートグル（Electron のみ） */}

@@ -26,8 +26,8 @@ export function ColorGalleryItem({ color, isSelected, onSelect }: ColorGalleryIt
       {/* 丸チップ */}
       <div
         className={[
-          'relative w-12 h-12 rounded-full flex-shrink-0 overflow-hidden chip-border transition-all',
-          isSelected ? 'ring-selection' : 'border-white/20',
+          'relative w-12 h-12 rounded-full flex-shrink-0 overflow-hidden transition-all',
+          isSelected ? 'chip-border ring-selection' : '',
         ].join(' ')}
       >
         {/* 透明度チェッカー */}
