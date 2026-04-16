@@ -31,7 +31,6 @@ export function ColorListItem({ color, isSelected, onSelect, onCopy, onToggleFav
       onClick={(e) => onSelect(e)}
       className={[
         'flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors group tactile',
-        isSelected ? 'border border-transparent' : 'border border-transparent hover:bg-surface-raised',
         color.is_archived ? 'opacity-40' : '',
       ].join(' ')}
     >

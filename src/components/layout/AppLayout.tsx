@@ -511,7 +511,7 @@ export function AppLayout() {
         {isDetailPanelOpen && selectedColor && (
           <motion.aside
             key="detail-panel"
-            className="bento-pane flex-shrink-0"
+            className="bento-pane flex-shrink-0 flex flex-col"
             initial={{ x: 30, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 30, opacity: 0 }}

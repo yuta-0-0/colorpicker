@@ -277,12 +277,9 @@ export function DetailPanel({ color }: DetailPanelProps) {
 
   return (
     <aside
-      className="w-64 flex-shrink-0 flex flex-col overflow-y-auto scrollbar-hide relative"
+      className="flex-1 flex flex-col overflow-hidden relative"
       style={{
-        background: `rgba(10, 62, 216, 0.05)`,
-        borderLeft: `1px solid rgba(10, 62, 216, 0.18)`,
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        background: `rgba(10, 62, 216, 0.04)`,
       }}
     >
       {/* Legendary Glow オーバーレイ */}
@@ -302,8 +299,8 @@ export function DetailPanel({ color }: DetailPanelProps) {
           />
         )}
       </AnimatePresence>
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+      {/* ヘッダー（固定） */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-text-primary">詳細</span>
           {/* お気に入り */}
@@ -333,9 +330,9 @@ export function DetailPanel({ color }: DetailPanelProps) {
         <IconButton onClick={handleClose} title="閉じる"><IconX size={14} /></IconButton>
       </div>
 
-      {/* 丸アイコン + 背景切り替え：透明度がある場合は実際に透けて見えるよう表示 */}
+      {/* 丸アイコン + 背景切り替え（固定） */}
       <div
-        className="flex items-center justify-center py-8 relative transition-colors"
+        className="flex items-center justify-center py-8 relative transition-colors flex-shrink-0"
         style={{ backgroundColor: bgMode === 'dark' ? '#111' : '#f5f5f5' }}
       >
         <ColorSwatch hex={color.hex} alpha={color.alpha} size="lg" />
@@ -345,7 +342,8 @@ export function DetailPanel({ color }: DetailPanelProps) {
         </div>
       </div>
 
-      <div className="flex-1 px-4 py-3 space-y-4">
+      {/* スクロール可能なコンテンツ領域 */}
+      <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide px-4 py-3 space-y-4">
         {/* 色名エリア */}
         <div className="space-y-1.5">
           {/* 編集可能な色名（ユーザー設定名 or デフォルトはHEX） */}
