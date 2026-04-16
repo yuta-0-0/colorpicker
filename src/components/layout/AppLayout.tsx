@@ -335,7 +335,8 @@ export function AppLayout() {
       style={{
         background: 'rgb(var(--color-bg))',
         gap: '10px',
-        padding: '10px',
+        // Electron: 左端は 0（sidebar が信号機を内包）、それ以外は 10px
+        padding: isElectron ? '10px 10px 10px 0' : '10px',
       }}
     >
       {/* モバイル用オーバーレイ */}
@@ -343,28 +344,37 @@ export function AppLayout() {
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* ── Electron 専用：信号機直後の固定サイドバートグル ── */}
-      {isElectron && (
-        <button
-          type="button"
-          onClick={() => setSidebarCollapsed((v) => !v)}
-          title={sidebarCollapsed ? 'サイドバーを開く' : 'サイドバーを閉じる'}
-          className="fixed z-50 no-drag p-1.5 rounded-md text-text-muted hover:text-text-primary transition-colors"
-          style={{ top: 18, left: 84, background: 'transparent' }}
-        >
-          <IconMenu size={15} />
-        </button>
-      )}
-
       {/* ── Sidebar Bento Pane ── */}
       {!sidebarCollapsed && (
         <aside
           className="bento-pane flex-shrink-0 flex flex-col pb-safe"
-          style={{ width: `${sidebarWidth}px`, minWidth: 140, maxWidth: 280 }}
+          style={{
+            width: `${sidebarWidth}px`,
+            minWidth: 140,
+            maxWidth: 280,
+            // Electron: 左端密着なので左側の角丸を除去
+            borderRadius: isElectron ? '0 1rem 1rem 0' : '1rem',
+          }}
         >
-          {/* 信号機セーフエリア（Electronのみ）— ドラッグ可能な上部余白 */}
-          {isElectron && (
-            <div className="app-drag flex-shrink-0" style={{ height: 32 }} />
+          {/* 信号機セーフエリア＋サイドバートグル（Electron のみ） */}
+          {isElectron ? (
+            <div
+              className="app-drag flex-shrink-0 flex items-center"
+              style={{ height: 36, paddingLeft: 80, paddingRight: 8 }}
+            >
+              {/* no-drag ボタンを drag 領域内に置く → 確実にクリック可能 */}
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((v) => !v)}
+                title="サイドバーを閉じる"
+                className="no-drag p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-white/8 transition-colors"
+              >
+                <IconMenu size={14} />
+              </button>
+            </div>
+          ) : (
+            /* Web: 小さな上部余白のみ */
+            <div style={{ height: 8 }} />
           )}
           <Sidebar
             onVisualExport={() => setShowVisualExport(true)}
@@ -378,18 +388,19 @@ export function AppLayout() {
 
       {/* ── Main Bento Pane ── */}
       <div className="bento-pane flex-1 flex flex-col min-w-0">
-        {/* 内部ヘッダー（ドラッグ領域 + コントロール） */}
+        {/* ヘッダー（ドラッグ領域 + コントロール） */}
         <header
           className="app-drag flex items-center gap-2 flex-shrink-0"
           style={{
-            paddingLeft: isElectron ? '84px' : '12px',
+            // サイドバー折りたたみ中 + Electron: 信号機スペースを確保
+            paddingLeft: sidebarCollapsed && isElectron ? '84px' : '12px',
             paddingRight: '12px',
             paddingTop: '10px',
             paddingBottom: '10px',
           }}
         >
-          {/* サイドバートグル（Web / 非Electron のみ） */}
-          {!isElectron && (
+          {/* サイドバートグル：Web は常時表示 / Electron は折りたたみ中のみ表示 */}
+          {(!isElectron || sidebarCollapsed) && (
             <button
               type="button"
               onClick={() => setSidebarCollapsed((v) => !v)}
@@ -436,7 +447,6 @@ export function AppLayout() {
               </svg>
             </button>
           )}
-
           {/* テーマトグル */}
           <button
             type="button"
@@ -457,7 +467,6 @@ export function AppLayout() {
               </svg>
             )}
           </button>
-
           {/* エクスポート・インポートメニュー */}
           <div className="no-drag">
             <ExportMenu
@@ -475,43 +484,44 @@ export function AppLayout() {
 
         {!isGenerator && !isUITest && !isTrash && <FilterBar />}
 
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-hidden">
           {isBulkMode && <BulkActionBar />}
-
-          <div className="flex-1 flex overflow-hidden">
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {isGenerator ? (
-                <GeneratorView />
-              ) : isUITest ? (
-                <UITestView />
-              ) : isTrash ? (
-                <TrashView />
-              ) : colorsLoading ? (
-                <Center full>
-                  <p className="text-text-muted text-sm">読み込み中...</p>
-                </Center>
-              ) : viewMode === 'list' ? (
-                <ListView colors={displayColors} />
-              ) : (
-                <GalleryView colors={displayColors} />
-              )}
-            </div>
-            <AnimatePresence>
-              {isDetailPanelOpen && selectedColor && (
-                <motion.div
-                  key="detail-panel"
-                  initial={{ x: 40, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  exit={{ x: 40, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                >
-                  <DetailPanel color={selectedColor} />
-                </motion.div>
-              )}
-            </AnimatePresence>
+          <div className="h-full flex flex-col overflow-hidden">
+            {isGenerator ? (
+              <GeneratorView />
+            ) : isUITest ? (
+              <UITestView />
+            ) : isTrash ? (
+              <TrashView />
+            ) : colorsLoading ? (
+              <Center full>
+                <p className="text-text-muted text-sm">読み込み中...</p>
+              </Center>
+            ) : viewMode === 'list' ? (
+              <ListView colors={displayColors} />
+            ) : (
+              <GalleryView colors={displayColors} />
+            )}
           </div>
         </div>
       </div>
+
+      {/* ── Detail Bento Pane（独立コンテナ）── */}
+      <AnimatePresence>
+        {isDetailPanelOpen && selectedColor && (
+          <motion.aside
+            key="detail-panel"
+            className="bento-pane flex-shrink-0"
+            initial={{ x: 30, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 30, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+            style={{ width: 264 }}
+          >
+            <DetailPanel color={selectedColor} />
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       {showAddModal && <AddColorModal onClose={() => setShowAddModal(false)} />}
       {showImageModal && <ImagePickerModal onClose={() => setShowImageModal(false)} />}
