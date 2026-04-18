@@ -4,7 +4,6 @@ import { Sidebar } from '@/components/sidebar/Sidebar'
 import { ListView } from '@/components/views/ListView'
 import { GalleryView } from '@/components/views/GalleryView'
 import { GeneratorView } from '@/components/generator/GeneratorView'
-import { UITestView } from '@/components/uitest/UITestView'
 import { TrashView } from '@/components/trash/TrashView'
 import { Center } from '@/components/primitives'
 import { ViewToggle } from '@/components/views/ViewToggle'
@@ -104,6 +103,8 @@ export function AppLayout() {
   const [showVisualExport, setShowVisualExport] = useState(false)
   const [showPaletteExport, setShowPaletteExport] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
+  const resizeTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
   const handleScreenPick = useCallback(async () => {
     try {
@@ -117,6 +118,16 @@ export function AppLayout() {
   }, [addColor, addColorToHistory, activeFolderId])
 
   const handleOpenAddModal = useCallback(() => setShowAddModal(true), [])
+
+  const handleSidebarResize = useCallback((width: number) => {
+    setIsResizing(true)
+    setSidebarWidth(width)
+    clearTimeout(resizeTimerRef.current)
+    resizeTimerRef.current = setTimeout(() => setIsResizing(false), 80)
+  }, [])
+
+  // 全パネル共通モーショントークン
+  const PANEL_TRANSITION = { duration: 0.5, ease: [0.16, 1, 0.3, 1] } as const
 
   // 選択色が変わったら Prism Tile へプッシュ（Electron のみ）
   useEffect(() => {
@@ -187,6 +198,11 @@ export function AppLayout() {
   }, [activeFolderId, activeSection, fetchColors])
 
   const selectedColor = colors.find((c) => c.id === selectedColorId) ?? null
+
+  // 閉じアニメーション中もコンテンツを保持するための ref（null になっても最後の色を表示し続ける）
+  const lastColorRef = useRef(selectedColor)
+  if (selectedColor) lastColorRef.current = selectedColor
+  const colorForPanel = selectedColor ?? lastColorRef.current
 
   // 5段階フィルターパイプライン
   // 1. お気に入りフィルター
@@ -320,12 +336,10 @@ export function AppLayout() {
     activeSection === 'favorites' ? 'お気に入り' :
     activeSection === 'history' ? '最近使った色' :
     activeSection === 'generator' ? 'カラージェネレーター' :
-    activeSection === 'ui-test' ? 'UIテスト' :
     activeSection === 'trash' ? 'ゴミ箱' :
     'すべての色'
 
   const isGenerator = activeSection === 'generator'
-  const isUITest = activeSection === 'ui-test'
   const isTrash = activeSection === 'trash'
 
   const isElectron = !!(window as Window & { electronAPI?: unknown }).electronAPI
@@ -364,52 +378,44 @@ export function AppLayout() {
       )}
 
       {/* ── Sidebar Bento Pane ── */}
-      {/* AnimatePresence でサイドバーの開閉をアニメーション化 */}
-      <AnimatePresence initial={false}>
-        {!sidebarCollapsed && (
-          <motion.aside
-            key="sidebar-pane"
-            className="bento-pane flex-shrink-0 flex flex-col pb-safe overflow-hidden"
-            initial={{ x: -24, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -24, opacity: 0 }}
-            transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.4 }}
-            style={{
-              width: `${sidebarWidth}px`,
-              minWidth: 140,
-              maxWidth: 280,
-              willChange: 'transform, opacity',
+      {/* 外側マスク: width 0→実幅 でクリップ。padding/border/margin なし */}
+      <motion.div
+        className="flex-shrink-0 overflow-hidden rounded-2xl"
+        animate={{
+          width: sidebarCollapsed ? 0 : sidebarWidth,
+          opacity: sidebarCollapsed ? 0 : 1,
+          marginRight: sidebarCollapsed ? -10 : 0,
+        }}
+        transition={isResizing ? { duration: 0 } : PANEL_TRANSITION}
+        style={{ willChange: 'width, opacity' }}
+      >
+        {/* 内側コンテンツ: 固定幅。styling はここに集約 */}
+        <aside
+          className="bento-pane flex-shrink-0 flex flex-col pb-safe overflow-hidden h-full"
+          style={{ width: sidebarWidth, minWidth: sidebarWidth }}
+        >
+          <Sidebar
+            onAddColor={handleOpenAddModal}
+            onImagePick={() => setShowImageModal(true)}
+            onScreenPick={handleScreenPick}
+            onVisualExport={() => setShowVisualExport(true)}
+            onPaletteExport={() => setShowPaletteExport(true)}
+            onImport={() => setShowImport(true)}
+            onExportAll={() => {
+              const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
+              downloadAllDataJSON(colors, folders, filename)
             }}
-          >
-            <Sidebar
-              onAddColor={handleOpenAddModal}
-              onImagePick={() => setShowImageModal(true)}
-              onScreenPick={handleScreenPick}
-              onVisualExport={() => setShowVisualExport(true)}
-              onPaletteExport={() => setShowPaletteExport(true)}
-              onImport={() => setShowImport(true)}
-              onExportAll={() => {
-                const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
-                downloadAllDataJSON(colors, folders, filename)
-              }}
-              onShortcutHelp={() => setShowShortcutHelp(true)}
-              theme={theme}
-              onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              width={sidebarWidth}
-              onResize={setSidebarWidth}
-            />
-          </motion.aside>
-        )}
-      </AnimatePresence>
+            onShortcutHelp={() => setShowShortcutHelp(true)}
+            theme={theme}
+            onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            width={sidebarWidth}
+            onResize={handleSidebarResize}
+          />
+        </aside>
+      </motion.div>
 
       {/* ── Main Bento Pane（Policy A: Strict Neutrality — 無彩色で色を正確に評価） ── */}
-      {/* layout prop: サイドバー/詳細パネルの開閉時に幅変化をスプリングアニメーションで吸収 */}
-      <motion.div
-        layout
-        className="bento-pane-neutral flex-1 flex flex-col min-w-0"
-        transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.4 }}
-        style={{ willChange: 'transform' }}
-      >
+      <div className="bento-pane-neutral flex-1 flex flex-col min-w-0">
         {/* ヘッダー */}
         <header
           className="flex items-center gap-2 flex-shrink-0"
@@ -432,7 +438,7 @@ export function AppLayout() {
             </button>
           )}
           <h1 className="text-sm font-medium text-text-primary flex-1 select-none">{sectionTitle}</h1>
-          {!isGenerator && !isUITest && !isTrash && (
+          {!isGenerator && !isTrash && (
             <ViewToggle mode={viewMode} onChange={setViewMode} />
           )}
           {/* Prism Tile 起動ボタン（Electron Macのみ） */}
@@ -455,8 +461,6 @@ export function AppLayout() {
           <div className="h-full flex flex-col overflow-hidden">
             {isGenerator ? (
               <GeneratorView />
-            ) : isUITest ? (
-              <UITestView />
             ) : isTrash ? (
               <TrashView />
             ) : colorsLoading ? (
@@ -470,25 +474,30 @@ export function AppLayout() {
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* ── Detail Bento Pane（独立コンテナ）── */}
-      {/* width: 0→264 アニメーションで、メインペインが「ガクッ」と縮まずに滑らかに遷移 */}
-      <AnimatePresence initial={false}>
-        {isDetailPanelOpen && selectedColor && (
-          <motion.aside
-            key="detail-panel"
-            className="bento-pane flex-shrink-0 flex flex-col"
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 264, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.45 }}
-            style={{ overflow: 'hidden', willChange: 'width, opacity, transform' }}
-          >
-            <DetailPanel color={selectedColor} />
-          </motion.aside>
-        )}
-      </AnimatePresence>
+      {/* 常時マウント: アンマウント時の gap 消失ジャンプを防ぐ */}
+      {/* 外側マスク: width 0↔264 でクリップ。padding/border/margin なし */}
+      <motion.div
+        className="flex-shrink-0 overflow-hidden rounded-2xl"
+        initial={{ width: 0, opacity: 0, marginLeft: -10 }}
+        animate={{
+          width: isDetailPanelOpen && !!colorForPanel ? 264 : 0,
+          opacity: isDetailPanelOpen && !!colorForPanel ? 1 : 0,
+          marginLeft: isDetailPanelOpen && !!colorForPanel ? 0 : -10,
+        }}
+        transition={PANEL_TRANSITION}
+        style={{ willChange: 'width, opacity' }}
+      >
+        {/* 内側コンテンツ: 固定幅。styling はここに集約 */}
+        <div
+          className="bento-pane flex flex-col h-full"
+          style={{ width: 264, minWidth: 264 }}
+        >
+          {colorForPanel && <DetailPanel color={colorForPanel} />}
+        </div>
+      </motion.div>
 
       </div> {/* ── Bentos 行 ── */}
 

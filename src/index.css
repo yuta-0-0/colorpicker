@@ -13,15 +13,19 @@ html, body, #root {
 
 /* ── テーマトークン（Dark = デフォルト） ── */
 :root {
-  --color-bg:               11 12 18;      /* #0B0C12 — ウィンドウベース背景 */
-  --color-surface:          9 12 29;       /* #090C1D — Bentoパネル */
-  --color-surface-raised:   13 17 36;      /* #0D1124 */
-  --color-surface-overlay:  16 20 42;      /* #10142A */
-  --color-surface-sidebar:  9 12 29;       /* #090C1D */
+  /* ─ Policy B: .blue Identity（サイドバー・詳細パネル・ポップアップ） ─ */
+  --color-surface:          11 16 26;      /* #0B101A — 深い青み黒 */
+  --color-surface-raised:   15 21 36;      /* #0F1524 */
+  --color-surface-overlay:  20 27 46;      /* #141B2E */
+  --color-surface-sidebar:  11 16 26;      /* #0B101A */
+
+  /* ─ Policy A: Strict Neutrality（メインコンテンツ・色評価領域） ─ */
+  --color-neutral-pane:     28 28 28;      /* #1C1C1C — 完全無彩色 */
+
   --color-border:           255 255 255;   /* border uses /5 opacity */
   --color-border-subtle:    255 255 255;
   --color-border-sidebar:   255 255 255;
-  --color-text-primary:     255 255 255;   /* #ffffff */
+  --color-text-primary:     255 255 255;
   --color-text-secondary:   148 154 178;   /* #949ab2 */
   --color-text-muted:       82 88 108;     /* #52586c */
   --color-accent:           10 62 216;     /* #0a3ed8 */
@@ -32,21 +36,34 @@ html, body, #root {
 
 /* ── Light Mode ── */
 [data-theme="light"] {
-  --color-bg:               253 253 253;   /* #FDFDFD — ウィンドウベース背景 */
-  --color-surface:          236 239 250;   /* #ECEFFA — Bentoパネル */
-  --color-surface-raised:   244 246 255;   /* #F4F6FF */
-  --color-surface-overlay:  240 243 255;   /* #F0F3FF */
-  --color-surface-sidebar:  236 239 250;   /* #ECEFFA */
-  --color-border:           0 0 0;         /* border uses opacity */
+  /* ─ Policy B: .blue Identity ライト ─ */
+  --color-surface:          240 244 248;   /* #F0F4F8 — 青みのある白 */
+  --color-surface-raised:   248 250 254;   /* #F8FAFE */
+  --color-surface-overlay:  243 246 252;   /* #F3F6FC */
+  --color-surface-sidebar:  240 244 248;   /* #F0F4F8 */
+
+  /* ─ Policy A: Strict Neutrality ライト ─ */
+  --color-neutral-pane:     241 243 245;   /* #F1F3F5 — クールグレー（黄ばみ防止） */
+
+  --color-border:           0 0 0;
   --color-border-subtle:    0 0 0;
   --color-border-sidebar:   0 0 0;
-  --color-text-primary:     13 13 13;      /* #0d0d0d */
+  --color-text-primary:     13 13 13;
   --color-text-secondary:   80 88 112;     /* #505870 */
   --color-text-muted:       148 158 180;   /* #949eb4 */
   --color-accent:           10 62 216;     /* #0a3ed8 */
   --color-accent-hover:     8 50 184;      /* #0832b8 */
   --color-accent-soft:      10 62 216;     /* #0a3ed8 */
   --color-accent-ring:      0 206 255;     /* #00ceff */
+}
+
+/* ── Signature Blue グロー（ナビゲーション領域専用 — LEDインジケーター感） ── */
+/* アクティブアイコンに常時点灯する青い光彩。メインコンテンツ領域には使用しないこと */
+.sig-glow-active {
+  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.60));
+}
+[data-theme="light"] .sig-glow-active {
+  filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.50));
 }
 
 /* ── グローユーティリティ（Notion思想: 20%薄め） ── */
@@ -76,22 +93,26 @@ html, body, #root {
 }
 
 /* ── Notion思想: ウィスパーボーダー ── */
-/* ポップアップ・ドロップダウン専用のガラス効果 */
+/* ポップアップ・ドロップダウン専用のガラス効果 — Liquid Glass（Policy B） */
 .glass-popup {
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  background: rgba(12, 13, 20, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(48px) saturate(220%);
+  -webkit-backdrop-filter: blur(48px) saturate(220%);
+  background: rgba(11, 16, 26, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.4),
-    0 1px 4px rgba(0, 0, 0, 0.2);
+    0 0 0 0.5px rgba(255, 255, 255, 0.07),
+    0 12px 48px rgba(0, 0, 0, 0.58),
+    0 4px 12px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09);
 }
 [data-theme="light"] .glass-popup {
-  background: rgba(245, 247, 250, 0.88);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(240, 244, 248, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.1),
-    0 1px 4px rgba(0, 0, 0, 0.05);
+    0 0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 12px 48px rgba(0, 0, 0, 0.18),
+    0 4px 12px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 /* モーダルオーバーレイ */
@@ -160,24 +181,47 @@ html, body, #root {
   background-size: 16px 16px;
 }
 
-/* ── Bento Pane — 独立コンテナ共通スタイル ── */
+/* ── Bento Pane — Policy B: .blue Identity（サイドバー・詳細パネル） ── */
+/* 80% 不透明：壁紙が美しく透けるLiquid Glass効果 */
 .bento-pane {
-  background: rgba(var(--color-surface), 0.8);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border-radius: 1rem; /* rounded-2xl = 16px */
-  overflow: hidden;    /* 角丸で子要素をクリップ */
-  /* ダークモードでのエッジ可視化 + 浮遊感 */
+  background: rgba(11, 16, 26, 0.80);         /* #0B101A 80% — 深い青み黒 */
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border-radius: 1rem;
+  overflow: hidden;
   box-shadow:
-    0 0 0 0.5px rgba(255,255,255,0.06),
-    0 8px 32px rgba(0,0,0,0.35),
-    0 2px 8px rgba(0,0,0,0.2);
+    0 0 0 0.5px rgba(255,255,255,0.03),
+    0 8px 36px rgba(0,0,0,0.40),
+    0 2px 8px rgba(0,0,0,0.22);
 }
 [data-theme="light"] .bento-pane {
+  background: rgba(240, 244, 248, 0.80);       /* #F0F4F8 80% — 青みのある白 */
   box-shadow:
-    0 0 0 0.5px rgba(0,0,0,0.06),
-    0 4px 24px rgba(0,0,0,0.08),
-    0 1px 4px rgba(0,0,0,0.04);
+    0 0 0 0.5px rgba(0,0,0,0.03),
+    0 8px 36px rgba(0,0,0,0.14),
+    0 2px 8px rgba(0,0,0,0.07),
+    inset 0 1px 0 rgba(255,255,255,0.5);
+}
+
+/* ── Bento Pane Neutral — Policy A: Strict Neutrality（メインコンテンツ） ── */
+/* 100% 不透明のベタ塗り無彩色：色の正確な評価を保証する */
+.bento-pane-neutral {
+  background: #1C1C1C;                         /* 完全無彩色ダーク — 青みゼロ */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 0.5px rgba(255,255,255,0.02),
+    0 8px 36px rgba(0,0,0,0.38),
+    0 2px 8px rgba(0,0,0,0.20);
+}
+[data-theme="light"] .bento-pane-neutral {
+  background: #F1F3F5;                         /* クールグレーライト — 黄ばみ防止 */
+  box-shadow:
+    0 0 0 0.5px rgba(0,0,0,0.03),
+    0 8px 36px rgba(0,0,0,0.10),
+    0 2px 8px rgba(0,0,0,0.05);
 }
 
 /* ── Vibrancy（強化版 backdrop-filter） ── */
@@ -209,22 +253,30 @@ html, body, #root {
   border: none;
   border-radius: 10px;
   transition: background 80ms ease, box-shadow 80ms ease;
+  outline: none;
+}
+.list-item:focus,
+.list-item:focus-visible,
+.list-item *:focus,
+.list-item *:focus-visible {
+  outline: none !important;
+  box-shadow: none;
 }
 .list-item:hover {
-  background: rgba(var(--color-surface-overlay), 0.5);
+  background: rgba(20, 27, 46, 0.50);   /* --color-surface-overlay dark */
 }
 [data-theme="light"] .list-item:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 .list-item-active {
-  background: rgba(var(--color-surface-raised), 0.7);
+  background: rgba(15, 21, 36, 0.70);   /* --color-surface-raised dark */
   border: 1px solid rgba(255,255,255,0.10);
   box-shadow:
     0 2px 10px rgba(0,0,0,0.14),
     0 6px 24px rgba(0,0,0,0.10);
 }
 [data-theme="light"] .list-item-active {
-  background: rgba(var(--color-surface-raised), 1);
+  background: rgba(248, 250, 254, 1);   /* --color-surface-raised light */
   border: 1px solid rgba(0,0,0,0.07);
   box-shadow:
     0 2px 8px rgba(0,0,0,0.07),
@@ -292,13 +344,14 @@ html, body, #root {
     box-sizing: border-box;
   }
   body {
-    background: rgb(var(--color-bg));
+    /* Spatial Design: OS Vibrancy を透かすため透明 */
+    background: transparent;
     @apply text-text-primary font-sans;
     margin: 0;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { @apply bg-surface; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
 }

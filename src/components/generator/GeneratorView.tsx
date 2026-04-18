@@ -3,7 +3,7 @@ import { Center } from '@/components/primitives'
 import { ColorSwatch } from '@/components/color/ColorSwatch'
 import { useColorStore } from '@/store/colorStore'
 import { useUIStore } from '@/store/uiStore'
-import { useUITestStore } from '@/store/uiTestStore'
+import { usePreviewStore } from '@/store/previewStore'
 import { isValidHex } from '@/lib/colorUtils'
 import {
   generateScheme,
@@ -23,7 +23,8 @@ type GeneratorMode = 'single' | 'bridge' | 'multi'
 
 export function GeneratorView() {
   const { addColor } = useColorStore()
-  const { setSlotHex, applyToUI } = useUITestStore()
+  const { setActiveMode, setActiveSection } = useUIStore()
+  const { setSlot } = usePreviewStore()
 
   const [inputValue, setInputValue] = useState(() => {
     const { selectedColorId, bulkSelectedIds } = useUIStore.getState()
@@ -112,11 +113,13 @@ export function GeneratorView() {
     setSavingAll(false)
   }
 
-  const handleSendToUITest = () => {
+  const handleSendToPreview = () => {
+    const slots: Array<'bg' | 'text' | 'button' | 'accent'> = ['bg', 'text', 'button', 'accent']
     generatedColors.slice(0, 4).forEach((hex, i) => {
-      setSlotHex(i as 0 | 1 | 2 | 3, hex)
+      setSlot(slots[i], hex)
     })
-    applyToUI()
+    setActiveMode('preview')
+    setActiveSection('all')
   }
 
   const handleSwap = () => {
@@ -458,11 +461,11 @@ export function GeneratorView() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleSendToUITest}
+                  onClick={handleSendToPreview}
                   className="px-3 py-1 text-xs border border-border text-text-muted hover:text-text-primary hover:border-accent/50 rounded-lg transition-colors"
-                  title="生成した色をUIテストモードに送って確認"
+                  title="生成した色をWebプレビューに送って確認"
                 >
-                  UIテスト ↗
+                  Web プレビュー ↗
                 </button>
                 {/* 1色モード: 確定フロー / それ以外: すべて保存 */}
                 {mode === 'single' ? (

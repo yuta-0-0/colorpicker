@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   IconSparkle,
-  IconMonitor,
   IconTrash,
   IconArchive,
   IconFolderSimplePlus,
@@ -73,13 +72,6 @@ export function BulkActionBar() {
           icon={<IconSparkle size={13} />}
           label="ジェネレーター"
           onClick={() => setActiveSection('generator')}
-        />
-
-        {/* UIテスト */}
-        <FabBtn
-          icon={<IconMonitor size={13} />}
-          label="UIテスト"
-          onClick={() => setActiveSection('ui-test')}
         />
 
         <div className="w-px h-4 bg-white/12 flex-shrink-0" />
