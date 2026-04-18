@@ -72,7 +72,7 @@ interface UIStore {
   theme: 'dark' | 'light' | 'system'
   setTheme: (theme: 'dark' | 'light' | 'system') => void
 
-  // アクティブモード（通常 / コントラストチェッカー）
+  // アクティブモード（通常 / コントラストチェッカー / Web プレビュー）
   activeMode: ActiveMode
   setActiveMode: (mode: ActiveMode) => void
 }
