@@ -21,6 +21,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { ColorListItem } from '@/components/color/ColorListItem'
 import { ContextualPanel } from '@/components/color/ContextualPanel'
 import { useUIStore } from '@/store/uiStore'
+import { usePreviewStore } from '@/store/previewStore'
 import { useColorStore } from '@/store/colorStore'
 import type { Color } from '@/types/database'
 import { copyColorToClipboard } from '@/lib/exportUtils'
@@ -59,7 +60,7 @@ function SortableColorItem({
         transition,
         opacity: isDragging ? 0.5 : 1,
       }}
-      className="group/drag flex items-center"
+      className="group/drag flex items-center pl-1"
     >
       {/* チェックボックス：バルクモード中は常時表示、それ以外はホバー時のみ */}
       <button
@@ -115,6 +116,7 @@ interface ListViewProps {
 
 export function ListView({ colors }: ListViewProps) {
   const { selectedColorId, setSelectedColorId, showArchived, bulkSelectedIds, toggleBulkSelect, setBulkSelectedIds, isBulkMode, sortBy } = useUIStore()
+  const { activeSlot, setSlot } = usePreviewStore()
   const { updateColor, trashColor, incrementUsedCount, reorderColors } = useColorStore()
   const lastSelectedIndexRef = React.useRef<number>(-1)
 
@@ -127,6 +129,12 @@ export function ListView({ colors }: ListViewProps) {
 
   // Shift+クリック：範囲選択 / Cmd|Ctrl+クリック：個別トグル選択
   const handleSelect = (color: Color, index: number, e: React.MouseEvent) => {
+    // When a preview slot is waiting for assignment, assign and stop
+    if (activeSlot !== null) {
+      setSlot(activeSlot, color.hex)
+      return
+    }
+
     if (e.shiftKey && lastSelectedIndexRef.current >= 0) {
       // 範囲選択
       const from = Math.min(lastSelectedIndexRef.current, index)
@@ -197,7 +205,7 @@ export function ListView({ colors }: ListViewProps) {
             transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5, delay: Math.min(index, 8) * 0.02 }}
             className={['rounded-xl', selectedColorId === color.id ? 'list-item-active' : 'list-item'].join(' ')}
           >
-            <div className="flex items-center">
+            <div className="flex items-center pl-1">
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); toggleBulkSelect(color.id) }}
