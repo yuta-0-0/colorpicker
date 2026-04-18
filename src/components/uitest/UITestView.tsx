@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Save } from 'lucide-react'
+import { IconFloppyDisk } from '@/components/ui/Icons'
 import { useUITestStore } from '@/store/uiTestStore'
 import { useColorStore } from '@/store/colorStore'
 import { isValidHex } from '@/lib/colorUtils'
@@ -150,7 +150,7 @@ export function UITestView() {
               onClick={handleSavePalette}
               className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-border text-sm text-text-secondary hover:text-text-primary hover:bg-surface-overlay transition-colors"
             >
-              <Save size={13} strokeWidth={1.5} />
+              <IconFloppyDisk size={13} />
               この配色セットをコレクションに保存
             </button>
             {saveMsg && (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Plus, X, CornerDownRight } from 'lucide-react'
+import { IconPlus, IconX, IconArrowBendDownRight } from '@/components/ui/Icons'
 import {
   DndContext,
   closestCenter,
@@ -148,7 +148,7 @@ function SortableFolderItem({
             className="p-0.5 text-text-muted hover:text-text-secondary transition-colors"
             title="サブフォルダを追加"
           >
-            <CornerDownRight size={10} strokeWidth={1.5} />
+            <IconArrowBendDownRight size={10} />
           </button>
           {/* 削除 */}
           <button
@@ -157,7 +157,7 @@ function SortableFolderItem({
             className="p-0.5 text-text-muted hover:text-red-400 transition-colors"
             title="フォルダを削除"
           >
-            <X size={10} strokeWidth={1.5} />
+            <IconX size={10} />
           </button>
         </div>
       )}
@@ -272,7 +272,7 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
           type="button"
           className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs text-text-muted hover:text-text-secondary transition-colors text-left tactile"
         >
-          <Plus size={12} strokeWidth={1.5} />
+          <IconPlus size={12} />
           <span>フォルダを追加</span>
         </button>
       )}

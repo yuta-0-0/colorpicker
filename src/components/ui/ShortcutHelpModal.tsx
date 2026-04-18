@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X } from 'lucide-react'
+import { IconX } from '@/components/ui/Icons'
 
 interface ShortcutHelpModalProps {
   open: boolean
@@ -70,7 +70,7 @@ export function ShortcutHelpModal({ open, onClose }: ShortcutHelpModalProps) {
                 onClick={onClose}
                 className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-white/8 transition-colors"
               >
-                <X size={14} strokeWidth={1.5} />
+                <IconX size={14} />
               </button>
             </div>
 

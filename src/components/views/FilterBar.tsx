@@ -1,6 +1,13 @@
-import { Archive, Clock, Palette, TrendingUp } from 'lucide-react'
 import { useUIStore, type ToneCategory } from '@/store/uiStore'
-import { IconSortAsc, IconSortDesc } from '@/components/ui/Icons'
+import {
+  IconArchive,
+  IconClock,
+  IconPalette,
+  IconTrendUp,
+  IconSortAsc,
+  IconSortDesc,
+  type PhosphorIcon,
+} from '@/components/ui/Icons'
 
 const HUE_FILTERS = [
   { label: '赤', hex: '#ef4444' },
@@ -15,11 +22,11 @@ const HUE_FILTERS = [
   { label: '黒', hex: '#222222' },
 ]
 
-const SORT_OPTIONS = [
-  { value: 'order',      label: '追加順', icon: <Clock size={12} /> },
-  { value: 'hue',        label: '色相順', icon: <Palette size={12} /> },
-  { value: 'used_count', label: '使用順', icon: <TrendingUp size={12} /> },
-] as const
+const SORT_OPTIONS: { value: 'order' | 'hue' | 'used_count'; label: string; Icon: PhosphorIcon }[] = [
+  { value: 'order',      label: '追加順', Icon: IconClock },
+  { value: 'hue',        label: '色相順', Icon: IconPalette },
+  { value: 'used_count', label: '使用順', Icon: IconTrendUp },
+]
 
 const TONE_FILTERS: { value: ToneCategory; label: string }[] = [
   { value: 'vivid',   label: 'ビビッド' },
@@ -121,7 +128,7 @@ export function FilterBar() {
               : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
           ].join(' ')}
         >
-          <Archive size={11} />
+          <IconArchive size={11} weight={showArchived ? 'fill' : 'regular'} />
         </button>
 
         <div className="w-px h-3 bg-border mx-0.5" />
@@ -140,7 +147,7 @@ export function FilterBar() {
                 : 'text-text-muted hover:text-text-secondary hover:bg-white/5',
             ].join(' ')}
           >
-            {opt.icon}
+            <opt.Icon size={12} weight={sortBy === opt.value ? 'fill' : 'regular'} />
           </button>
         ))}
 

@@ -8,10 +8,8 @@ import { UITestView } from '@/components/uitest/UITestView'
 import { TrashView } from '@/components/trash/TrashView'
 import { Center } from '@/components/primitives'
 import { ViewToggle } from '@/components/views/ViewToggle'
-import { FilterBar } from '@/components/views/FilterBar'
 import { DetailPanel } from '@/components/detail/DetailPanel'
 import { AddColorModal } from '@/components/color/AddColorModal'
-import { AddMenuPopover } from '@/components/color/AddMenuPopover'
 import { ImagePickerModal } from '@/components/color/ImagePickerModal'
 import { BulkActionBar } from '@/components/ui/BulkActionBar'
 import { VisualExportModal } from '@/components/export/VisualExportModal'
@@ -27,7 +25,7 @@ import { LiquidDock } from '@/components/dock/LiquidDock'
 import { ShortcutHelpModal } from '@/components/ui/ShortcutHelpModal'
 import { downloadAllDataJSON } from '@/lib/exportUtils'
 import { hasTraditionalColor } from '@/lib/colorUtils'
-import { IconMenu, IconDotsHorizontal } from '@/components/ui/Icons'
+import { IconSidebarSimple } from '@/components/ui/Icons'
 import { useHistoryStore } from '@/store/historyStore'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useToastStore } from '@/store/toastStore'
@@ -100,7 +98,6 @@ export function AppLayout() {
   const prevIsOnline = useRef(true)
   const [sidebarWidth, setSidebarWidth] = useState(152)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [showMenu, setShowMenu] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showShortcutHelp, setShowShortcutHelp] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
@@ -108,10 +105,7 @@ export function AppLayout() {
   const [showPaletteExport, setShowPaletteExport] = useState(false)
   const [showImport, setShowImport] = useState(false)
 
-  const handleCloseMenu = useCallback(() => setShowMenu(false), [])
-
   const handleScreenPick = useCallback(async () => {
-    setShowMenu(false)
     try {
       const eyeDropper = new (window as unknown as { EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper()
       const { sRGBHex } = await eyeDropper.open()
@@ -154,9 +148,14 @@ export function AppLayout() {
   // テーマ適用
   useEffect(() => {
     const root = document.documentElement
+    const electronAPI = (window as Window & { electronAPI?: { setTheme?: (t: 'dark' | 'light' | 'system') => void } }).electronAPI
+
     if (theme === 'system') {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       root.setAttribute('data-theme', prefersDark ? 'dark' : 'light')
+      // Electron: system に委ねる
+      electronAPI?.setTheme?.('system')
+
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
       const handler = (e: MediaQueryListEvent) => {
         root.setAttribute('data-theme', e.matches ? 'dark' : 'light')
@@ -165,6 +164,8 @@ export function AppLayout() {
       return () => mq.removeEventListener('change', handler)
     } else {
       root.setAttribute('data-theme', theme)
+      // Electron: nativeTheme を React の選択に合わせる
+      electronAPI?.setTheme?.(theme)
     }
   }, [theme])
 
@@ -330,14 +331,33 @@ export function AppLayout() {
   const isElectron = !!(window as Window & { electronAPI?: unknown }).electronAPI
 
   return (
-    <div
-      className="flex h-screen overflow-hidden text-text-primary"
-      style={{
-        background: 'rgb(var(--color-bg))',
-        gap: '10px',
-        padding: '10px',
-      }}
-    >
+    <div className="relative h-screen overflow-hidden text-text-primary">
+      {/* ── 全幅ドラッグバー：absolute で最前面に配置（Electron のみ） ── */}
+      {isElectron && (
+        <div
+          className="app-drag absolute top-0 left-0 right-0 z-10 flex items-center"
+          style={{ height: 40, paddingLeft: 80, paddingRight: 8, gap: 8 }}
+        >
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            title={sidebarCollapsed ? 'サイドバーを開く' : 'サイドバーを閉じる'}
+            className="no-drag p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/8 transition-colors"
+          >
+            <IconSidebarSimple size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* ── Bentos 行（ドラッグバー分だけ上に余白） ── */}
+      <div
+        className="flex h-full overflow-hidden"
+        style={{
+          gap: '10px',
+          padding: '10px',
+          paddingTop: isElectron ? '46px' : '10px',
+        }}
+      >
       {/* モバイル用オーバーレイ */}
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />
@@ -353,89 +373,59 @@ export function AppLayout() {
             maxWidth: 280,
           }}
         >
-          {/* 信号機セーフエリア＋サイドバートグル（Electron のみ） */}
-          {isElectron ? (
-            <div
-              className="app-drag flex-shrink-0 flex items-center"
-              style={{ height: 36, paddingLeft: 80, paddingRight: 8 }}
-            >
-              {/* no-drag ボタンを drag 領域内に置く → 確実にクリック可能 */}
-              <button
-                type="button"
-                onClick={() => setSidebarCollapsed((v) => !v)}
-                title="サイドバーを閉じる"
-                className="no-drag p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-white/8 transition-colors"
-              >
-                <IconMenu size={14} />
-              </button>
-            </div>
-          ) : (
-            /* Web: 小さな上部余白のみ */
-            <div style={{ height: 8 }} />
-          )}
           <Sidebar
+            onAddColor={handleOpenAddModal}
+            onImagePick={() => setShowImageModal(true)}
+            onScreenPick={handleScreenPick}
             onVisualExport={() => setShowVisualExport(true)}
+            onPaletteExport={() => setShowPaletteExport(true)}
+            onImport={() => setShowImport(true)}
+            onExportAll={() => {
+              const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
+              downloadAllDataJSON(colors, folders, filename)
+            }}
+            onShortcutHelp={() => setShowShortcutHelp(true)}
+            theme={theme}
+            onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             width={sidebarWidth}
             onResize={setSidebarWidth}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
           />
         </aside>
       )}
 
-      {/* ── Main Bento Pane ── */}
-      <div className="bento-pane flex-1 flex flex-col min-w-0">
-        {/* ヘッダー（ドラッグ領域 + コントロール） */}
+      {/* ── Main Bento Pane（Policy A: Strict Neutrality — 無彩色で色を正確に評価） ── */}
+      <div className="bento-pane-neutral flex-1 flex flex-col min-w-0">
+        {/* ヘッダー */}
         <header
-          className="app-drag flex items-center gap-2 flex-shrink-0"
+          className="flex items-center gap-2 flex-shrink-0"
           style={{
-            // サイドバー折りたたみ中 + Electron: 信号機スペースを確保
-            paddingLeft: sidebarCollapsed && isElectron ? '84px' : '12px',
+            paddingLeft: '12px',
             paddingRight: '12px',
             paddingTop: '10px',
             paddingBottom: '10px',
           }}
         >
-          {/* サイドバートグル：Web は常時表示 / Electron は折りたたみ中のみ表示 */}
-          {(!isElectron || sidebarCollapsed) && (
+          {/* Web のみ：サイドバートグル（Electron は全幅ドラッグバーに配置済み） */}
+          {!isElectron && (
             <button
               type="button"
               onClick={() => setSidebarCollapsed((v) => !v)}
               title={sidebarCollapsed ? 'サイドバーを開く' : 'サイドバーを閉じる'}
-              className="no-drag flex-shrink-0 p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/8 transition-colors"
+              className="flex-shrink-0 p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-white/8 transition-colors"
             >
-              <IconMenu size={15} />
+              <IconSidebarSimple size={15} />
             </button>
           )}
-          <h1 className="text-sm font-medium text-text-primary flex-1 select-none no-drag">{sectionTitle}</h1>
+          <h1 className="text-sm font-medium text-text-primary flex-1 select-none">{sectionTitle}</h1>
           {!isGenerator && !isUITest && !isTrash && (
-            <>
-              <div className="no-drag"><ViewToggle mode={viewMode} onChange={setViewMode} /></div>
-              <div className="relative no-drag">
-                <button
-                  onClick={() => setShowMenu((v) => !v)}
-                  type="button"
-                  className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-sm rounded-full glow-accent-btn transition-all tactile"
-                >
-                  ＋ 追加
-                </button>
-                {showMenu && (
-                  <AddMenuPopover
-                    onSelectText={() => setShowAddModal(true)}
-                    onSelectImage={() => setShowImageModal(true)}
-                    onSelectScreen={handleScreenPick}
-                    onClose={handleCloseMenu}
-                  />
-                )}
-              </div>
-            </>
+            <ViewToggle mode={viewMode} onChange={setViewMode} />
           )}
           {/* Prism Tile 起動ボタン（Electron Macのみ） */}
           {(window as Window & { electronAPI?: { platform?: string; openPrismTile?: () => void } }).electronAPI?.platform === 'darwin' && (
             <button
               type="button"
               onClick={() => (window as Window & { electronAPI?: { openPrismTile?: () => void } }).electronAPI?.openPrismTile?.()}
-              className="no-drag p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors"
+              className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors"
               title="Prism Tile を開く (⌘+Shift+T)"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -444,45 +434,9 @@ export function AppLayout() {
               </svg>
             </button>
           )}
-          {/* テーマトグル */}
-          <button
-            type="button"
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="no-drag p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded-lg transition-colors"
-            title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
-          >
-            {theme === 'dark' ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-              </svg>
-            )}
-          </button>
-          {/* エクスポート・インポートメニュー */}
-          <div className="no-drag">
-            <ExportMenu
-              onVisualExport={() => setShowVisualExport(true)}
-              onPaletteExport={() => setShowPaletteExport(true)}
-              onImport={() => setShowImport(true)}
-              onExportAll={() => {
-                const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
-                downloadAllDataJSON(colors, folders, filename)
-              }}
-              onShortcutHelp={() => setShowShortcutHelp(true)}
-            />
-          </div>
         </header>
 
-        {!isGenerator && !isUITest && !isTrash && <FilterBar />}
-
         <div className="flex-1 overflow-hidden">
-          {isBulkMode && <BulkActionBar />}
           <div className="h-full flex flex-col overflow-hidden">
             {isGenerator ? (
               <GeneratorView />
@@ -520,6 +474,13 @@ export function AppLayout() {
         )}
       </AnimatePresence>
 
+      </div> {/* ── Bentos 行 ── */}
+
+      {/* ── 複数選択 FAB ── */}
+      <AnimatePresence>
+        {isBulkMode && <BulkActionBar />}
+      </AnimatePresence>
+
       {showAddModal && <AddColorModal onClose={() => setShowAddModal(false)} />}
       {showImageModal && <ImagePickerModal onClose={() => setShowImageModal(false)} />}
       {showVisualExport && (
@@ -545,54 +506,3 @@ export function AppLayout() {
   )
 }
 
-// ---- エクスポート・インポートメニュー ----
-
-interface ExportMenuProps {
-  onVisualExport: () => void
-  onPaletteExport: () => void
-  onImport: () => void
-  onExportAll: () => void
-  onShortcutHelp: () => void
-}
-
-function ExportMenu({ onVisualExport, onPaletteExport, onImport, onExportAll, onShortcutHelp }: ExportMenuProps) {
-  const [open, setOpen] = useState(false)
-
-  const items = [
-    { label: 'ビジュアル書き出し（SVG/PNG）', onClick: onVisualExport },
-    { label: 'パレット書き出し（CSV/JSON/ASE）', onClick: onPaletteExport },
-    { label: 'インポート', onClick: onImport },
-    { label: '全データをバックアップ', onClick: onExportAll },
-    { label: 'ショートカット一覧 (?)', onClick: onShortcutHelp },
-  ]
-
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-overlay rounded transition-colors"
-        title="書き出し / インポート"
-      >
-        <IconDotsHorizontal size={16} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 w-52 glass-popup rounded-lg z-50 overflow-hidden">
-            {items.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => { item.onClick(); setOpen(false) }}
-                className="w-full text-left px-3 py-2 text-xs text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}

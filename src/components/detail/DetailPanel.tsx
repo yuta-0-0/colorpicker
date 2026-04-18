@@ -7,35 +7,14 @@ import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
 import { calcTAC, isTACWarning, isOutOfGamut, cmykSourceLabel } from '@/lib/printUtils'
 import type { Color } from '@/types/database'
-import { ContrastChecker } from '@/components/detail/ContrastChecker'
 import { copyColorToClipboard } from '@/lib/exportUtils'
-import { getEnglishColorName, getKatakanaColorName, getTraditionalColorNameSync } from '@/lib/colorUtils'
+import { getEnglishColorName, getTraditionalColorNameSync } from '@/lib/colorUtils'
 import {
-  IconStar, IconStarFilled,
+  IconStar,
   IconLock, IconLockOpen,
-  IconArchive, IconArchiveOut,
+  IconArchive, IconArrowUUpLeft,
   IconX, IconCopy, IconCheck, IconPencil,
 } from '@/components/ui/Icons'
-
-// ── 一言メモ（常時表示テキストエリア） ──────────────────────────────────────
-function MemoField({ color, isLocked, onUpdate }: { color: Color; isLocked: boolean; onUpdate: (memo: string | null) => void }) {
-  const [value, setValue] = useState(color.memo ?? '')
-  useEffect(() => { setValue(color.memo ?? '') }, [color.id, color.memo])
-  return (
-    <div>
-      <p className="text-xs text-text-muted mb-1">一言メモ</p>
-      <textarea
-        value={value}
-        onChange={(e) => { if (!isLocked) setValue(e.target.value) }}
-        onBlur={() => { const next = value.trim() || null; if (next !== color.memo) onUpdate(next) }}
-        disabled={isLocked}
-        placeholder="メモを追加..."
-        rows={2}
-        className="w-full resize-none bg-surface-overlay border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-secondary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed leading-relaxed"
-      />
-    </div>
-  )
-}
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return {
@@ -141,7 +120,6 @@ export function DetailPanel({ color }: DetailPanelProps) {
   const [isEditingName, setIsEditingName] = useState(false)
   const [nameValue, setNameValue] = useState('')
   const [enName, setEnName] = useState('')
-  const [katakanaName, setKatakanaName] = useState('')
   const [traditionalName, setTraditionalName] = useState('')
 
   // Legendary Match
@@ -181,10 +159,8 @@ export function DetailPanel({ color }: DetailPanelProps) {
   useEffect(() => {
     if (!color) return
     setEnName('')
-    setKatakanaName('')
     setTraditionalName(getTraditionalColorNameSync(color.hex))
     getEnglishColorName(color.hex).then(setEnName)
-    getKatakanaColorName(color.hex).then(setKatakanaName)
   }, [color?.hex])
   const [spotColorValue, setSpotColorValue] = useState(color?.spot_color ?? '')
   const [cmykDraft, setCmykDraft] = useState<CmykDraft>({ c: 0, m: 0, y: 0, k: 0 })
@@ -278,9 +254,6 @@ export function DetailPanel({ color }: DetailPanelProps) {
   return (
     <aside
       className="flex-1 flex flex-col overflow-hidden relative"
-      style={{
-        background: `rgba(10, 62, 216, 0.04)`,
-      }}
     >
       {/* Legendary Glow オーバーレイ */}
       <AnimatePresence>
@@ -300,7 +273,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
         )}
       </AnimatePresence>
       {/* ヘッダー（固定） */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-text-primary">詳細</span>
           {/* お気に入り */}
@@ -309,7 +282,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
             active={color.is_favorite}
             title={color.is_favorite ? 'お気に入り解除' : 'お気に入り'}
           >
-            {color.is_favorite ? <IconStarFilled size={14} /> : <IconStar size={14} />}
+            <IconStar size={14} weight={color.is_favorite ? 'fill' : 'regular'} />
           </IconButton>
           {/* ロック */}
           <IconButton
@@ -324,7 +297,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
             onClick={() => updateColor(color.id, { is_archived: !color.is_archived })}
             title={color.is_archived ? 'アーカイブ解除' : 'アーカイブ'}
           >
-            {color.is_archived ? <IconArchiveOut size={14} /> : <IconArchive size={14} />}
+            {color.is_archived ? <IconArrowUUpLeft size={14} /> : <IconArchive size={14} />}
           </IconButton>
         </div>
         <IconButton onClick={handleClose} title="閉じる"><IconX size={14} /></IconButton>
@@ -368,19 +341,19 @@ export function DetailPanel({ color }: DetailPanelProps) {
             </button>
           )}
 
-          {/* 英語名 */}
-          {enName && (
-            <p className="text-xs text-text-muted truncate">{enName}</p>
-          )}
-
-          {/* カタカナ名 */}
-          {katakanaName && (
-            <p className="text-xs text-text-muted truncate">{katakanaName}</p>
-          )}
-
-          {/* 伝統色名（距離閾値内の場合のみ表示） */}
-          {traditionalName && (
-            <p className="text-xs text-text-muted truncate">{traditionalName}</p>
+          {/* 英語名 / 伝統色名 */}
+          {(enName || traditionalName) && (
+            <p className="flex items-center gap-1.5 min-w-0">
+              {enName && (
+                <span className="text-xs font-medium text-text-secondary truncate">{enName}</span>
+              )}
+              {enName && traditionalName && (
+                <span className="text-xs text-text-muted/40 flex-shrink-0">/</span>
+              )}
+              {traditionalName && (
+                <span className="text-xs text-text-muted truncate">{traditionalName}</span>
+              )}
+            </p>
           )}
 
           {/* Legendary Match バッジ */}
@@ -684,11 +657,6 @@ export function DetailPanel({ color }: DetailPanelProps) {
           />
         </div>
 
-        {/* 一言メモ（常時表示入力欄） */}
-        <MemoField color={color} isLocked={color.is_locked} onUpdate={(memo) => updateColor(color.id, { memo })} />
-
-        {/* コントラストチェッカー・色覚シミュレーション */}
-        <ContrastChecker color={color} />
       </div>
     </aside>
   )

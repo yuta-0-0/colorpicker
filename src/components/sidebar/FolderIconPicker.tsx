@@ -1,46 +1,46 @@
 /**
- * FolderIconPicker — フォルダアイコン選択ポップオーバー（lucide-react ベクターアイコン版）
+ * FolderIconPicker — フォルダアイコン選択ポップオーバー（@phosphor-icons/react 版）
  */
 import {
-  Folder, FolderOpen, Star, Heart, Bookmark, Tag, Palette,
-  Image, Film, Music, Camera, Coffee, Zap, Globe, Home,
-  Briefcase, Archive, Book, Package, Layers, Grid3x3,
+  FolderSimple, FolderOpen, Star, Heart, Bookmark, Tag, Palette,
+  ImageSquare, FilmStrip, MusicNote, Camera, Coffee, Lightning, Globe, House,
+  Briefcase, Archive, Book, Package, Stack, GridNine,
   Feather, Leaf, Sun, Moon, Cloud, Umbrella, Diamond, Crown,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+} from '@phosphor-icons/react'
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react'
 
-interface IconEntry { key: string; Icon: LucideIcon }
+interface IconEntry { key: string; Icon: PhosphorIcon }
 
 const ICON_OPTIONS: IconEntry[] = [
-  { key: 'Folder',    Icon: Folder },
-  { key: 'FolderOpen', Icon: FolderOpen },
-  { key: 'Star',      Icon: Star },
-  { key: 'Heart',     Icon: Heart },
-  { key: 'Bookmark',  Icon: Bookmark },
-  { key: 'Tag',       Icon: Tag },
-  { key: 'Palette',   Icon: Palette },
-  { key: 'Image',     Icon: Image },
-  { key: 'Film',      Icon: Film },
-  { key: 'Music',     Icon: Music },
-  { key: 'Camera',    Icon: Camera },
-  { key: 'Coffee',    Icon: Coffee },
-  { key: 'Zap',       Icon: Zap },
-  { key: 'Globe',     Icon: Globe },
-  { key: 'Home',      Icon: Home },
-  { key: 'Briefcase', Icon: Briefcase },
-  { key: 'Archive',   Icon: Archive },
-  { key: 'Book',      Icon: Book },
-  { key: 'Package',   Icon: Package },
-  { key: 'Layers',    Icon: Layers },
-  { key: 'Grid3x3',   Icon: Grid3x3 },
-  { key: 'Feather',   Icon: Feather },
-  { key: 'Leaf',      Icon: Leaf },
-  { key: 'Sun',       Icon: Sun },
-  { key: 'Moon',      Icon: Moon },
-  { key: 'Cloud',     Icon: Cloud },
-  { key: 'Umbrella',  Icon: Umbrella },
-  { key: 'Diamond',   Icon: Diamond },
-  { key: 'Crown',     Icon: Crown },
+  { key: 'FolderSimple', Icon: FolderSimple },
+  { key: 'FolderOpen',   Icon: FolderOpen },
+  { key: 'Star',         Icon: Star },
+  { key: 'Heart',        Icon: Heart },
+  { key: 'Bookmark',     Icon: Bookmark },
+  { key: 'Tag',          Icon: Tag },
+  { key: 'Palette',      Icon: Palette },
+  { key: 'ImageSquare',  Icon: ImageSquare },
+  { key: 'FilmStrip',    Icon: FilmStrip },
+  { key: 'MusicNote',    Icon: MusicNote },
+  { key: 'Camera',       Icon: Camera },
+  { key: 'Coffee',       Icon: Coffee },
+  { key: 'Lightning',    Icon: Lightning },
+  { key: 'Globe',        Icon: Globe },
+  { key: 'House',        Icon: House },
+  { key: 'Briefcase',    Icon: Briefcase },
+  { key: 'Archive',      Icon: Archive },
+  { key: 'Book',         Icon: Book },
+  { key: 'Package',      Icon: Package },
+  { key: 'Stack',        Icon: Stack },
+  { key: 'GridNine',     Icon: GridNine },
+  { key: 'Feather',      Icon: Feather },
+  { key: 'Leaf',         Icon: Leaf },
+  { key: 'Sun',          Icon: Sun },
+  { key: 'Moon',         Icon: Moon },
+  { key: 'Cloud',        Icon: Cloud },
+  { key: 'Umbrella',     Icon: Umbrella },
+  { key: 'Diamond',      Icon: Diamond },
+  { key: 'Crown',        Icon: Crown },
 ]
 
 interface FolderIconPickerProps {
@@ -71,7 +71,7 @@ export function FolderIconPicker({ currentIcon, onSelect, onClose }: FolderIconP
               ].join(' ')}
               title={key}
             >
-              <Icon size={14} strokeWidth={1.5} />
+              <Icon size={14} weight="regular" />
             </button>
           ))}
         </div>
@@ -80,9 +80,9 @@ export function FolderIconPicker({ currentIcon, onSelect, onClose }: FolderIconP
   )
 }
 
-/** アイコンキーから lucide コンポーネントを返す（FolderList 等で使用） */
+/** アイコンキーから Phosphor コンポーネントを返す（FolderList 等で使用） */
 export function FolderIconComponent({ iconKey, size = 13 }: { iconKey: string | null; size?: number }) {
   const entry = ICON_OPTIONS.find((e) => e.key === iconKey)
-  const Icon = entry?.Icon ?? Folder
-  return <Icon size={size} strokeWidth={1.5} />
+  const Icon = entry?.Icon ?? FolderSimple
+  return <Icon size={size} weight="regular" />
 }

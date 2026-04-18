@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { ColorSwatch } from './ColorSwatch'
 import { IconButton } from '@/components/ui/IconButton'
 import type { Color } from '@/types/database'
-import { IconCopy, IconStar, IconStarFilled, IconX, IconLock } from '@/components/ui/Icons'
-import { getEnglishColorName, getKatakanaColorName, getTraditionalColorNameSync } from '@/lib/colorUtils'
+import { IconCopy, IconStar, IconX, IconLock } from '@/components/ui/Icons'
+import { getEnglishColorName, getTraditionalColorNameSync } from '@/lib/colorUtils'
 
 interface ColorListItemProps {
   color: Color
@@ -16,14 +16,11 @@ interface ColorListItemProps {
 
 export function ColorListItem({ color, isSelected, onSelect, onCopy, onToggleFavorite, onDelete }: ColorListItemProps) {
   const [enName, setEnName] = useState('')
-  const [katakanaName, setKatakanaName] = useState('')
   const traditionalName = getTraditionalColorNameSync(color.hex)
 
   useEffect(() => {
     setEnName('')
-    setKatakanaName('')
     getEnglishColorName(color.hex).then(setEnName)
-    getKatakanaColorName(color.hex).then(setKatakanaName)
   }, [color.hex])
 
   return (
@@ -51,12 +48,6 @@ export function ColorListItem({ color, isSelected, onSelect, onCopy, onToggleFav
               <span className="text-xs text-text-muted truncate min-w-0">{enName}</span>
             </>
           )}
-          {katakanaName && (
-            <>
-              <span className="text-xs text-text-muted/40 flex-shrink-0">/</span>
-              <span className="text-xs text-text-muted truncate min-w-0">{katakanaName}</span>
-            </>
-          )}
           {traditionalName && (
             <>
               <span className="text-xs text-text-muted/40 flex-shrink-0">/</span>
@@ -79,7 +70,7 @@ export function ColorListItem({ color, isSelected, onSelect, onCopy, onToggleFav
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
         <IconButton onClick={onCopy} title="コピー"><IconCopy size={13} /></IconButton>
         <IconButton onClick={onToggleFavorite} title={color.is_favorite ? 'お気に入り解除' : 'お気に入り'} active={color.is_favorite}>
-          {color.is_favorite ? <IconStarFilled size={13} /> : <IconStar size={13} />}
+          <IconStar size={13} weight={color.is_favorite ? 'fill' : 'regular'} />
         </IconButton>
         <IconButton onClick={onDelete} title="削除" danger disabled={color.is_locked}><IconX size={13} /></IconButton>
       </div>
