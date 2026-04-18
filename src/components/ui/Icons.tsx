@@ -13,7 +13,7 @@ export {
   ImageSquare    as IconImageSquare,    // 画像から抽出
   Eyedropper     as IconEyedropper,     // スクリーンピッカー
   PlusCircle     as IconPlusCircle,     // 色を追加
-  Layout         as IconLayout,         // UIテスト
+  Layout         as IconLayout,         // Web プレビュー
   CircleHalf     as IconCircleHalf,     // コントラストチェッカー
   Swatches       as IconSwatches,       // フィルター / 並び順
 

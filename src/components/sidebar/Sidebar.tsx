@@ -307,7 +307,13 @@ export function Sidebar({
     { kind: 'action', Icon: IconEyedropper,  label: 'スクリーンから色を取得',     onClick: onScreenPick },
     { kind: 'action', Icon: IconPlusCircle,  label: '色を追加',                   onClick: onAddColor },
     // 3段目：検証・設定
-    { kind: 'nav',    Icon: IconLayout,      label: 'UIテスト',                   section: 'ui-test' },
+    {
+      kind: 'action',
+      Icon: IconLayout,
+      label: 'Web プレビュー',
+      isActive: activeMode === 'preview',
+      onClick: () => setActiveMode((activeMode === 'preview' ? 'normal' : 'preview') as ActiveMode),
+    },
     {
       kind: 'action',
       Icon: IconCircleHalf,
