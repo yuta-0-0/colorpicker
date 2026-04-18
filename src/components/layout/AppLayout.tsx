@@ -364,37 +364,52 @@ export function AppLayout() {
       )}
 
       {/* ── Sidebar Bento Pane ── */}
-      {!sidebarCollapsed && (
-        <aside
-          className="bento-pane flex-shrink-0 flex flex-col pb-safe"
-          style={{
-            width: `${sidebarWidth}px`,
-            minWidth: 140,
-            maxWidth: 280,
-          }}
-        >
-          <Sidebar
-            onAddColor={handleOpenAddModal}
-            onImagePick={() => setShowImageModal(true)}
-            onScreenPick={handleScreenPick}
-            onVisualExport={() => setShowVisualExport(true)}
-            onPaletteExport={() => setShowPaletteExport(true)}
-            onImport={() => setShowImport(true)}
-            onExportAll={() => {
-              const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
-              downloadAllDataJSON(colors, folders, filename)
+      {/* AnimatePresence でサイドバーの開閉をアニメーション化 */}
+      <AnimatePresence initial={false}>
+        {!sidebarCollapsed && (
+          <motion.aside
+            key="sidebar-pane"
+            className="bento-pane flex-shrink-0 flex flex-col pb-safe overflow-hidden"
+            initial={{ x: -24, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -24, opacity: 0 }}
+            transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.4 }}
+            style={{
+              width: `${sidebarWidth}px`,
+              minWidth: 140,
+              maxWidth: 280,
+              willChange: 'transform, opacity',
             }}
-            onShortcutHelp={() => setShowShortcutHelp(true)}
-            theme={theme}
-            onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            width={sidebarWidth}
-            onResize={setSidebarWidth}
-          />
-        </aside>
-      )}
+          >
+            <Sidebar
+              onAddColor={handleOpenAddModal}
+              onImagePick={() => setShowImageModal(true)}
+              onScreenPick={handleScreenPick}
+              onVisualExport={() => setShowVisualExport(true)}
+              onPaletteExport={() => setShowPaletteExport(true)}
+              onImport={() => setShowImport(true)}
+              onExportAll={() => {
+                const filename = `colorpicker-backup-${new Date().toISOString().slice(0, 10)}.json`
+                downloadAllDataJSON(colors, folders, filename)
+              }}
+              onShortcutHelp={() => setShowShortcutHelp(true)}
+              theme={theme}
+              onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              width={sidebarWidth}
+              onResize={setSidebarWidth}
+            />
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       {/* ── Main Bento Pane（Policy A: Strict Neutrality — 無彩色で色を正確に評価） ── */}
-      <div className="bento-pane-neutral flex-1 flex flex-col min-w-0">
+      {/* layout prop: サイドバー/詳細パネルの開閉時に幅変化をスプリングアニメーションで吸収 */}
+      <motion.div
+        layout
+        className="bento-pane-neutral flex-1 flex flex-col min-w-0"
+        transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.4 }}
+        style={{ willChange: 'transform' }}
+      >
         {/* ヘッダー */}
         <header
           className="flex items-center gap-2 flex-shrink-0"
@@ -455,19 +470,20 @@ export function AppLayout() {
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Detail Bento Pane（独立コンテナ）── */}
-      <AnimatePresence>
+      {/* width: 0→264 アニメーションで、メインペインが「ガクッ」と縮まずに滑らかに遷移 */}
+      <AnimatePresence initial={false}>
         {isDetailPanelOpen && selectedColor && (
           <motion.aside
             key="detail-panel"
             className="bento-pane flex-shrink-0 flex flex-col"
-            initial={{ x: 30, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 30, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-            style={{ width: 264 }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 264, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ ease: [0.16, 1, 0.3, 1], duration: 0.45 }}
+            style={{ overflow: 'hidden', willChange: 'width, opacity, transform' }}
           >
             <DetailPanel color={selectedColor} />
           </motion.aside>

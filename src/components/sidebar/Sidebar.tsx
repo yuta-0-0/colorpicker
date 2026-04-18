@@ -328,14 +328,13 @@ export function Sidebar({
   const glassBase = [
     'flex items-center justify-center h-9 rounded-xl',
     'bg-white/5 border border-white/15 shadow-sm backdrop-blur-xl',
-    'transition-all duration-200 ease-out',
+    // ease-spatial = cubic-bezier(0.16, 1, 0.3, 1) — スプリングライクな自然な動き
+    'transition-all duration-200 ease-spatial',
     'hover:scale-110 active:scale-95',
   ].join(' ')
 
-  const glassActive = [
-    'bg-signature-blue/15 border-signature-blue/35 text-signature-blue shadow-md',
-    'sig-glow-active',
-  ].join(' ')
+  // 座布団なし: bg/border 強調を除去 — アイコン色 + LED グローだけでアクティブを示す
+  const glassActive = 'text-signature-blue sig-glow-active'
 
   const glassDefault = [
     'text-text-muted',
@@ -534,10 +533,10 @@ export function Sidebar({
           title="ゴミ箱"
           onClick={() => setActiveSection('trash')}
           className={[
-            'flex items-center justify-center w-8 h-8 rounded-xl transition-all tactile',
+            'flex items-center justify-center w-8 h-8 rounded-xl transition-all ease-spatial duration-200 tactile',
             activeSection === 'trash' && !activeFolderId
-              ? 'bg-accent/18 text-accent-soft'
-              : 'text-text-muted hover:text-text-primary hover:bg-white/8',
+              ? 'text-signature-blue sig-glow-active'
+              : 'text-text-muted hover:text-text-primary hover:bg-white/8 hover:drop-shadow-[0_0_8px_rgba(37,99,235,0.35)]',
           ].join(' ')}
         >
           <IconTrash size={14} weight={activeSection === 'trash' && !activeFolderId ? 'fill' : 'regular'} />

@@ -30,6 +30,8 @@ const config: Config = {
           soft:    'rgb(var(--color-accent-soft) / <alpha-value>)',
           ring:    'rgb(var(--color-accent-ring) / <alpha-value>)',
         },
+        // ブランドのシグネチャーブルー — ナビゲーション・アクティブ状態に専用
+        'signature-blue': '#2563EB',
         danger:  '#ef4444',
         warning: '#f59e0b',
         success: '#22c55e',
@@ -37,6 +39,12 @@ const config: Config = {
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', 'Helvetica Neue', 'sans-serif'],
         mono: ['SF Mono', 'Menlo', 'Monaco', 'monospace'],
+      },
+      // ── モーショントークン ─────────────────────────────────────────────────
+      // ease-spatial: Apple/Framer 準拠のスプリングライク Bezier
+      // transition-[prop] duration-200 ease-spatial のように使う
+      transitionTimingFunction: {
+        'spatial': 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
     },
   },
