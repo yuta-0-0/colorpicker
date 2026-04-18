@@ -9,6 +9,8 @@ const SLOT_LABELS: Record<SlotKey, string> = {
   accent: 'Accent',
 }
 
+const SLOT_ORDER: SlotKey[] = ['bg', 'text', 'button', 'accent']
+
 export function ColorPreviewCard() {
   const { slots, activeSlot, setActiveSlot, clearSlot } = usePreviewStore()
 
@@ -22,7 +24,7 @@ export function ColorPreviewCard() {
   const buttonContrast  = getContrastRatio(bgHex, buttonHex)
 
   const textWarning   = slots.text.hex   !== null && textContrast   < 4.5
-  const buttonWarning = slots.button.hex !== null && buttonContrast < 1.5
+  const buttonWarning = slots.button.hex !== null && buttonContrast < 3.0
 
   const handleBadgeClick = (key: SlotKey) => {
     if (activeSlot === key) {
@@ -86,21 +88,24 @@ export function ColorPreviewCard() {
 
       {/* ── Slot Badges ── */}
       <div className="flex gap-1.5 flex-wrap">
-        {(Object.keys(SLOT_LABELS) as SlotKey[]).map((key) => {
-          const slot        = slots[key]
-          const isActive    = activeSlot === key
-          const hasWarning  =
+        {SLOT_ORDER.map((key) => {
+          const slot       = slots[key]
+          const isActive   = activeSlot === key
+          const hasWarning =
             (key === 'text'   && textWarning) ||
             (key === 'button' && buttonWarning)
-          const warningTip  =
+          const warningTip =
             key === 'text'
               ? `コントラスト比 ${textContrast.toFixed(1)} — WCAG AA 基準（4.5）を下回っています`
-              : `コントラスト比 ${buttonContrast.toFixed(1)} — ボタンが背景に溶けています`
+              : key === 'button'
+              ? `コントラスト比 ${buttonContrast.toFixed(1)} — ボタンが背景に溶けています`
+              : ''
 
           return (
             <button
               key={key}
               type="button"
+              aria-pressed={isActive}
               onClick={() => handleBadgeClick(key)}
               title={isActive ? 'リストから色を選んでください' : `${SLOT_LABELS[key]} スロット`}
               className={[
