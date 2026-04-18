@@ -54,6 +54,9 @@ export {
   // ── ソート ───────────────────────────────────────────────
   ArrowUp   as IconSortAsc,
   ArrowDown as IconSortDesc,
+
+  // ── 警告 ─────────────────────────────────────────────────
+  WarningCircle  as IconWarningCircle,
 } from '@phosphor-icons/react'
 
 export type { Icon as PhosphorIcon } from '@phosphor-icons/react'

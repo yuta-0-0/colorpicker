@@ -3,6 +3,7 @@ import { create } from 'zustand'
 export type ViewMode = 'list' | 'gallery'
 export type NavSection = 'all' | 'favorites' | 'history' | 'generator' | 'ui-test' | 'trash'
 export type ToneCategory = 'vivid' | 'pastel' | 'dark' | 'light' | 'neutral'
+export type ActiveMode = 'normal' | 'contrast' | 'preview'
 
 interface UIStore {
   viewMode: ViewMode
@@ -70,6 +71,10 @@ interface UIStore {
   // テーマ
   theme: 'dark' | 'light' | 'system'
   setTheme: (theme: 'dark' | 'light' | 'system') => void
+
+  // アクティブモード（通常 / コントラストチェッカー）
+  activeMode: ActiveMode
+  setActiveMode: (mode: ActiveMode) => void
 }
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -145,4 +150,8 @@ export const useUIStore = create<UIStore>((set) => ({
   // テーマ
   theme: 'dark',
   setTheme: (theme) => set({ theme }),
+
+  // アクティブモード
+  activeMode: 'normal',
+  setActiveMode: (mode) => set({ activeMode: mode }),
 }))
