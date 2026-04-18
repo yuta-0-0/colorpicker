@@ -51,6 +51,7 @@ export const usePreviewStore = create<PreviewStore>((set) => ({
   },
 
   clearSlot: (key) => {
+    if (key === 'bg') return
     set((state) => {
       const bgHex = state.slots.bg.hex ?? '#000000'
       const autoColor = getSuggestedTextColor(bgHex)
@@ -66,7 +67,8 @@ export const usePreviewStore = create<PreviewStore>((set) => ({
 
   reset: () => {
     set((state) => {
-      const bgHex = state.slots.bg.hex ?? '#000000'
+      const bgHex = state.slots.bg.hex
+      if (!bgHex) return { slots: { ...EMPTY_SLOTS }, activeSlot: null }
       const autoColor = getSuggestedTextColor(bgHex)
       return {
         slots: {
