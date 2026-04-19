@@ -333,7 +333,7 @@ export function Sidebar({
   // ── グリッドボタン共通スタイル ────────────────────────────────────────────
   const glassBase = [
     'flex items-center justify-center h-9 rounded-xl',
-    'bg-white/5 shadow-sm backdrop-blur-xl',
+    'bg-white/5 backdrop-blur-xl',
     // ease-spatial = cubic-bezier(0.16, 1, 0.3, 1) — スプリングライクな自然な動き
     'transition-all duration-200 ease-spatial',
     'hover:scale-110 active:scale-95',
