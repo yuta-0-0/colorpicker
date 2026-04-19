@@ -136,7 +136,7 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
       {/* 色覚シミュレーション */}
       <div>
         <p className="text-xs text-text-muted mb-2">色覚シミュレーション</p>
-        <div className="rounded-lg p-3 space-y-2 bg-transparent border border-border/2">
+        <div className="rounded-lg p-3 space-y-2 bg-transparent">
           {VISION_TYPES.map((type) => {
             const simHex = simulateColorVision(color.hex, type)
             return (

@@ -533,7 +533,7 @@ export function Sidebar({
       </div>
 
       {/* ── ボトムドック ── */}
-      <div className="flex-shrink-0 flex items-center justify-around py-1.5 border-t border-border/2">
+      <div className="flex-shrink-0 flex items-center justify-around py-1.5">
         <button
           type="button"
           title="ゴミ箱"
