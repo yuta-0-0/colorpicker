@@ -49,7 +49,7 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
               onChange={(e) => handleHexChange(e.target.value)}
               placeholder="#FFFFFF"
               className={[
-                'flex-1 bg-surface-overlay rounded px-2 py-1 text-xs font-mono text-text-primary focus:outline-none border',
+                'flex-1 bg-surface-overlay rounded-md px-2 py-1 text-xs font-mono text-text-primary focus:outline-none border',
                 isValid ? 'border-border/20' : 'border-red-500',
               ].join(' ')}
             />
@@ -85,7 +85,7 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
           {/* プレビュー */}
           {ratio !== null && (
             <div
-              className="rounded p-2.5 text-center"
+              className="rounded-lg p-2.5 text-center"
               style={{ backgroundColor: color.hex, color: compareHex }}
             >
               <span style={{ fontWeight: textWeight === 'thin' ? 300 : textWeight === 'bold' ? 700 : 400, fontSize: 14 }}>
@@ -102,7 +102,7 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
                 <div className="flex gap-1.5">
                   <span
                     className={[
-                      'text-xs px-1.5 py-0.5 rounded font-medium',
+                      'text-xs px-1.5 py-0.5 rounded-md font-medium',
                       wcag.AA ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400',
                     ].join(' ')}
                   >
@@ -110,7 +110,7 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
                   </span>
                   <span
                     className={[
-                      'text-xs px-1.5 py-0.5 rounded font-medium',
+                      'text-xs px-1.5 py-0.5 rounded-md font-medium',
                       wcag.AAA ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400',
                     ].join(' ')}
                   >
