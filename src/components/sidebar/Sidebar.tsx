@@ -333,18 +333,18 @@ export function Sidebar({
   // ── グリッドボタン共通スタイル ────────────────────────────────────────────
   const glassBase = [
     'flex items-center justify-center h-9 rounded-xl',
-    'bg-white/5 backdrop-blur-xl',
+    'sidebar-search-bg backdrop-blur-xl',
     // ease-spatial = cubic-bezier(0.16, 1, 0.3, 1) — スプリングライクな自然な動き
     'transition-all duration-200 ease-spatial',
     'hover:scale-110 active:scale-95',
   ].join(' ')
 
   // 座布団なし: bg/border 強調を除去 — アイコン色 + LED グローだけでアクティブを示す
-  const glassActive = 'text-signature-blue sig-glow-active'
+  const glassActive = 'text-accent sig-glow-active'
 
   const glassDefault = [
     'text-text-muted',
-    'hover:text-text-primary hover:bg-white/10',
+    'hover:text-text-primary sidebar-glass-hover',
     'hover:drop-shadow-[0_0_8px_rgba(37,99,235,0.40)]',
   ].join(' ')
 
@@ -368,7 +368,7 @@ export function Sidebar({
               onKeyDown={(e) => { if (e.key === 'Escape') { setSearchQuery(''); setSearchExpanded(false) } }}
               onBlur={() => { if (!searchQuery) setSearchExpanded(false) }}
               placeholder="検索..."
-              className="w-full pl-7 pr-6 py-1.5 bg-white/5 border border-border/8 rounded-lg text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/50 transition"
+              className="w-full pl-7 pr-6 py-1.5 sidebar-search-bg rounded-md text-xs text-text-primary placeholder:text-text-muted focus:outline-none transition-colors"
             />
             {searchQuery && (
               <button
@@ -383,7 +383,7 @@ export function Sidebar({
             type="button"
             onClick={() => setSearchExpanded(true)}
             title="検索 (⌘F)"
-            className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+            className="flex items-center gap-1.5 w-full px-2 py-1.5 sidebar-search-bg rounded-lg text-text-muted hover:text-text-primary transition-colors"
           >
             <IconMagnifyingGlass size={12} />
             <span className="text-[10px] opacity-40">⌘F</span>
@@ -541,7 +541,7 @@ export function Sidebar({
           className={[
             'flex items-center justify-center w-8 h-8 rounded-xl transition-all ease-spatial duration-200 tactile',
             activeSection === 'trash' && !activeFolderId
-              ? 'text-signature-blue sig-glow-active'
+              ? 'text-accent sig-glow-active'
               : 'text-text-muted hover:text-text-primary hover:bg-white/8 hover:drop-shadow-[0_0_8px_rgba(37,99,235,0.35)]',
           ].join(' ')}
         >

@@ -30,8 +30,8 @@ const config: Config = {
           soft:    'rgb(var(--color-accent-soft) / <alpha-value>)',
           ring:    'rgb(var(--color-accent-ring) / <alpha-value>)',
         },
-        // ブランドのシグネチャーブルー — ナビゲーション・アクティブ状態に専用
-        'signature-blue': '#2563EB',
+        // ブランドのシグネチャーブルー — ナビゲーション・アクティブ状態に専用（accent に追従）
+        'signature-blue': 'rgb(var(--color-accent) / <alpha-value>)',
         danger:  '#ef4444',
         warning: '#f59e0b',
         success: '#22c55e',

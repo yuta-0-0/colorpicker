@@ -1,5 +1,4 @@
 import { JAPANESE_TRADITIONAL_COLORS } from './data/japaneseTraditionalColors'
-import { toKatakana } from './katakana'
 
 // ---- ユーティリティ ----
 
@@ -67,13 +66,6 @@ export async function getEnglishColorName(hex: string): Promise<string> {
   } catch {
     return hex
   }
-}
-
-/** 英語色名をカタカナに変換して返す */
-export async function getKatakanaColorName(hex: string): Promise<string> {
-  const en = await getEnglishColorName(hex)
-  if (en === hex) return ''
-  return toKatakana(en)
 }
 
 /**

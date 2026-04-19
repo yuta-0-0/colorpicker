@@ -628,7 +628,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 <button
                   onClick={handleCmykEdit}
                   type="button"
-                  className="w-full py-1 text-xs text-text-muted hover:text-text-primary bg-surface-raised hover:bg-surface-overlay rounded-md transition-colors"
+                  className="w-full py-1 text-xs text-text-muted hover:text-text-primary bg-surface-raised border border-border/15 hover:border-border/30 rounded-md transition-colors"
                 >
                   {hasCmyk ? 'CMYK を編集' : '近似値をもとに入力'}
                 </button>

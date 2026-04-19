@@ -164,6 +164,53 @@ const WORD_MAP: Record<string, string> = {
   aged: 'エイジド', faded: 'フェイデッド', cloudy: 'クラウディ',
   maya: 'マヤ', persian: 'ペルシャン', french: 'フレンチ',
   chinese: 'チャイニーズ', egyptian: 'エジプシャン', spring2: 'スプリング',
+  // 人物・身体
+  eye: 'アイ', lip: 'リップ', skin: 'スキン', hair: 'ヘア', nail: 'ネイル',
+  cheek: 'チーク', face: 'フェイス', hand: 'ハンド', neck: 'ネック',
+  boy: 'ボーイ', girl: 'ガール', man: 'マン', woman: 'ウーマン',
+  child: 'チャイルド', king: 'キング', queen: 'クイーン',
+  prince: 'プリンス', princess: 'プリンセス', lord: 'ロード', lady: 'レディ',
+  angel: 'エンジェル', devil: 'デビル', fairy: 'フェアリー',
+  knight: 'ナイト', hero: 'ヒーロー', witch: 'ウィッチ', warrior: 'ウォリアー',
+  // 時間・順序
+  time: 'タイム', hour: 'アワー',
+  first: 'ファースト', second: 'セカンド', third: 'サード',
+  fourth: 'フォース', fifth: 'フィフス',
+  // 地形・場所
+  island: 'アイランド', air: 'エア',
+  valley: 'バレー', hill: 'ヒル', peak: 'ピーク',
+  cape: 'ケープ', gulf: 'ガルフ', port: 'ポート',
+  harbour: 'ハーバー', airport: 'エアポート',
+  town: 'タウン', city: 'シティ', road: 'ロード',
+  tower: 'タワー', bridge: 'ブリッジ', garden: 'ガーデン',
+  park: 'パーク', field: 'フィールド', gate: 'ゲート',
+  // サイズ・程度
+  little: 'リトル', great: 'グレート', grand: 'グランド',
+  high: 'ハイ', low: 'ロウ', long: 'ロング', short: 'ショート',
+  wide: 'ワイド', tall: 'トール', thin: 'シン',
+  full: 'フル', half: 'ハーフ', large: 'ラージ',
+  // 動物（色名に登場しやすいもの）
+  tiger: 'タイガー', lion: 'ライオン', bear: 'ベア', wolf: 'ウルフ',
+  fox: 'フォックス', deer: 'ディア', eagle: 'イーグル', hawk: 'ホーク',
+  cat: 'キャット', dog: 'ドッグ', horse: 'ホース', fish: 'フィッシュ',
+  snake: 'スネイク', whale: 'ホエール', shark: 'シャーク',
+  // 色調補助語
+  hue: 'ヒュー', tone: 'トーン', tint: 'ティント', shade: 'シェード',
+  chroma: 'クロマ', pigment: 'ピグメント', tinge: 'ティンジ',
+  // マテリアル（追加）
+  glass: 'グラス', metal: 'メタル', paper: 'ペーパー', leather: 'レザー',
+  rock: 'ロック', rubber: 'ラバー',
+  // サイレントe・ight 等、フォネーム変換で崩れやすい単語
+  life: 'ライフ', side: 'サイド', ride: 'ライド', hide: 'ハイド',
+  guide: 'ガイド', slide: 'スライド', glide: 'グライド', stride: 'ストライド',
+  pride: 'プライド', bride: 'ブライド',
+  dry: 'ドライ', fly: 'フライ', try: 'トライ', cry: 'クライ',
+  shy: 'シャイ', dye: 'ダイ', tie: 'タイ', lie: 'ライ', die: 'ダイ',
+  right: 'ライト', fight: 'ファイト', sight: 'サイト',
+  might: 'マイト', tight: 'タイト', slight: 'スライト',
+  glue: 'グルー', clue: 'クルー',
+  wire: 'ワイヤー', tire: 'タイヤ', hire: 'ハイヤー',
+  bow: 'ボウ', row: 'ロウ',
 }
 
 // ─────────────────────────────────────────────────

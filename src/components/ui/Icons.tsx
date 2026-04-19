@@ -44,6 +44,7 @@ export {
   LockOpen            as IconLockOpen,
   ArrowUUpLeft        as IconArrowUUpLeft,       // アーカイブ解除（復元）
   ArrowBendDownRight  as IconArrowBendDownRight,  // サブフォルダ追加
+  NotePencil          as IconNotePencil,          // メモ拡大編集
   FloppyDisk          as IconFloppyDisk,          // 保存
 
   // ── FAB / BulkActionBar ──────────────────────────────────

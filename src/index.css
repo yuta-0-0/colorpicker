@@ -29,8 +29,8 @@ html, body, #root {
   --color-text-primary:     235 239 248;   /* #EBEFF8 — off-white */
   --color-text-secondary:   148 154 178;   /* #949ab2 */
   --color-text-muted:       82 88 108;     /* #52586c */
-  --color-accent:           10 62 216;     /* #0a3ed8 */
-  --color-accent-hover:     8 50 184;      /* #0832b8 */
+  --color-accent:           80 176 211;    /* #50B0D3 — ダーク用シアンブルー */
+  --color-accent-hover:     62 154 190;    /* #3E9ABE — hover: 少し沈める */
   --color-accent-soft:      122 160 255;   /* #7aa0ff */
   --color-accent-ring:      0 206 255;     /* #00ceff */
 }
@@ -61,31 +61,12 @@ html, body, #root {
 /* ── Signature Blue グロー（ナビゲーション領域専用 — LEDインジケーター感） ── */
 /* アクティブアイコンに常時点灯する青い光彩。メインコンテンツ領域には使用しないこと */
 .sig-glow-active {
-  filter: drop-shadow(0 0 6px rgba(37, 99, 235, 0.60));
+  filter: drop-shadow(0 0 6px rgba(80, 176, 211, 0.60));
 }
 [data-theme="light"] .sig-glow-active {
   filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.50));
 }
 
-/* ── グローユーティリティ（Notion思想: 20%薄め） ── */
-.glow-accent {
-  box-shadow: 0 0 12px rgba(10,62,216,.36), 0 2px 6px rgba(10,62,216,.18);
-}
-[data-theme="light"] .glow-accent {
-  box-shadow: 0 0 10px rgba(10,62,216,.22), 0 2px 5px rgba(10,62,216,.12);
-}
-.glow-accent-sm {
-  box-shadow: 0 0 8px rgba(10,62,216,.16);
-}
-[data-theme="light"] .glow-accent-sm {
-  box-shadow: 0 0 6px rgba(10,62,216,.12);
-}
-.glow-accent-btn {
-  box-shadow: 0 0 12px rgba(10,62,216,.32), 0 2px 6px rgba(10,62,216,.16);
-}
-[data-theme="light"] .glow-accent-btn {
-  box-shadow: 0 0 10px rgba(10,62,216,.26), 0 2px 5px rgba(10,62,216,.13);
-}
 .ring-selection {
   box-shadow: 0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(var(--color-accent-ring)), 0 0 6px rgba(0,206,255,.35);
 }
@@ -126,22 +107,6 @@ html, body, #root {
   background: rgba(0, 0, 0, 0.3);
 }
 
-/* Notion思想: 精密な1pxボーダー（カラム間・パネル間） */
-.whisper-border {
-  border: 1px solid rgba(255, 255, 255, 0.07);
-}
-[data-theme="light"] .whisper-border {
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-/* Notion思想: 文字間隔の精密化 */
-.tracking-tight-ui {
-  letter-spacing: -0.01em;
-}
-.tracking-display {
-  letter-spacing: -0.02em;
-}
-
 /* ── 色相スライダー サム ── */
 .hue-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -166,20 +131,6 @@ html, body, #root {
   border: 2px solid rgba(0,0,0,0.25);
   box-shadow: 0 1px 4px rgba(0,0,0,0.4);
   cursor: grab;
-}
-
-/* ── 背景グリッド（色が主役になる繊細なドット） ── */
-.bg-grid {
-  background-image:
-    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size: 16px 16px;
-}
-[data-theme="light"] .bg-grid {
-  background-image:
-    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
-  background-size: 16px 16px;
 }
 
 /* ── App Frame（最外枠ガラスシェル — 40px Liquid Glass コンテナ） ── */
@@ -221,27 +172,6 @@ html, body, #root {
   border: 0.5px solid rgba(0, 0, 0, 0.05);
 }
 
-/* ── Vibrancy（強化版 backdrop-filter） ── */
-.vibrancy {
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-}
-
-/* ── ライトモード専用 — パネル・カプセル質感 ── */
-[data-theme="light"] .vibrancy {
-  background: rgba(255,255,255,0.7);
-}
-
-/* リストアイテムカプセル（ライト）— レガシー互換 */
-[data-theme="light"] .list-capsule {
-  background: rgba(255,255,255,0.85);
-  border: 1px solid rgba(0,0,0,0.08);
-}
-[data-theme="light"] .list-capsule-active {
-  background: rgba(255,255,255,0.95);
-  border: 2px solid rgba(14,165,233,0.7);  /* sky-500/70 */
-}
-
 /* ── Bento リストアイテム（フラット・ボーダーなし） ── */
 .list-item {
   background: transparent;
@@ -272,18 +202,19 @@ html, body, #root {
   border: 1px solid rgba(0,0,0,0.07);
 }
 
-/* ダークモード — ホバー発光 */
-[data-theme="dark"] .hover-glow:hover,
-:root:not([data-theme="light"]) .hover-glow:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.16);
+/* ── サイドバー検索・グリッドセル — ダーク/ライトモード背景切り替え ── */
+.sidebar-search-bg {
+  background: rgba(255, 255, 255, 0.05);  /* bg-white/5 — ダーク */
 }
-
-/* ライトモード — ボーダー統一（暗い半透明） */
-[data-theme="light"] .border-light {
-  border-color: rgba(0,0,0,0.08);
+[data-theme="light"] .sidebar-search-bg {
+  background: rgba(0, 0, 0, 0.05);        /* bg-black/5 — ライト */
 }
-/* .shadow-light-float: shadow removed — depth expressed via border + bg brightness */
+.sidebar-glass-hover:hover {
+  background: rgba(255, 255, 255, 0.10);  /* hover:bg-white/10 — ダーク */
+}
+[data-theme="light"] .sidebar-glass-hover:hover {
+  background: rgba(0, 0, 0, 0.08);        /* hover:bg-black/8 — ライト */
+}
 
 /* ── タクタイルフィードバック ── */
 .tactile {
@@ -321,9 +252,6 @@ html, body, #root {
 /* ── iPhone ノッチ・ホームバー対応 ── */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
-}
-.pt-safe {
-  padding-top: env(safe-area-inset-top);
 }
 
 @layer base {
