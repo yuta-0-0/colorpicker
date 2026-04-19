@@ -333,7 +333,7 @@ export function Sidebar({
   // ── グリッドボタン共通スタイル ────────────────────────────────────────────
   const glassBase = [
     'flex items-center justify-center h-9 rounded-xl',
-    'bg-white/5 border border-border/6 shadow-sm backdrop-blur-xl',
+    'bg-white/5 shadow-sm backdrop-blur-xl',
     // ease-spatial = cubic-bezier(0.16, 1, 0.3, 1) — スプリングライクな自然な動き
     'transition-all duration-200 ease-spatial',
     'hover:scale-110 active:scale-95',
@@ -344,7 +344,7 @@ export function Sidebar({
 
   const glassDefault = [
     'text-text-muted',
-    'hover:text-text-primary hover:bg-white/10 hover:border-border/10',
+    'hover:text-text-primary hover:bg-white/10',
     'hover:drop-shadow-[0_0_8px_rgba(37,99,235,0.40)]',
   ].join(' ')
 
@@ -533,7 +533,7 @@ export function Sidebar({
       </div>
 
       {/* ── ボトムドック ── */}
-      <div className="flex-shrink-0 flex items-center justify-around py-1.5 border-t border-border/4">
+      <div className="flex-shrink-0 flex items-center justify-around py-1.5 border-t border-border/2">
         <button
           type="button"
           title="ゴミ箱"
