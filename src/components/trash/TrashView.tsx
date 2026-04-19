@@ -74,14 +74,14 @@ export function TrashView() {
                   <button
                     type="button"
                     onClick={() => restoreColor(color.id)}
-                    className="px-2 py-1 text-xs text-text-muted hover:text-text-primary bg-surface-overlay hover:bg-surface-raised rounded transition-colors"
+                    className="px-2 py-1 text-xs text-text-muted hover:text-text-primary bg-surface-overlay hover:bg-surface-raised rounded-md transition-colors"
                   >
                     元に戻す
                   </button>
                   <button
                     type="button"
                     onClick={() => permanentlyDeleteColor(color.id)}
-                    className="px-2 py-1 text-xs text-red-400 hover:text-red-300 bg-surface-overlay hover:bg-surface-raised rounded transition-colors"
+                    className="px-2 py-1 text-xs text-red-400 hover:text-red-300 bg-surface-overlay hover:bg-surface-raised rounded-md transition-colors"
                   >
                     完全削除
                   </button>

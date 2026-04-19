@@ -119,7 +119,7 @@ function PalettePanel({
               type="button"
               onClick={() => setActiveToneFilter(activeToneFilter === tone.value ? null : tone.value)}
               className={[
-                'px-1.5 py-0.5 rounded text-[10px] transition-colors leading-none',
+                'px-1.5 py-0.5 rounded-md text-[10px] transition-colors leading-none',
                 activeToneFilter === tone.value
                   ? 'bg-accent/20 text-accent-soft font-medium'
                   : 'text-text-muted hover:text-text-secondary hover:bg-white/8',
@@ -132,7 +132,7 @@ function PalettePanel({
             type="button"
             onClick={() => setActiveTraditionalFilter(!activeTraditionalFilter)}
             className={[
-              'px-1.5 py-0.5 rounded text-[10px] transition-colors leading-none',
+              'px-1.5 py-0.5 rounded-md text-[10px] transition-colors leading-none',
               activeTraditionalFilter
                 ? 'bg-accent/20 text-accent-soft font-medium'
                 : 'text-text-muted hover:text-text-secondary hover:bg-white/8',

@@ -74,7 +74,7 @@ export function ColorPreviewCard() {
             Primary Btn
           </button>
           <span
-            className="text-xs px-2 py-0.5 rounded"
+            className="text-xs px-2 py-0.5 rounded-md"
             style={{
               border: `1px solid ${accentHex ?? 'rgba(128,128,128,0.35)'}`,
               color: textHex,

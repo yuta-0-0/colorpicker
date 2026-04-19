@@ -215,7 +215,7 @@ export function GeneratorView() {
                   placeholder="#RRGGBB"
                   maxLength={7}
                   className={[
-                    'flex-1 bg-surface-overlay border rounded px-3 py-2 text-sm font-mono text-text-primary focus:outline-none transition-colors',
+                    'flex-1 bg-surface-overlay border rounded-md px-3 py-2 text-sm font-mono text-text-primary focus:outline-none transition-colors',
                     isValid ? 'border-border focus:border-accent' : 'border-red-500/60',
                   ].join(' ')}
                 />
@@ -324,7 +324,7 @@ export function GeneratorView() {
                           type="button"
                           onClick={() => setInputValue(c.hex)}
                           className={[
-                            'px-2 py-0.5 text-xs rounded border transition-colors',
+                            'px-2 py-0.5 text-xs rounded-md border transition-colors',
                             isBase
                               ? 'border-accent bg-accent text-white'
                               : 'border-border text-text-muted hover:border-accent hover:text-accent',
@@ -336,7 +336,7 @@ export function GeneratorView() {
                           type="button"
                           onClick={() => setSubInputValue(c.hex)}
                           className={[
-                            'px-2 py-0.5 text-xs rounded border transition-colors',
+                            'px-2 py-0.5 text-xs rounded-md border transition-colors',
                             isSub
                               ? 'border-accent bg-accent text-white'
                               : 'border-border text-text-muted hover:border-accent hover:text-accent',
@@ -386,7 +386,7 @@ export function GeneratorView() {
                     placeholder="#RRGGBB"
                     maxLength={7}
                     className={[
-                      'flex-1 bg-surface-overlay border rounded px-2.5 py-1.5 text-xs font-mono text-text-primary focus:outline-none transition-colors',
+                      'flex-1 bg-surface-overlay border rounded-md px-2.5 py-1.5 text-xs font-mono text-text-primary focus:outline-none transition-colors',
                       isValidHex(hex) ? 'border-border focus:border-accent' : 'border-red-500/60',
                     ].join(' ')}
                   />
@@ -395,7 +395,7 @@ export function GeneratorView() {
                     <button
                       type="button"
                       onClick={() => setMultiInputs(multiInputs.filter((_, i) => i !== index))}
-                      className="w-7 h-7 flex items-center justify-center rounded text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors flex-shrink-0 text-sm"
+                      className="w-7 h-7 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-surface-overlay transition-colors flex-shrink-0 text-sm"
                     >
                       ✕
                     </button>
@@ -508,16 +508,16 @@ export function GeneratorView() {
                   <span className="flex-1 text-sm font-mono text-text-primary">{hex}</span>
                   {/* ラベル */}
                   {isTwoColorMode && index === 0 && (
-                    <span className="text-xs text-text-muted bg-surface-overlay px-1.5 py-0.5 rounded">ベース</span>
+                    <span className="text-xs text-text-muted bg-surface-overlay px-1.5 py-0.5 rounded-md">ベース</span>
                   )}
                   {isTwoColorMode && index === generatedColors.length - 1 && (
-                    <span className="text-xs text-text-muted bg-surface-overlay px-1.5 py-0.5 rounded">サブ</span>
+                    <span className="text-xs text-text-muted bg-surface-overlay px-1.5 py-0.5 rounded-md">サブ</span>
                   )}
                   {!isTwoColorMode && index === 0 && activeScheme !== 'analogous' && (
-                    <span className="text-xs text-text-muted bg-surface-overlay px-1.5 py-0.5 rounded">ベース</span>
+                    <span className="text-xs text-text-muted bg-surface-overlay px-1.5 py-0.5 rounded-md">ベース</span>
                   )}
                   {!isTwoColorMode && activeScheme === 'analogous' && index === 1 && (
-                    <span className="text-xs text-text-muted bg-surface-overlay px-1.5 py-0.5 rounded">ベース</span>
+                    <span className="text-xs text-text-muted bg-surface-overlay px-1.5 py-0.5 rounded-md">ベース</span>
                   )}
                   {/* 割合スライダー */}
                   <input
@@ -535,7 +535,7 @@ export function GeneratorView() {
                     onClick={() => handleSaveOne(hex, index)}
                     disabled={savingIndex === index}
                     type="button"
-                    className="text-xs text-text-muted hover:text-text-primary disabled:opacity-50 px-2 py-1 hover:bg-surface-overlay rounded transition-colors flex-shrink-0"
+                    className="text-xs text-text-muted hover:text-text-primary disabled:opacity-50 px-2 py-1 hover:bg-surface-overlay rounded-md transition-colors flex-shrink-0"
                   >
                     {savingIndex === index ? '...' : '保存'}
                   </button>
@@ -645,7 +645,7 @@ function ColorInputSlot({ label, value, onChange }: { label: string; value: stri
           placeholder="#RRGGBB"
           maxLength={7}
           className={[
-            'flex-1 w-0 bg-surface-overlay border rounded px-2 py-1.5 text-xs font-mono text-text-primary focus:outline-none transition-colors',
+            'flex-1 w-0 bg-surface-overlay border rounded-md px-2 py-1.5 text-xs font-mono text-text-primary focus:outline-none transition-colors',
             valid ? 'border-border focus:border-accent' : 'border-red-500/60',
           ].join(' ')}
         />
