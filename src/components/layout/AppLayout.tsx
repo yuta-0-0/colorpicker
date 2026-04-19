@@ -345,7 +345,7 @@ export function AppLayout() {
   const isElectron = !!(window as Window & { electronAPI?: unknown }).electronAPI
 
   return (
-    <div className="relative h-screen overflow-hidden text-text-primary">
+    <div className="relative h-screen overflow-hidden rounded-[2.5rem] text-text-primary">
       {/* ── 全幅ドラッグバー：absolute で最前面に配置（Electron のみ） ── */}
       {isElectron && (
         <div
@@ -380,7 +380,7 @@ export function AppLayout() {
       {/* ── Sidebar Bento Pane ── */}
       {/* 外側マスク: width 0→実幅 でクリップ。padding/border/margin なし */}
       <motion.div
-        className="flex-shrink-0 overflow-hidden rounded-[2rem]"
+        className="flex-shrink-0 overflow-hidden rounded-[30px]"
         animate={{
           width: sidebarCollapsed ? 0 : sidebarWidth,
           opacity: sidebarCollapsed ? 0 : 1,
@@ -480,7 +480,7 @@ export function AppLayout() {
       {/* 常時マウント: アンマウント時の gap 消失ジャンプを防ぐ */}
       {/* 外側マスク: width 0↔264 でクリップ。padding/border/margin なし */}
       <motion.div
-        className="flex-shrink-0 overflow-hidden rounded-[2rem]"
+        className="flex-shrink-0 overflow-hidden rounded-[30px]"
         initial={{ width: 0, opacity: 0, marginLeft: -10 }}
         animate={{
           width: isDetailPanelOpen && !!colorForPanel ? 264 : 0,
