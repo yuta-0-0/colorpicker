@@ -57,7 +57,7 @@ export function TrashView() {
         </Center>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-border/10">
             {colors.map((color) => (
               <li
                 key={color.id}
