@@ -368,7 +368,7 @@ export function Sidebar({
               onKeyDown={(e) => { if (e.key === 'Escape') { setSearchQuery(''); setSearchExpanded(false) } }}
               onBlur={() => { if (!searchQuery) setSearchExpanded(false) }}
               placeholder="検索..."
-              className="w-full pl-7 pr-6 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/50 transition"
+              className="w-full pl-7 pr-6 py-1.5 bg-white/5 border border-border/8 rounded-lg text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/50 transition"
             />
             {searchQuery && (
               <button
@@ -522,7 +522,7 @@ export function Sidebar({
                       }
                     }, 80)
                   }}
-                  className="w-5 h-5 rounded-full flex-shrink-0 hover:scale-110 transition-transform border border-white/10"
+                  className="w-5 h-5 rounded-full flex-shrink-0 hover:scale-110 transition-transform border border-border/8"
                   style={{ backgroundColor: c.hex }}
                 />
               ))}
