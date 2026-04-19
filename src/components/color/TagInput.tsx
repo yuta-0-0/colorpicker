@@ -84,8 +84,9 @@ export function TagInput({ colorId, isLocked }: TagInputProps) {
 
   return (
     <div>
-      {/* 付与済みタグのピル表示 */}
-      <div className="flex flex-wrap gap-1 mb-2">
+      {/* 付与済みタグのピル表示（タグがあるときだけ余白を確保） */}
+      {attachedTags.length > 0 && (
+      <div className="flex flex-wrap gap-1 mb-1.5">
         {attachedTags.map((tag) => (
           <span
             key={tag.id}
@@ -105,6 +106,7 @@ export function TagInput({ colorId, isLocked }: TagInputProps) {
           </span>
         ))}
       </div>
+      )}
 
       {/* タグ入力（ロック中は非表示） */}
       {!isLocked && (
