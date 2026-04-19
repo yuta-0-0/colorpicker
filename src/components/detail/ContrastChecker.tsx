@@ -66,10 +66,10 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
                   onClick={() => setTextWeight(opt.value)}
                   title={opt.desc}
                   className={[
-                    'flex-1 py-1 rounded text-xs border transition-colors',
+                    'flex-1 py-1 rounded-lg text-xs border transition-colors',
                     textWeight === opt.value
                       ? 'border-accent bg-accent/10 text-accent'
-                      : 'border-border/15 text-text-muted hover:border-text-muted/60',
+                      : 'border-border/20 text-text-muted hover:border-text-muted/60',
                   ].join(' ')}
                   style={{ fontWeight: opt.value === 'thin' ? 300 : opt.value === 'bold' ? 700 : 400 }}
                 >
