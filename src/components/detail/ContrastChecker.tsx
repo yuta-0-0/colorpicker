@@ -36,11 +36,11 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
       {/* コントラストチェッカー */}
       <div>
         <p className="text-xs text-text-muted mb-2">コントラストチェッカー</p>
-        <div className="bg-surface-raised rounded-lg p-3 space-y-2.5">
+        <div className="rounded-lg p-3 space-y-2.5 bg-transparent">
           {/* 比較色入力 */}
           <div className="flex items-center gap-2">
             <div
-              className="w-6 h-6 rounded-full border border-border flex-shrink-0"
+              className="w-6 h-6 rounded-full border border-border/12 flex-shrink-0"
               style={{ backgroundColor: compareHex }}
             />
             <input
@@ -50,7 +50,7 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
               placeholder="#FFFFFF"
               className={[
                 'flex-1 bg-surface-overlay rounded px-2 py-1 text-xs font-mono text-text-primary focus:outline-none border',
-                isValid ? 'border-border' : 'border-red-500',
+                isValid ? 'border-border/20' : 'border-red-500',
               ].join(' ')}
             />
           </div>
@@ -69,7 +69,7 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
                     'flex-1 py-1 rounded text-xs border transition-colors',
                     textWeight === opt.value
                       ? 'border-accent bg-accent/10 text-accent'
-                      : 'border-border text-text-muted hover:border-text-muted',
+                      : 'border-border/15 text-text-muted hover:border-text-muted/60',
                   ].join(' ')}
                   style={{ fontWeight: opt.value === 'thin' ? 300 : opt.value === 'bold' ? 700 : 400 }}
                 >
@@ -125,7 +125,7 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
           <div className="flex items-center gap-2">
             <span className="text-xs text-text-muted">推奨テキスト色：</span>
             <div
-              className="w-4 h-4 rounded-full border border-border"
+              className="w-4 h-4 rounded-full border border-border/12"
               style={{ backgroundColor: suggested }}
             />
             <span className="text-xs font-mono text-text-secondary">{suggested}</span>
@@ -136,13 +136,13 @@ export function ContrastChecker({ color }: ContrastCheckerProps) {
       {/* 色覚シミュレーション */}
       <div>
         <p className="text-xs text-text-muted mb-2">色覚シミュレーション</p>
-        <div className="bg-surface-raised rounded-lg p-3 space-y-2">
+        <div className="rounded-lg p-3 space-y-2 bg-transparent border border-border/4">
           {VISION_TYPES.map((type) => {
             const simHex = simulateColorVision(color.hex, type)
             return (
               <div key={type} className="flex items-center gap-2">
                 <div
-                  className="w-5 h-5 rounded-full border border-border flex-shrink-0"
+                  className="w-5 h-5 rounded-full border border-border/12 flex-shrink-0"
                   style={{ backgroundColor: simHex }}
                 />
                 <span className="text-xs text-text-muted flex-1">{COLOR_VISION_LABELS[type]}</span>

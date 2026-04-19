@@ -112,7 +112,7 @@ export function ColorPreviewCard() {
                 'flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-all',
                 isActive
                   ? 'border-accent text-accent bg-accent/10'
-                  : 'border-border text-text-secondary hover:border-text-muted',
+                  : 'border-border/15 text-text-secondary hover:border-text-muted/60',
               ].join(' ')}
             >
               {slot.hex ? (

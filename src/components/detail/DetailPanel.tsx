@@ -92,7 +92,7 @@ function FormatRow({ label, value, onCopy, colorHex, colorAlpha }: {
     setTimeout(() => setCopied(false), 1500)
   }
   return (
-    <div className="flex items-center gap-2 py-1.5 border-b border-border/50 last:border-0">
+    <div className="flex items-center gap-2 py-1.5 border-b border-border/10 last:border-0">
       <span className="text-xs text-text-muted w-10 flex-shrink-0">{label}</span>
       <span className="flex-1 text-xs text-text-secondary font-mono truncate">{value}</span>
       <button onClick={handleCopy} type="button" className="text-text-muted hover:text-text-primary transition-colors flex-shrink-0">
@@ -310,8 +310,8 @@ export function DetailPanel({ color }: DetailPanelProps) {
       >
         <ColorSwatch hex={color.hex} alpha={color.alpha} size="lg" />
         <div className="absolute bottom-2 right-2 flex gap-1">
-          <button onClick={() => setBgMode('dark')} type="button" className={['w-5 h-5 rounded-full bg-black border transition-all', bgMode === 'dark' ? 'border-accent scale-110' : 'border-border'].join(' ')} />
-          <button onClick={() => setBgMode('light')} type="button" className={['w-5 h-5 rounded-full bg-white border transition-all', bgMode === 'light' ? 'border-accent scale-110' : 'border-border'].join(' ')} />
+          <button onClick={() => setBgMode('dark')} type="button" className={['w-5 h-5 rounded-full bg-black border transition-all', bgMode === 'dark' ? 'border-accent scale-110' : 'border-border/15'].join(' ')} />
+          <button onClick={() => setBgMode('light')} type="button" className={['w-5 h-5 rounded-full bg-white border transition-all', bgMode === 'light' ? 'border-accent scale-110' : 'border-border/15'].join(' ')} />
         </div>
       </div>
 
@@ -480,7 +480,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 placeholder="#RRGGBB"
                 className={[
                   'flex-1 bg-surface-overlay border rounded px-2 py-1 text-sm font-mono text-text-primary focus:outline-none transition-colors',
-                  isValidHex ? 'border-border focus:border-accent' : 'border-red-500/60',
+                  isValidHex ? 'border-border/20 focus:border-accent' : 'border-red-500/60',
                 ].join(' ')}
               />
               <button
@@ -564,7 +564,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
                       max="100"
                       value={cmykDraft[ch]}
                       onChange={(e) => handleCmykChannelChange(ch, e.target.value)}
-                      className="w-full text-center text-xs font-mono bg-surface-overlay border border-border rounded px-1 py-1 text-text-primary focus:outline-none focus:border-accent"
+                      className="w-full text-center text-xs font-mono bg-surface-overlay border border-border/20 rounded px-1 py-1 text-text-primary focus:outline-none focus:border-accent"
                     />
                   </div>
                 ))}
@@ -653,7 +653,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
             }}
             disabled={color.is_locked}
             placeholder="PANTONE 286 C / DIC-43"
-            className="w-full bg-surface-overlay border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-text-muted"
+            className="w-full bg-surface-overlay border border-border/20 rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-text-muted"
           />
         </div>
 
