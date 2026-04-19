@@ -15,6 +15,7 @@ import {
   IconArchive, IconArrowUUpLeft,
   IconX, IconCopy, IconCheck, IconPencil,
 } from '@/components/ui/Icons'
+import { TagInput } from '@/components/color/TagInput'
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return {
@@ -163,6 +164,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
     getEnglishColorName(color.hex).then(setEnName)
   }, [color?.hex])
   const [spotColorValue, setSpotColorValue] = useState(color?.spot_color ?? '')
+  const [memoValue, setMemoValue] = useState(color?.memo ?? '')
   const [cmykDraft, setCmykDraft] = useState<CmykDraft>({ c: 0, m: 0, y: 0, k: 0 })
   const [isEditingCmyk, setIsEditingCmyk] = useState(false)
   const [isEditingHex, setIsEditingHex] = useState(false)
@@ -184,6 +186,11 @@ export function DetailPanel({ color }: DetailPanelProps) {
   const handleSpotColorSubmit = () => {
     if (!color) return
     updateColor(color.id, { spot_color: spotColorValue.trim() || null })
+  }
+
+  const handleMemoSubmit = () => {
+    if (!color) return
+    updateColor(color.id, { memo: memoValue.trim() || null })
   }
 
   const handleCmykEdit = () => {
@@ -217,6 +224,10 @@ export function DetailPanel({ color }: DetailPanelProps) {
   // color が変わったら spot_color を同期
   useEffect(() => {
     setSpotColorValue(color?.spot_color ?? '')
+  }, [color?.id])
+
+  useEffect(() => {
+    setMemoValue(color?.memo ?? '')
   }, [color?.id])
 
   const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(hexDraft)
@@ -638,6 +649,34 @@ export function DetailPanel({ color }: DetailPanelProps) {
           )}
         </div>
 
+        {/* 一言メモ */}
+        <div>
+          <p className="text-xs text-text-muted mb-1">メモ</p>
+          <div className="bg-surface-raised border border-border/15 rounded-md px-2.5 py-2 hover:border-border/30 focus-within:border-accent/40 transition-colors">
+            <textarea
+              value={memoValue}
+              onChange={(e) => { if (!color.is_locked) setMemoValue(e.target.value) }}
+              onBlur={handleMemoSubmit}
+              onKeyDown={(e) => {
+                if (e.nativeEvent.isComposing) return
+                if (e.key === 'Escape') setMemoValue(color.memo ?? '')
+              }}
+              disabled={color.is_locked}
+              placeholder="一言メモを追加..."
+              rows={2}
+              className="w-full bg-transparent text-xs text-text-primary resize-none focus:outline-none placeholder:text-text-muted disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </div>
+        </div>
+
+        {/* タグ */}
+        <div>
+          <p className="text-xs text-text-muted mb-1">タグ</p>
+          <div className="bg-surface-raised border border-border/15 rounded-md px-2.5 py-2 hover:border-border/30 focus-within:border-accent/40 transition-colors">
+            <TagInput colorId={color.id} isLocked={color.is_locked} />
+          </div>
+        </div>
+
         {/* 特色メモ（常時表示入力欄） */}
         <div>
           <p className="text-xs text-text-muted mb-1">特色メモ</p>
@@ -653,7 +692,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
             }}
             disabled={color.is_locked}
             placeholder="PANTONE 286 C / DIC-43"
-            className="w-full bg-surface-overlay border border-border/20 rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-text-muted"
+            className="w-full bg-surface-overlay border border-border/15 rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none hover:border-border/30 focus:border-accent/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-text-muted"
           />
         </div>
 
