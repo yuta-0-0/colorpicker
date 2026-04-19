@@ -15,45 +15,34 @@ interface ContextualPanelProps {
 
 function MemoArea({ color }: { color: Color }) {
   const { updateColor } = useColorStore()
-  const [isEditing, setIsEditing] = useState(false)
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState(color.memo ?? '')
 
-  const handleEdit = () => {
-    if (color.is_locked) return
+  useEffect(() => {
     setValue(color.memo ?? '')
-    setIsEditing(true)
-  }
+  }, [color.id])
 
   const handleSubmit = () => {
     updateColor(color.id, { memo: value.trim() || null })
-    setIsEditing(false)
   }
 
   return (
     <div className="flex-1 min-w-0">
       <p className="text-xs text-text-muted mb-1">メモ</p>
-      {isEditing ? (
+      <div className="bg-surface-raised border border-border/15 rounded-md px-2.5 py-2 hover:border-border/30 focus-within:border-accent/40 transition-colors">
         <textarea
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => { if (!color.is_locked) setValue(e.target.value) }}
           onBlur={handleSubmit}
           onKeyDown={(e) => {
             if (e.nativeEvent.isComposing) return
-            if (e.key === 'Escape') setIsEditing(false)
+            if (e.key === 'Escape') setValue(color.memo ?? '')
           }}
-          autoFocus
-          rows={3}
-          className="w-full bg-transparent border-0 text-xs text-text-primary focus:outline-none resize-none placeholder:text-text-muted leading-relaxed"
+          disabled={color.is_locked}
+          placeholder="一言メモを追加..."
+          rows={2}
+          className="w-full bg-transparent text-xs text-text-primary resize-none focus:outline-none placeholder:text-text-muted disabled:opacity-50 disabled:cursor-not-allowed"
         />
-      ) : (
-        <button
-          onClick={handleEdit}
-          type="button"
-          className="w-full text-left text-xs text-text-secondary hover:text-text-primary transition-colors leading-relaxed"
-        >
-          {color.memo || <span className="text-text-muted">クリックしてメモを追加...</span>}
-        </button>
-      )}
+      </div>
     </div>
   )
 }
@@ -108,7 +97,9 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
               <MemoArea color={color} />
               <div>
                 <p className="text-xs text-text-muted mb-1">タグ</p>
-                <TagInput colorId={color.id} isLocked={color.is_locked} />
+                <div className="bg-surface-raised border border-border/15 rounded-md px-2.5 py-2 hover:border-border/30 focus-within:border-accent/40 transition-colors">
+                  <TagInput colorId={color.id} isLocked={color.is_locked} />
+                </div>
               </div>
             </div>
           </div>
