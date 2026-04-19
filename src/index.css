@@ -181,6 +181,15 @@ html, body, #root {
   background-size: 16px 16px;
 }
 
+/* ── App Frame（最外枠ガラスシェル — 40px Liquid Glass コンテナ） ── */
+/* 外枠に半透明背景を付与することで rounded-[2.5rem] の角丸を視覚化する */
+.app-frame {
+  background: rgba(6, 9, 16, 0.55);
+}
+[data-theme="light"] .app-frame {
+  background: rgba(220, 228, 242, 0.55);
+}
+
 /* ── Bento Pane — Policy B: .blue Identity（サイドバー・詳細パネル） ── */
 /* 80% 不透明：壁紙が美しく透けるLiquid Glass効果 */
 .bento-pane {

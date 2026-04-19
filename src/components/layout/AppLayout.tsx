@@ -345,7 +345,7 @@ export function AppLayout() {
   const isElectron = !!(window as Window & { electronAPI?: unknown }).electronAPI
 
   return (
-    <div className="relative h-screen overflow-hidden rounded-[2.5rem] text-text-primary">
+    <div className="relative h-screen overflow-hidden rounded-[2.5rem] app-frame text-text-primary">
       {/* ── 全幅ドラッグバー：absolute で最前面に配置（Electron のみ） ── */}
       {isElectron && (
         <div
