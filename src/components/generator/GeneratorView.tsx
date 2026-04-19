@@ -231,7 +231,7 @@ export function GeneratorView() {
 
               {/* seedColors がある場合はクリックでベース色に設定 */}
               {seedColors.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/40">
+                <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/10">
                   <span className="text-xs text-text-muted self-center">選択中：</span>
                   {seedColors.map((c) => (
                     <button

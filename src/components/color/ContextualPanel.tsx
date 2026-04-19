@@ -80,7 +80,7 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
       transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
       className="overflow-hidden"
     >
-      <div className="mx-3 border-t border-border/30" />
+      <div className="mx-3 border-t border-border/8" />
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -103,7 +103,7 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
             <div className="flex-shrink-0 px-3 py-3 flex items-center">
               <MoodImageSlots colorId={color.id} />
             </div>
-            <div className="w-px bg-border/30 flex-shrink-0 my-3" />
+            <div className="w-px bg-border/8 flex-shrink-0 my-3" />
             <div className="flex-1 min-w-0 px-3 py-3 space-y-3">
               <MemoArea color={color} />
               <div>

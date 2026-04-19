@@ -77,7 +77,7 @@ export function FilterBar() {
           )
         })}
 
-        <div className="w-px h-3 bg-border flex-shrink-0 mx-0.5" />
+        <div className="w-px h-3 bg-border/10 flex-shrink-0 mx-0.5" />
 
         {/* トーンフィルター */}
         {TONE_FILTERS.map((tone) => {
@@ -131,7 +131,7 @@ export function FilterBar() {
           <IconArchive size={11} weight={showArchived ? 'fill' : 'regular'} />
         </button>
 
-        <div className="w-px h-3 bg-border mx-0.5" />
+        <div className="w-px h-3 bg-border/10 mx-0.5" />
 
         {/* 並び順：アイコンのみ */}
         {SORT_OPTIONS.map((opt) => (

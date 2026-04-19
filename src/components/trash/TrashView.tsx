@@ -22,7 +22,7 @@ export function TrashView() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* ヘッダー */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-border/10 flex items-center justify-between">
         <div className="flex items-center gap-2 text-text-muted">
           <IconTrash size={14} />
           <span className="text-sm font-medium">ゴミ箱</span>

@@ -73,7 +73,7 @@ function SortableColorItem({
             : 'opacity-0 group-hover/drag:opacity-100',
           isChecked
             ? 'bg-accent text-white'
-            : 'border border-border text-transparent hover:border-text-muted',
+            : 'border border-border/12 text-transparent hover:border-text-muted/50',
         ].join(' ')}
         title="選択"
       >
@@ -214,7 +214,7 @@ export function ListView({ colors }: ListViewProps) {
                   isBulkMode ? 'opacity-100' : 'opacity-0 hover:opacity-100',
                   bulkSelectedIds.includes(color.id)
                     ? 'bg-accent text-white'
-                    : 'border border-border text-transparent hover:border-text-muted',
+                    : 'border border-border/12 text-transparent hover:border-text-muted/50',
                 ].join(' ')}
                 title="選択"
               >

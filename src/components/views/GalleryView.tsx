@@ -41,7 +41,7 @@ export function GalleryView({ colors }: GalleryViewProps) {
                     : 'opacity-0 group-hover/gallery:opacity-100',
                   isChecked
                     ? 'bg-accent text-white'
-                    : 'bg-surface-overlay border border-border text-transparent',
+                    : 'bg-surface-overlay border border-border/12 text-transparent',
                 ].join(' ')}
                 title="選択"
               >
