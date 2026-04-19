@@ -15,8 +15,8 @@ html, body, #root {
 :root {
   /* ─ Policy B: .blue Identity（サイドバー・詳細パネル・ポップアップ） ─ */
   --color-surface:          11 16 26;      /* #0B101A — 深い青み黒 */
-  --color-surface-raised:   15 21 36;      /* #0F1524 */
-  --color-surface-overlay:  20 27 46;      /* #141B2E */
+  --color-surface-raised:   22 30 48;      /* #161E30 */
+  --color-surface-overlay:  32 44 68;      /* #202C44 */
   --color-surface-sidebar:  11 16 26;      /* #0B101A */
 
   /* ─ Policy A: Strict Neutrality（メインコンテンツ・色評価領域） ─ */
@@ -25,7 +25,7 @@ html, body, #root {
   --color-border:           255 255 255;   /* border uses /5 opacity */
   --color-border-subtle:    255 255 255;
   --color-border-sidebar:   255 255 255;
-  --color-text-primary:     255 255 255;
+  --color-text-primary:     235 239 248;   /* #EBEFF8 — off-white */
   --color-text-secondary:   148 154 178;   /* #949ab2 */
   --color-text-muted:       82 88 108;     /* #52586c */
   --color-accent:           10 62 216;     /* #0a3ed8 */
@@ -187,7 +187,7 @@ html, body, #root {
   background: rgba(11, 16, 26, 0.80);         /* #0B101A 80% — 深い青み黒 */
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
-  border-radius: 1rem;
+  border-radius: 1.5rem;
   overflow: hidden;
   box-shadow:
     0 0 0 0.5px rgba(255,255,255,0.03),
@@ -209,7 +209,7 @@ html, body, #root {
   background: #1C1C1C;                         /* 完全無彩色ダーク — 青みゼロ */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  border-radius: 1rem;
+  border-radius: 1.5rem;
   overflow: hidden;
   box-shadow:
     0 0 0 0.5px rgba(255,255,255,0.02),
@@ -263,13 +263,13 @@ html, body, #root {
   box-shadow: none;
 }
 .list-item:hover {
-  background: rgba(20, 27, 46, 0.50);   /* --color-surface-overlay dark */
+  background: rgba(32, 44, 68, 0.50);   /* --color-surface-overlay dark */
 }
 [data-theme="light"] .list-item:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 .list-item-active {
-  background: rgba(15, 21, 36, 0.70);   /* --color-surface-raised dark */
+  background: rgba(22, 30, 48, 0.70);   /* --color-surface-raised dark */
   border: 1px solid rgba(255,255,255,0.10);
   box-shadow:
     0 2px 10px rgba(0,0,0,0.14),

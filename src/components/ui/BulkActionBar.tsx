@@ -55,7 +55,7 @@ export function BulkActionBar() {
         style={{
           backdropFilter: 'blur(28px) saturate(180%)',
           WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-          background: 'rgba(15, 21, 36, 0.92)',
+          background: 'rgba(22, 30, 48, 0.92)',
           border: '1px solid rgba(255,255,255,0.12)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.32), 0 2px 8px rgba(0,0,0,0.18)',
         }}
@@ -99,7 +99,7 @@ export function BulkActionBar() {
                 style={{
                   backdropFilter: 'blur(24px) saturate(180%)',
                   WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                  background: 'rgba(15, 21, 36, 0.94)',
+                  background: 'rgba(22, 30, 48, 0.94)',
                   border: '1px solid rgba(255,255,255,0.1)',
                   boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
                 }}

@@ -380,7 +380,7 @@ export function AppLayout() {
       {/* ── Sidebar Bento Pane ── */}
       {/* 外側マスク: width 0→実幅 でクリップ。padding/border/margin なし */}
       <motion.div
-        className="flex-shrink-0 overflow-hidden rounded-2xl"
+        className="flex-shrink-0 overflow-hidden rounded-3xl"
         animate={{
           width: sidebarCollapsed ? 0 : sidebarWidth,
           opacity: sidebarCollapsed ? 0 : 1,
@@ -480,7 +480,7 @@ export function AppLayout() {
       {/* 常時マウント: アンマウント時の gap 消失ジャンプを防ぐ */}
       {/* 外側マスク: width 0↔264 でクリップ。padding/border/margin なし */}
       <motion.div
-        className="flex-shrink-0 overflow-hidden rounded-2xl"
+        className="flex-shrink-0 overflow-hidden rounded-3xl"
         initial={{ width: 0, opacity: 0, marginLeft: -10 }}
         animate={{
           width: isDetailPanelOpen && !!colorForPanel ? 264 : 0,
