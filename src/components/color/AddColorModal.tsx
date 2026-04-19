@@ -75,8 +75,8 @@ export function AddColorModal({ onClose }: AddColorModalProps) {
             placeholder="#3A7BD5 / rgb(58,123,213) / hsl(220,63%,53%)"
             autoFocus
             className={[
-              'w-full px-3 py-2 bg-surface-overlay rounded-lg text-sm text-text-primary font-mono placeholder:text-text-muted focus:outline-none transition-colors',
-              isInvalid ? 'border-2 border-danger' : 'border border-border focus:border-accent',
+              'w-full px-3 py-2 bg-surface-raised rounded-md text-sm text-text-primary font-mono placeholder:text-text-muted focus:outline-none hover:border-border/30 transition-colors',
+              isInvalid ? 'border-2 border-red-500/60' : 'border border-border/15 focus:border-accent/40',
             ].join(' ')}
           />
         </div>

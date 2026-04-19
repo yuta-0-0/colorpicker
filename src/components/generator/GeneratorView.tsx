@@ -215,8 +215,8 @@ export function GeneratorView() {
                   placeholder="#RRGGBB"
                   maxLength={7}
                   className={[
-                    'flex-1 bg-surface-overlay border rounded-md px-3 py-2 text-sm font-mono text-text-primary focus:outline-none transition-colors',
-                    isValid ? 'border-border focus:border-accent' : 'border-red-500/60',
+                    'flex-1 bg-surface-raised border rounded-md px-3 py-2 text-sm font-mono text-text-primary focus:outline-none hover:border-border/30 transition-colors',
+                    isValid ? 'border-border/15 focus:border-accent/40' : 'border-red-500/60',
                   ].join(' ')}
                 />
               </div>
@@ -386,8 +386,8 @@ export function GeneratorView() {
                     placeholder="#RRGGBB"
                     maxLength={7}
                     className={[
-                      'flex-1 bg-surface-overlay border rounded-md px-2.5 py-1.5 text-xs font-mono text-text-primary focus:outline-none transition-colors',
-                      isValidHex(hex) ? 'border-border focus:border-accent' : 'border-red-500/60',
+                      'flex-1 bg-surface-raised border rounded-md px-2.5 py-1.5 text-xs font-mono text-text-primary focus:outline-none hover:border-border/30 transition-colors',
+                      isValidHex(hex) ? 'border-border/15 focus:border-accent/40' : 'border-red-500/60',
                     ].join(' ')}
                   />
                   {/* 削除ボタン（3色以上のときのみ） */}
@@ -645,8 +645,8 @@ function ColorInputSlot({ label, value, onChange }: { label: string; value: stri
           placeholder="#RRGGBB"
           maxLength={7}
           className={[
-            'flex-1 w-0 bg-surface-overlay border rounded-md px-2 py-1.5 text-xs font-mono text-text-primary focus:outline-none transition-colors',
-            valid ? 'border-border focus:border-accent' : 'border-red-500/60',
+            'flex-1 w-0 bg-surface-raised border rounded-md px-2 py-1.5 text-xs font-mono text-text-primary focus:outline-none hover:border-border/30 transition-colors',
+            valid ? 'border-border/15 focus:border-accent/40' : 'border-red-500/60',
           ].join(' ')}
         />
       </div>

@@ -68,7 +68,7 @@ export function TagList({ activeTagId, onSelectTag }: TagListProps) {
                 onChange={(e) => setEditValue(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Escape') cancelEdit() }}
                 onBlur={handleSaveEdit}
-                className="w-full px-2 py-0.5 text-xs bg-surface-overlay border border-accent rounded text-text-primary outline-none"
+                className="w-full px-2 py-0.5 text-xs bg-surface-raised border border-accent/60 rounded-md text-text-primary outline-none focus:border-accent transition-colors"
                 autoFocus
               />
             </form>

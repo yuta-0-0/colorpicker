@@ -327,7 +327,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
               onBlur={handleNameSubmit}
               onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleNameSubmit(); if (e.key === 'Escape') setIsEditingName(false) }}
               autoFocus
-              className="w-full bg-surface-overlay border border-accent rounded-md px-2 py-1 text-base font-medium text-text-primary focus:outline-none"
+              className="w-full bg-surface-raised border border-accent/60 rounded-md px-2 py-1 text-base font-medium text-text-primary focus:outline-none focus:border-accent transition-colors"
             />
           ) : (
             <button
@@ -478,8 +478,8 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 maxLength={7}
                 placeholder="#RRGGBB"
                 className={[
-                  'flex-1 bg-surface-overlay border rounded-md px-2 py-1 text-sm font-mono text-text-primary focus:outline-none transition-colors',
-                  isValidHex ? 'border-border/20 focus:border-accent' : 'border-red-500/60',
+                  'flex-1 bg-surface-raised border rounded-md px-2 py-1 text-sm font-mono text-text-primary focus:outline-none hover:border-border/30 transition-colors',
+                  isValidHex ? 'border-border/15 focus:border-accent/40' : 'border-red-500/60',
                 ].join(' ')}
               />
               <button
@@ -563,7 +563,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
                       max="100"
                       value={cmykDraft[ch]}
                       onChange={(e) => handleCmykChannelChange(ch, e.target.value)}
-                      className="w-full text-center text-xs font-mono bg-surface-overlay border border-border/20 rounded-md px-1 py-1 text-text-primary focus:outline-none focus:border-accent"
+                      className="w-full text-center text-xs font-mono bg-surface-raised border border-border/15 rounded-md px-1 py-1 text-text-primary focus:outline-none hover:border-border/30 focus:border-accent/40 transition-colors"
                     />
                   </div>
                 ))}
@@ -652,7 +652,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
             }}
             disabled={color.is_locked}
             placeholder="PANTONE 286 C / DIC-43"
-            className="w-full bg-surface-overlay border border-border/15 rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none hover:border-border/30 focus:border-accent/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-text-muted"
+            className="w-full bg-surface-raised border border-border/15 rounded-md px-2.5 py-1.5 text-xs text-text-primary focus:outline-none hover:border-border/30 focus:border-accent/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-text-muted"
           />
         </div>
 

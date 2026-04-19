@@ -123,7 +123,7 @@ function SortableFolderItem({
             if (e.key === 'Escape') { setEditValue(folder.name); setIsEditing(false) }
           }}
           autoFocus
-          className="flex-1 bg-surface-overlay border border-accent rounded px-1 text-sm text-text-primary focus:outline-none"
+          className="flex-1 bg-surface-raised border border-accent/60 rounded-md px-1 text-sm text-text-primary focus:outline-none focus:border-accent transition-colors"
         />
       ) : (
         <button
@@ -263,7 +263,7 @@ export function FolderList({ activeFolderId, onSelectFolder }: FolderListProps) 
             }}
             autoFocus
             placeholder={creatingParentId ? 'サブフォルダ名' : 'フォルダ名'}
-            className="w-full bg-surface-overlay border border-accent rounded px-2 py-0.5 text-sm text-text-primary focus:outline-none placeholder:text-text-muted"
+            className="w-full bg-surface-raised border border-accent/60 rounded-md px-2 py-0.5 text-sm text-text-primary focus:outline-none focus:border-accent placeholder:text-text-muted transition-colors"
           />
         </div>
       ) : (
