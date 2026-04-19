@@ -117,7 +117,7 @@ export function TagInput({ colorId, isLocked }: TagInputProps) {
             onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder="タグを追加..."
-            className="w-full px-2 py-1 bg-surface-overlay border border-border rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+            className="w-full px-0 py-0.5 bg-transparent border-0 text-xs text-text-primary placeholder:text-text-muted focus:outline-none transition-colors"
           />
 
           {/* ドロップダウン */}

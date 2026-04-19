@@ -97,7 +97,7 @@ export function ContextualPanel({ color }: ContextualPanelProps) {
               <MemoArea color={color} />
               <div>
                 <p className="text-xs text-text-muted mb-1">タグ</p>
-                <div className="bg-surface-raised border border-border/15 rounded-md px-2.5 py-0.5 hover:border-border/30 focus-within:border-accent/40 transition-colors">
+                <div className="bg-surface-raised border border-border/15 rounded-md px-2.5 py-0 hover:border-border/30 focus-within:border-accent/40 transition-colors">
                   <TagInput colorId={color.id} isLocked={color.is_locked} />
                 </div>
               </div>
