@@ -328,7 +328,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
               onBlur={handleNameSubmit}
               onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') handleNameSubmit(); if (e.key === 'Escape') setIsEditingName(false) }}
               autoFocus
-              className="w-full bg-surface-overlay border border-accent rounded px-2 py-1 text-base font-medium text-text-primary focus:outline-none"
+              className="w-full bg-surface-overlay border border-accent rounded-md px-2 py-1 text-base font-medium text-text-primary focus:outline-none"
             />
           ) : (
             <button
@@ -479,7 +479,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 maxLength={7}
                 placeholder="#RRGGBB"
                 className={[
-                  'flex-1 bg-surface-overlay border rounded px-2 py-1 text-sm font-mono text-text-primary focus:outline-none transition-colors',
+                  'flex-1 bg-surface-overlay border rounded-md px-2 py-1 text-sm font-mono text-text-primary focus:outline-none transition-colors',
                   isValidHex ? 'border-border/20 focus:border-accent' : 'border-red-500/60',
                 ].join(' ')}
               />
@@ -487,13 +487,13 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 type="button"
                 onClick={handleHexSave}
                 disabled={!isValidHex}
-                className="text-xs px-2 py-1 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white rounded transition-colors"
+                className="text-xs px-2 py-1 bg-accent hover:bg-accent-hover disabled:opacity-40 text-white rounded-md transition-colors"
               >保存</button>
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => setIsEditingHex(false)}
-                className="text-xs px-2 py-1 bg-surface-raised hover:bg-surface-overlay text-text-secondary rounded transition-colors"
+                className="text-xs px-2 py-1 bg-surface-raised hover:bg-surface-overlay text-text-secondary rounded-md transition-colors"
               >✕</button>
             </div>
           )}
@@ -547,7 +547,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-xs text-text-muted">CMYK（印刷用）</p>
             {sourceLabel && (
-              <span className="text-xs text-text-muted bg-surface-raised px-1.5 py-0.5 rounded">{sourceLabel}</span>
+              <span className="text-xs text-text-muted bg-surface-raised px-1.5 py-0.5 rounded-md">{sourceLabel}</span>
             )}
           </div>
 
@@ -564,13 +564,13 @@ export function DetailPanel({ color }: DetailPanelProps) {
                       max="100"
                       value={cmykDraft[ch]}
                       onChange={(e) => handleCmykChannelChange(ch, e.target.value)}
-                      className="w-full text-center text-xs font-mono bg-surface-overlay border border-border/20 rounded px-1 py-1 text-text-primary focus:outline-none focus:border-accent"
+                      className="w-full text-center text-xs font-mono bg-surface-overlay border border-border/20 rounded-md px-1 py-1 text-text-primary focus:outline-none focus:border-accent"
                     />
                   </div>
                 ))}
               </div>
               {/* 入力中 TAC プレビュー */}
-              <div className={['flex items-center justify-between px-2 py-1 rounded text-xs', draftTacWarning ? 'bg-red-500/10 border border-red-500/30' : 'bg-surface-raised'].join(' ')}>
+              <div className={['flex items-center justify-between px-2 py-1 rounded-md text-xs', draftTacWarning ? 'bg-red-500/10 border border-red-500/30' : 'bg-surface-raised'].join(' ')}>
                 <span className="text-text-muted">TAC合計</span>
                 <span className={['font-mono font-medium', draftTacWarning ? 'text-red-400' : 'text-text-secondary'].join(' ')}>
                   {draftTac}%{draftTacWarning ? ' ⚠ 上限超過' : ''}
@@ -581,14 +581,14 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 <button
                   onClick={handleCmykSave}
                   type="button"
-                  className="flex-1 py-1 bg-accent hover:bg-accent-hover text-white text-xs rounded transition-colors"
+                  className="flex-1 py-1 bg-accent hover:bg-accent-hover text-white text-xs rounded-md transition-colors"
                 >
                   保存
                 </button>
                 <button
                   onClick={handleCmykCancel}
                   type="button"
-                  className="flex-1 py-1 bg-surface-raised hover:bg-surface-overlay text-text-secondary text-xs rounded transition-colors"
+                  className="flex-1 py-1 bg-surface-raised hover:bg-surface-overlay text-text-secondary text-xs rounded-md transition-colors"
                 >
                   キャンセル
                 </button>
@@ -617,7 +617,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
               </div>
               {/* TAC 表示（保存済み値がある場合） */}
               {hasCmyk && tac !== null && (
-                <div className={['flex items-center justify-between px-2 py-1 rounded text-xs', tacWarning ? 'bg-red-500/10 border border-red-500/30' : 'bg-surface-raised'].join(' ')}>
+                <div className={['flex items-center justify-between px-2 py-1 rounded-md text-xs', tacWarning ? 'bg-red-500/10 border border-red-500/30' : 'bg-surface-raised'].join(' ')}>
                   <span className="text-text-muted">TAC合計</span>
                   <span className={['font-mono font-medium', tacWarning ? 'text-red-400' : 'text-text-secondary'].join(' ')}>
                     {Math.round(tac)}%{tacWarning ? ' ⚠ 上限超過' : ''}
@@ -629,7 +629,7 @@ export function DetailPanel({ color }: DetailPanelProps) {
                 <button
                   onClick={handleCmykEdit}
                   type="button"
-                  className="w-full py-1 text-xs text-text-muted hover:text-text-primary bg-surface-raised hover:bg-surface-overlay rounded transition-colors"
+                  className="w-full py-1 text-xs text-text-muted hover:text-text-primary bg-surface-raised hover:bg-surface-overlay rounded-md transition-colors"
                 >
                   {hasCmyk ? 'CMYK を編集' : '近似値をもとに入力'}
                 </button>
