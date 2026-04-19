@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useTagStore } from '@/store/tagStore'
 
 interface TagInputProps {
@@ -10,6 +11,7 @@ export function TagInput({ colorId, isLocked }: TagInputProps) {
   const { tags, colorTags, fetchColorTags, createTag, addTagToColor, removeTagFromColor } = useTagStore()
   const [inputValue, setInputValue] = useState('')
   const [isOpen, setIsOpen] = useState(false)
+  const [dropdownRect, setDropdownRect] = useState<DOMRect | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -36,6 +38,29 @@ export function TagInput({ colorId, isLocked }: TagInputProps) {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // スクロール・リサイズ時にドロップダウン位置を再計算
+  useEffect(() => {
+    if (!isOpen) return
+    const update = () => {
+      if (inputRef.current) {
+        setDropdownRect(inputRef.current.getBoundingClientRect())
+      }
+    }
+    window.addEventListener('scroll', update, true)
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
+  }, [isOpen])
+
+  const openWithPosition = () => {
+    if (inputRef.current) {
+      setDropdownRect(inputRef.current.getBoundingClientRect())
+    }
+    setIsOpen(true)
+  }
 
   // 既に付与済みのタグを除外、inputValue で前方一致フィルター
   const filteredTags = tags.filter(
@@ -115,40 +140,49 @@ export function TagInput({ colorId, isLocked }: TagInputProps) {
             ref={inputRef}
             type="text"
             value={inputValue}
-            onChange={(e) => { setInputValue(e.target.value); setIsOpen(true) }}
-            onFocus={() => setIsOpen(true)}
+            onChange={(e) => { setInputValue(e.target.value); openWithPosition() }}
+            onFocus={openWithPosition}
             onKeyDown={handleKeyDown}
             placeholder="タグを追加..."
             className="w-full px-0 py-0.5 bg-transparent border-0 text-xs text-text-primary placeholder:text-text-muted focus:outline-none transition-colors"
           />
 
-          {/* ドロップダウン */}
-          {isOpen && (filteredTags.length > 0 || showCreateOption) && (
-            <div
-              ref={dropdownRef}
-              className="absolute top-full left-0 right-0 mt-1 bg-surface-raised/85 backdrop-blur-md border border-border/50 rounded-lg z-50 overflow-hidden"
-            >
-              {filteredTags.map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => handleSelectTag(tag.id)}
-                  className="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
-                >
-                  {tag.name}
-                </button>
-              ))}
-              {showCreateOption && (
-                <button
-                  type="button"
-                  onClick={handleCreateAndAdd}
-                  className="w-full text-left px-3 py-1.5 text-xs text-accent hover:bg-surface-overlay transition-colors"
-                >
-                  「{inputValue.trim()}」を作成して追加
-                </button>
-              )}
-            </div>
-          )}
+          {/* ドロップダウン — overflow:hidden を回避するため portal で body 直下に描画 */}
+          {isOpen && dropdownRect && (filteredTags.length > 0 || showCreateOption) &&
+            createPortal(
+              <div
+                ref={dropdownRef}
+                className="glass-popup rounded-lg z-[9999] overflow-hidden"
+                style={{
+                  position: 'fixed',
+                  top: dropdownRect.bottom + 4,
+                  left: dropdownRect.left,
+                  width: dropdownRect.width,
+                }}
+              >
+                {filteredTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => handleSelectTag(tag.id)}
+                    className="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-overlay hover:text-text-primary transition-colors"
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+                {showCreateOption && (
+                  <button
+                    type="button"
+                    onClick={handleCreateAndAdd}
+                    className="w-full text-left px-3 py-1.5 text-xs text-accent hover:bg-surface-overlay transition-colors"
+                  >
+                    「{inputValue.trim()}」を作成して追加
+                  </button>
+                )}
+              </div>,
+              document.body
+            )
+          }
         </div>
       )}
     </div>
