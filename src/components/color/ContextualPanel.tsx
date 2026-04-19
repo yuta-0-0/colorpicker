@@ -28,7 +28,7 @@ function MemoArea({ color }: { color: Color }) {
   return (
     <div className="flex-1 min-w-0">
       <p className="text-xs text-text-muted mb-1">メモ</p>
-      <div className="bg-surface-raised border border-border/15 rounded-md px-2.5 py-2 hover:border-border/30 focus-within:border-accent/40 transition-colors">
+      <div className="bg-surface-raised border border-border/15 rounded-md px-2.5 py-1 hover:border-border/30 focus-within:border-accent/40 transition-colors">
         <textarea
           value={value}
           onChange={(e) => { if (!color.is_locked) setValue(e.target.value) }}
