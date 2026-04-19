@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, screen } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, nativeTheme, screen } from 'electron'
 import path from 'path'
 
 const isDev = !app.isPackaged
@@ -15,7 +15,6 @@ function createWindow() {
     backgroundColor: '#00000000',
     titleBarStyle: 'hiddenInset',
     transparent: true,
-    vibrancy: 'under-window',
     hasShadow: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -128,6 +127,11 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   globalShortcut.unregisterAll()
   if (process.platform !== 'darwin') app.quit()
+})
+
+// テーマ同期: React → Electron nativeTheme
+ipcMain.handle('theme:set', (_, themeSource: 'dark' | 'light' | 'system') => {
+  nativeTheme.themeSource = themeSource
 })
 
 // スクリーンピッカー
