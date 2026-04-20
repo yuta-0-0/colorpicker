@@ -38,26 +38,28 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
   setSnapSide: (snapSide) => set({ snapSide }),
 
   syncFromIPC: (payload) =>
-    set((state) => ({
-      previousColor: state.currentColor.hex !== payload.currentColor.hex
-        ? state.currentColor
-        : state.previousColor,
-      currentColor: payload.currentColor,
-      history: payload.history,
-      folders: payload.folders,
-    })),
-
-  swapColors: () =>
     set((state) => {
-      if (!state.previousColor) return state
+      const colorChanged =
+        state.currentColor.hex !== payload.currentColor.hex ||
+        state.currentColor.alpha !== payload.currentColor.alpha
       return {
-        currentColor: state.previousColor,
-        previousColor: state.currentColor,
+        previousColor: colorChanged ? state.currentColor : state.previousColor,
+        currentColor: payload.currentColor,
+        history: payload.history,
+        folders: payload.folders,
       }
     }),
 
+  swapColors: () =>
+    set((state) =>
+      state.previousColor
+        ? { currentColor: state.previousColor, previousColor: state.currentColor }
+        : {}
+    ),
+
   setMiniSlot: (index, hex) =>
     set((state) => {
+      if (index < 0 || index >= state.miniSlots.length) return state
       const slots = [...state.miniSlots]
       slots[index] = hex
       return { miniSlots: slots }
