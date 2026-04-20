@@ -28,6 +28,15 @@ declare global {
       closePrismTile: () => Promise<void>
       pushColorToPrismTile: (data: ColorData) => void
       onPrismTileColorUpdated: (cb: (data: ColorData) => void) => () => void
+      // Floating System
+      openFloatingSystem: () => Promise<void>
+      closeFloatingSystem: () => Promise<void>
+      requestFloatingResize: (size: { width: number; height: number }) => Promise<void>
+      pushSyncToFloating: (payload: unknown) => void
+      onFloatingSync: (cb: (payload: unknown) => void) => () => void
+      onFloatingSnapChange: (cb: (data: { side: 'none' | 'left' | 'right' }) => void) => () => void
+      floatingColorSelected: (hex: string) => void
+      onFloatingColorSelected: (cb: (data: { hex: string }) => void) => () => void
     }
   }
 }

@@ -2,15 +2,23 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PrismTileView } from '@/components/prism/PrismTileView'
+import { FloatingSystemView } from '@/components/floating/FloatingSystemView'
 import type { Session } from '@supabase/supabase-js'
 
 // Prism Tile モードの判定（URL クエリ: ?prism-tile=1）
 const isPrismTileMode = new URLSearchParams(window.location.search).get('prism-tile') === '1'
+// Floating System モードの判定（URL クエリ: ?floating-system=1）
+const isFloatingSystemMode = new URLSearchParams(window.location.search).get('floating-system') === '1'
 
 export default function App() {
   // Prism Tile モードのときはサイズの小さいウィンドウとして描画
   if (isPrismTileMode) {
     return <PrismTileView />
+  }
+
+  // Floating System モードのときは専用ビューを描画
+  if (isFloatingSystemMode) {
+    return <FloatingSystemView />
   }
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
