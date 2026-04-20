@@ -10,7 +10,7 @@ export function FloatingSystemView() {
 
   // IPC: snap 状態変化
   useEffect(() => {
-    if (!window.electronAPI?.onFloatingSnapChange) return
+    if (!window.electronAPI?.onFloatingSnapChange) return undefined
     const unsub = window.electronAPI.onFloatingSnapChange(({ side }) => {
       setSnapSide(side)
       if (side !== 'none') {
@@ -26,7 +26,7 @@ export function FloatingSystemView() {
 
   // IPC: 色・履歴・フォルダ同期
   useEffect(() => {
-    if (!window.electronAPI?.onFloatingSync) return
+    if (!window.electronAPI?.onFloatingSync) return undefined
     const unsub = window.electronAPI.onFloatingSync((raw) => {
       syncFromIPC(raw as FSSyncPayload)
     })

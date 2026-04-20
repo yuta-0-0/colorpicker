@@ -19,27 +19,6 @@ interface ColorData {
   hasGamutWarning: boolean
 }
 
-declare global {
-  interface Window {
-    electronAPI?: {
-      startScreenPicker: () => Promise<null>
-      platform: string
-      openPrismTile: () => Promise<void>
-      closePrismTile: () => Promise<void>
-      pushColorToPrismTile: (data: ColorData) => void
-      onPrismTileColorUpdated: (cb: (data: ColorData) => void) => () => void
-      // Floating System
-      openFloatingSystem: () => Promise<void>
-      closeFloatingSystem: () => Promise<void>
-      requestFloatingResize: (size: { width: number; height: number }) => Promise<void>
-      pushSyncToFloating: (payload: unknown) => void
-      onFloatingSync: (cb: (payload: unknown) => void) => () => void
-      onFloatingSnapChange: (cb: (data: { side: 'none' | 'left' | 'right' }) => void) => () => void
-      floatingColorSelected: (hex: string) => void
-      onFloatingColorSelected: (cb: (data: { hex: string }) => void) => () => void
-    }
-  }
-}
 
 function hexToRgb(hex: string): [number, number, number] {
   const clean = hex.replace('#', '')
