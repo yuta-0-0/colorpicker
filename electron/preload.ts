@@ -21,9 +21,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Prism Tile 側で最新色の受信を購読
   onPrismTileColorUpdated: (callback: (colorData: { hex: string; alpha: number; name: string; hasGamutWarning: boolean }) => void) => {
-    ipcRenderer.on('prism-tile:color-updated', (_, data) => callback(data))
+    const handler = (_: Electron.IpcRendererEvent, data: unknown) => callback(data as { hex: string; alpha: number; name: string; hasGamutWarning: boolean })
+    ipcRenderer.on('prism-tile:color-updated', handler)
     // クリーンアップ関数を返す
-    return () => ipcRenderer.removeAllListeners('prism-tile:color-updated')
+    return () => ipcRenderer.removeListener('prism-tile:color-updated', handler)
   },
 
   // Floating System
@@ -36,17 +37,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Floating 側: 受信
   onFloatingSync: (cb: (payload: unknown) => void) => {
-    ipcRenderer.on('fs:sync', (_, data) => cb(data))
-    return () => ipcRenderer.removeAllListeners('fs:sync')
+    const handler = (_: Electron.IpcRendererEvent, data: unknown) => cb(data)
+    ipcRenderer.on('fs:sync', handler)
+    return () => ipcRenderer.removeListener('fs:sync', handler)
   },
   onFloatingSnapChange: (cb: (data: { side: 'none' | 'left' | 'right' }) => void) => {
-    ipcRenderer.on('fs:snap-change', (_, data) => cb(data))
-    return () => ipcRenderer.removeAllListeners('fs:snap-change')
+    const handler = (_: Electron.IpcRendererEvent, data: unknown) => cb(data as { side: 'none' | 'left' | 'right' })
+    ipcRenderer.on('fs:snap-change', handler)
+    return () => ipcRenderer.removeListener('fs:snap-change', handler)
   },
   floatingColorSelected: (hex: string) =>
     ipcRenderer.send('fs:color-selected', { hex }),
   onFloatingColorSelected: (cb: (data: { hex: string }) => void) => {
-    ipcRenderer.on('fs:color-selected', (_, data) => cb(data))
-    return () => ipcRenderer.removeAllListeners('fs:color-selected')
+    const handler = (_: Electron.IpcRendererEvent, data: unknown) => cb(data as { hex: string })
+    ipcRenderer.on('fs:color-selected', handler)
+    return () => ipcRenderer.removeListener('fs:color-selected', handler)
   },
 })

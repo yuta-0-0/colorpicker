@@ -124,6 +124,7 @@ function createFloatingSystemWindow() {
   }
 
   // Snap 判定: ウィンドウが移動するたびに画面端との距離を検査
+  let lastSnapSide: 'none' | 'left' | 'right' = 'none'
   floatingWin.on('moved', () => {
     if (!floatingWin || floatingWin.isDestroyed()) return
     const winBounds = floatingWin.getBounds()
@@ -138,7 +139,10 @@ function createFloatingSystemWindow() {
       floatingWin.setPosition(wa.width - winBounds.width, winBounds.y)
     }
 
-    floatingWin.webContents.send('fs:snap-change', { side })
+    if (side !== lastSnapSide) {
+      lastSnapSide = side
+      floatingWin.webContents.send('fs:snap-change', { side })
+    }
   })
 
   floatingWin.on('closed', () => {
@@ -253,11 +257,13 @@ ipcMain.handle('fs:request-resize', (_, { width, height }: { width: number; heig
   if (!floatingWin || floatingWin.isDestroyed()) return
   const { workAreaSize: wa } = screen.getPrimaryDisplay()
   const bounds = floatingWin.getBounds()
-  // 右スナップ時はウィンドウを右寄せに保つ
+  // スナップ時はウィンドウを端寄せに保つ
   const snapSide = bounds.x <= SNAP_THRESHOLD ? 'left'
-    : bounds.x + bounds.width >= wa.width - SNAP_THRESHOLD ? 'right' : 'none'
+    : bounds.x + width >= wa.width - SNAP_THRESHOLD ? 'right' : 'none'
   if (snapSide === 'right') {
     floatingWin.setBounds({ x: wa.width - width, y: bounds.y, width, height })
+  } else if (snapSide === 'left') {
+    floatingWin.setBounds({ x: 0, y: bounds.y, width, height })
   } else {
     floatingWin.setSize(width, height)
   }
