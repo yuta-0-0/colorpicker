@@ -6,6 +6,9 @@ const isDev = !app.isPackaged
 // Prism Tile ウィンドウの参照
 let prismTileWin: BrowserWindow | null = null
 
+// Floating System ウィンドウの参照
+let floatingWin: BrowserWindow | null = null
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -80,6 +83,71 @@ function createPrismTileWindow() {
   return prismTileWin
 }
 
+const SNAP_THRESHOLD = 40  // px: この距離以内で画面端スナップ
+
+function createFloatingSystemWindow() {
+  if (floatingWin && !floatingWin.isDestroyed()) {
+    floatingWin.show()
+    floatingWin.focus()
+    return floatingWin
+  }
+
+  const { workAreaSize, bounds: displayBounds } = screen.getPrimaryDisplay()
+  const winWidth = 80
+  const winHeight = 32
+
+  floatingWin = new BrowserWindow({
+    width: winWidth,
+    height: winHeight,
+    x: displayBounds.x + Math.floor((workAreaSize.width - winWidth) / 2),
+    y: displayBounds.y + 60,
+    resizable: false,
+    alwaysOnTop: true,
+    frame: false,
+    transparent: true,
+    hasShadow: false,
+    backgroundColor: '#00000000',
+    skipTaskbar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  if (isDev) {
+    floatingWin.loadURL('http://localhost:5173/?floating-system=1')
+  } else {
+    floatingWin.loadFile(path.join(__dirname, '../dist/index.html'), {
+      query: { 'floating-system': '1' },
+    })
+  }
+
+  // Snap 判定: ウィンドウが移動するたびに画面端との距離を検査
+  floatingWin.on('moved', () => {
+    if (!floatingWin || floatingWin.isDestroyed()) return
+    const winBounds = floatingWin.getBounds()
+    const { workAreaSize: wa } = screen.getPrimaryDisplay()
+
+    let side: 'none' | 'left' | 'right' = 'none'
+    if (winBounds.x <= SNAP_THRESHOLD) {
+      side = 'left'
+      floatingWin.setPosition(0, winBounds.y)
+    } else if (winBounds.x + winBounds.width >= wa.width - SNAP_THRESHOLD) {
+      side = 'right'
+      floatingWin.setPosition(wa.width - winBounds.width, winBounds.y)
+    }
+
+    floatingWin.webContents.send('fs:snap-change', { side })
+  })
+
+  floatingWin.on('closed', () => {
+    floatingWin = null
+  })
+
+  return floatingWin
+}
+
 // 2重起動防止：2つ目のインスタンスは即終了して1つ目を前面に出す
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
@@ -119,6 +187,18 @@ app.whenReady().then(() => {
     console.warn('Failed to register global shortcut ⌘+Shift+T')
   }
 
+  // Floating System 呼び出し（⌘+Shift+F）
+  const floatingShortcutOk = globalShortcut.register('CommandOrControl+Shift+F', () => {
+    if (floatingWin && !floatingWin.isDestroyed() && floatingWin.isVisible()) {
+      floatingWin.hide()
+    } else {
+      createFloatingSystemWindow()
+    }
+  })
+  if (!floatingShortcutOk) {
+    console.warn('Failed to register global shortcut ⌘+Shift+F')
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -156,4 +236,42 @@ ipcMain.on('prism-tile:push-color', (_, colorData: { hex: string; alpha: number;
   if (prismTileWin && !prismTileWin.isDestroyed()) {
     prismTileWin.webContents.send('prism-tile:color-updated', colorData)
   }
+})
+
+// Floating System: 開く
+ipcMain.handle('fs:open', () => {
+  createFloatingSystemWindow()
+})
+
+// Floating System: 閉じる
+ipcMain.handle('fs:close', () => {
+  if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
+})
+
+// Floating System: ウィンドウリサイズ要求（React → main）
+ipcMain.handle('fs:request-resize', (_, { width, height }: { width: number; height: number }) => {
+  if (!floatingWin || floatingWin.isDestroyed()) return
+  const { workAreaSize: wa } = screen.getPrimaryDisplay()
+  const bounds = floatingWin.getBounds()
+  // 右スナップ時はウィンドウを右寄せに保つ
+  const snapSide = bounds.x <= SNAP_THRESHOLD ? 'left'
+    : bounds.x + bounds.width >= wa.width - SNAP_THRESHOLD ? 'right' : 'none'
+  if (snapSide === 'right') {
+    floatingWin.setBounds({ x: wa.width - width, y: bounds.y, width, height })
+  } else {
+    floatingWin.setSize(width, height)
+  }
+})
+
+// Floating System: 色同期（メインウィンドウ → Floating）
+ipcMain.on('fs:push-sync', (_, payload: unknown) => {
+  if (floatingWin && !floatingWin.isDestroyed()) {
+    floatingWin.webContents.send('fs:sync', payload)
+  }
+})
+
+// Floating System: Floating で色を選択 → メインウィンドウへ通知
+ipcMain.on('fs:color-selected', (_, { hex }: { hex: string }) => {
+  const wins = BrowserWindow.getAllWindows().filter(w => w !== floatingWin && !w.isDestroyed())
+  wins.forEach(w => w.webContents.send('fs:color-selected', { hex }))
 })
