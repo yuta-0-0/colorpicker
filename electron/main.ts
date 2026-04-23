@@ -253,20 +253,27 @@ ipcMain.handle('fs:close', () => {
 })
 
 // Floating System: ウィンドウリサイズ要求（React → main）
-ipcMain.handle('fs:request-resize', (_, { width, height }: { width: number; height: number }) => {
+ipcMain.handle('fs:request-resize', (_, { width, height, anchor = 'left' }: { width: number; height: number; anchor?: 'center' | 'left' | 'right' }) => {
   if (!floatingWin || floatingWin.isDestroyed()) return
   const { workAreaSize: wa } = screen.getPrimaryDisplay()
   const bounds = floatingWin.getBounds()
-  // スナップ時はウィンドウを端寄せに保つ
-  const snapSide = bounds.x <= SNAP_THRESHOLD ? 'left'
-    : bounds.x + width >= wa.width - SNAP_THRESHOLD ? 'right' : 'none'
-  if (snapSide === 'right') {
-    floatingWin.setBounds({ x: wa.width - width, y: bounds.y, width, height })
-  } else if (snapSide === 'left') {
-    floatingWin.setBounds({ x: 0, y: bounds.y, width, height })
+
+  let newX: number
+  if (anchor === 'center') {
+    // 中心X座標を維持してリサイズ（Tab ↔ Toolbar モーフ時）
+    const centerX = bounds.x + Math.floor(bounds.width / 2)
+    newX = centerX - Math.floor(width / 2)
+  } else if (anchor === 'right') {
+    // 右端固定（右スナップ時の Dock 開閉）
+    newX = bounds.x + bounds.width - width
   } else {
-    floatingWin.setSize(width, height)
+    // 'left': 左端固定（デフォルト）
+    newX = bounds.x
   }
+
+  // 画面内にクランプ
+  newX = Math.max(0, Math.min(newX, wa.width - width))
+  floatingWin.setBounds({ x: newX, y: bounds.y, width, height })
 })
 
 // Floating System: 色同期（メインウィンドウ → Floating）

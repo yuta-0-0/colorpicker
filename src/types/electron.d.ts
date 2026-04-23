@@ -25,7 +25,7 @@ declare global {
       // Floating System
       openFloatingSystem: () => Promise<void>
       closeFloatingSystem: () => Promise<void>
-      requestFloatingResize: (size: { width: number; height: number }) => Promise<void>
+      requestFloatingResize: (size: { width: number; height: number; anchor?: 'center' | 'left' | 'right' }) => Promise<void>
       pushSyncToFloating: (payload: unknown) => void
       onFloatingSync: (cb: (payload: unknown) => void) => () => void
       onFloatingSnapChange: (cb: (data: { side: 'none' | 'left' | 'right' }) => void) => () => void

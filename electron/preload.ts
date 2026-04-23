@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Floating System
   openFloatingSystem: () => ipcRenderer.invoke('fs:open'),
   closeFloatingSystem: () => ipcRenderer.invoke('fs:close'),
-  requestFloatingResize: (size: { width: number; height: number }) =>
+  requestFloatingResize: (size: { width: number; height: number; anchor?: 'center' | 'left' | 'right' }) =>
     ipcRenderer.invoke('fs:request-resize', size),
   pushSyncToFloating: (payload: unknown) =>
     ipcRenderer.send('fs:push-sync', payload),

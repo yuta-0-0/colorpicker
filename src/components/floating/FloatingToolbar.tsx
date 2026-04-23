@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
 import { HandyDock } from './HandyDock'
-import { IconArrowsLeftRight, IconEyedropper, IconCopy, IconCheck, IconFolder } from '@/components/ui/Icons'
+import { IconArrowsLeftRight, IconEyedropper, IconCopy, IconCheck, IconFolder, IconArrowLineUp } from '@/components/ui/Icons'
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).catch(() => {
@@ -55,7 +55,7 @@ function TactileButton({
 export function FloatingToolbar() {
   const {
     currentColor, previousColor, snapSide,
-    miniSlots, setMiniSlot, swapColors,
+    miniSlots, setMiniSlot, swapColors, setFloatingState,
   } = useFloatingStore()
   const [copied, setCopied] = useState(false)
   const [dockOpen, setDockOpen] = useState(false)
@@ -81,6 +81,11 @@ export function FloatingToolbar() {
     window.electronAPI?.floatingColorSelected(hex)
   }, [])
 
+  const handleShrink = useCallback(() => {
+    setFloatingState('tab')
+    window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
+  }, [setFloatingState])
+
   useEffect(() => {
     return () => {
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
@@ -93,8 +98,11 @@ export function FloatingToolbar() {
     window.electronAPI?.requestFloatingResize({
       width: dockOpen ? 372 : 48,
       height: 320,
+      anchor: dockOpen
+        ? (snapSide === 'right' ? 'right' : 'left')
+        : (snapSide === 'right' ? 'right' : 'left'),
     })
-  }, [dockOpen])
+  }, [dockOpen, snapSide])
 
   const isDockLeft = snapSide === 'left'
 
@@ -111,8 +119,10 @@ export function FloatingToolbar() {
     >
       {/* ── Toolbar 本体（48px） ── */}
       <motion.div
-        initial={{ opacity: 0, scaleY: 0.6 }}
-        animate={{ opacity: 1, scaleY: 1 }}
+        layoutId="floating-frame"
+        layout
+        initial={{ borderColor: 'rgba(80,176,211,0.5)' }}
+        animate={{ borderColor: 'rgba(255,255,255,0.15)' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         style={{
           width: 48,
@@ -121,7 +131,7 @@ export function FloatingToolbar() {
           background: 'rgba(18, 24, 38, 0.70)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: '0.5px solid rgba(255,255,255,0.15)',
+          border: '0.5px solid',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -131,6 +141,27 @@ export function FloatingToolbar() {
           flexShrink: 0,
         } as React.CSSProperties}
       >
+        {/* ── 0. 縮小ボタン ── */}
+        <motion.button
+          onClick={handleShrink}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          title="カプセルに戻す"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'rgba(255,255,255,0.3)',
+            cursor: 'pointer',
+            fontSize: 12,
+            padding: 0,
+            WebkitAppRegion: 'no-drag',
+            display: 'flex',
+            alignItems: 'center',
+          } as React.CSSProperties}
+        >
+          <IconArrowLineUp size={13} />
+        </motion.button>
+
         {/* ── 1. スワップ領域（イラレ風） ── */}
         <div
           style={{

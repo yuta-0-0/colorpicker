@@ -35,6 +35,7 @@ export {
   Archive          as IconArchive,
 
   // ── アクション ───────────────────────────────────────────
+  ArrowLineUp         as IconArrowLineUp,        // Floating System 縮小ボタン
   Plus                as IconPlus,
   X                   as IconX,
   Copy                as IconCopy,

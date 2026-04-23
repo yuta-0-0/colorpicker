@@ -1,28 +1,23 @@
 // src/components/floating/FloatingSystemView.tsx
 import { useEffect } from 'react'
+import { AnimatePresence } from 'framer-motion'
+import { LayoutGroup } from 'framer-motion'
 import { useFloatingStore } from '@/store/floatingStore'
 import type { FSSyncPayload } from '@/types/floating'
 import { FloatingTab } from './FloatingTab'
 import { FloatingToolbar } from './FloatingToolbar'
 
 export function FloatingSystemView() {
-  const { floatingState, setFloatingState, setSnapSide, syncFromIPC } = useFloatingStore()
+  const { floatingState, setSnapSide, syncFromIPC } = useFloatingStore()
 
-  // IPC: snap 状態変化
+  // IPC: snap 位置変化（State morphing はダブルクリックで行う）
   useEffect(() => {
     if (!window.electronAPI?.onFloatingSnapChange) return undefined
     const unsub = window.electronAPI.onFloatingSnapChange(({ side }) => {
       setSnapSide(side)
-      if (side !== 'none') {
-        setFloatingState('toolbar')
-        window.electronAPI?.requestFloatingResize({ width: 48, height: 320 })
-      } else {
-        setFloatingState('tab')
-        window.electronAPI?.requestFloatingResize({ width: 80, height: 32 })
-      }
     })
     return unsub
-  }, [setSnapSide, setFloatingState])
+  }, [setSnapSide])
 
   // IPC: 色・履歴・フォルダ同期
   useEffect(() => {
@@ -33,6 +28,14 @@ export function FloatingSystemView() {
     return unsub
   }, [syncFromIPC])
 
-  if (floatingState === 'tab') return <FloatingTab />
-  return <FloatingToolbar />
+  return (
+    <LayoutGroup>
+      <AnimatePresence mode="popLayout">
+        {floatingState === 'tab'
+          ? <FloatingTab key="tab" />
+          : <FloatingToolbar key="toolbar" />
+        }
+      </AnimatePresence>
+    </LayoutGroup>
+  )
 }

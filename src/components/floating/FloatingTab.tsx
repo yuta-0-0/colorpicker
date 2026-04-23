@@ -1,16 +1,25 @@
+import { useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
 
 export function FloatingTab() {
-  const { currentColor } = useFloatingStore()
+  const { currentColor, setFloatingState } = useFloatingStore()
+
+  const handleDoubleClick = useCallback(() => {
+    setFloatingState('toolbar')
+    window.electronAPI?.requestFloatingResize({ width: 48, height: 320, anchor: 'center' })
+  }, [setFloatingState])
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      layoutId="floating-frame"
+      layout
+      initial={{ opacity: 0, scale: 0.9, borderColor: 'rgba(80,176,211,0.5)' }}
+      animate={{ opacity: 1, scale: 1, borderColor: 'rgba(255,255,255,0.15)' }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      onDoubleClick={handleDoubleClick}
       style={{
         width: 80,
         height: 32,
@@ -18,7 +27,7 @@ export function FloatingTab() {
         background: 'rgba(18, 24, 38, 0.70)',
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        border: '0.5px solid rgba(255,255,255,0.15)',
+        border: '0.5px solid',
         display: 'flex',
         alignItems: 'center',
         paddingLeft: 10,
