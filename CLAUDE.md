@@ -204,6 +204,18 @@ Mac（Electron）とiPhone（PWA）の両対応。Supabaseによるリアルタ�
 ├── Floating Dock（flex-row 横並び固定）
 │   └── ゴミ箱・書き出し・テーマ切替 等
 │
+├── Floating System（独立 BrowserWindow・alwaysOnTop）
+│   ├── State A: FloatingTab（80×32px カプセル）— 画面中央フリードラッグ
+│   ├── State B: FloatingToolbar（48×280px）— 画面端スナップで変形
+│   │   ├── スワップ領域（LiquidDot 大/小 + ⇄ ボタン）
+│   │   ├── クイックアクション（スポイト・HEXコピー）
+│   │   ├── ミニスロット 4色（登録/選択/右クリック解除）
+│   │   └── Dock 展開ボタン（📁）
+│   └── State C: HandyDock（+320px 横展開）
+│       ├── 履歴リスト（最新20件）
+│       ├── フォルダ切り替えドロップダウン
+│       └── フォルダ保存ボタン
+│
 └── ピッカーオーバーレイ
     ├── 画像スポイト（1色）
     ├── 画像パレット一括抽出（上位5色）
@@ -217,6 +229,7 @@ Mac（Electron）とiPhone（PWA）の両対応。Supabaseによるリアルタ�
 | 操作 | ショートカット |
 |---|---|
 | アプリをグローバル呼び出し | `⌘ + Shift + P` |
+| Floating System 呼び出し（表示/非表示） | `⌘ + Shift + F` |
 | スクリーンピッカー起動 | `⌘ + Shift + C` |
 | 新規カラー追加 | `⌘ + N` |
 | 新規フォルダ作成 | `⌘ + Shift + N` |
