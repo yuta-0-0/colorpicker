@@ -1,6 +1,6 @@
 // src/components/floating/FloatingToolbar.tsx
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
 import { HandyDock } from './HandyDock'
@@ -58,11 +58,13 @@ export function FloatingToolbar() {
   } = useFloatingStore()
   const [copied, setCopied] = useState(false)
   const [dockOpen, setDockOpen] = useState(false)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleCopyHex = useCallback(() => {
     copyToClipboard(currentColor.hex)
     setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopied(false), 1500)
   }, [currentColor.hex])
 
   const handleScreenPicker = useCallback(() => {
@@ -76,6 +78,12 @@ export function FloatingToolbar() {
   const handleSlotSelect = useCallback((hex: string | null) => {
     if (!hex) return
     window.electronAPI?.floatingColorSelected(hex)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    }
   }, [])
 
   const isDockLeft = snapSide === 'left'
