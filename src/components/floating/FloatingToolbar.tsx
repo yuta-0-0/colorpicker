@@ -87,6 +87,15 @@ export function FloatingToolbar() {
     }
   }, [])
 
+  // Dock 開閉に合わせてウィンドウ幅をリサイズ
+  // Toolbar 48px + margin 4px + HandyDock 320px = 372px
+  useEffect(() => {
+    window.electronAPI?.requestFloatingResize({
+      width: dockOpen ? 372 : 48,
+      height: 320,
+    })
+  }, [dockOpen])
+
   const isDockLeft = snapSide === 'left'
 
   return (
