@@ -11,41 +11,66 @@
 ## UIの絶対法則（Core Identity）
 
 ### 影の完全禁止
-立体感は**極薄ボーダー（border）と背景色の明度差（Elevation）のみ**で表現する。
-`shadow-*` 系クラスの使用は一切禁止。`drop-shadow` も同様。
-唯一の例外：`sig-glow-active`（グリッドアクティブアイコンのLEDグロー）のみ許可。
+立体感は**極薄ボーダーと背景色の明度差（Elevation）のみ**で表現する。
+`shadow-*` / `drop-shadow` は一切禁止。
+唯一の例外：`sig-glow-active`（グリッドアクティブアイコンのLEDグロー）。
 
-### Concentric Radius（角丸の法則）
-同心円状に内側へ行くほど角丸を小さくする。この比率は厳守すること。
+### Concentric DNA（同心円余白の法則）
+「外側半径 = 内側半径 + 余白」を厳守すること（中心を揃える設計）。
 
-| レイヤー | クラス | 実値 | 用途 |
+| レイヤー | 角丸 | 用途 |
+|---|---|---|
+| App Frame（最外枠） | `rounded-3xl` / 24px | アプリ最外枠 |
+| Bento パネル | `rounded-[14px]` / 14px | サイドバー・詳細パネル |
+| Core 要素 | `rounded-md` / 6px | 入力欄・ボタン・バッジ |
+
+Floating System コンポーネントの基準値（c = a + b 法則）：
+- Core ボタン: 内側 7px + 余白 10px = **外形 17px**（borderRadius: 17）
+- Floating パネル: 内側 17px + 余白 7px = **外形 24px**（borderRadius: 24）
+
+### Liquid Glass 2.0（Elevation 設計）
+影の代わりに「ぼかし強度 × 背景明度」で高さを表現する。
+
+| Level | 用途 | background | backdrop-filter |
 |---|---|---|---|
-| 外側コンテナ（App Frame） | `rounded-3xl` | 24px | アプリ最外枠 |
-| Bentoパネル | `rounded-[14px]` | 14px | サイドバー・詳細パネル |
-| Core要素 | `rounded-md` | 6px | 入力欄・ボタン・バッジ |
+| 1（背景） | app-frame | rgba(6,9,16,0.55) | blur(0) |
+| 2（パネル） | bento-pane | rgba(11,16,26,0.90) | blur(40px) saturate(200%) |
+| 3（Floating・ポップアップ） | FloatingTab / glass-popup | rgba(18,24,38,0.70) | blur(24px) saturate(180%) |
 
-### アクセントカラー
+### グローバルアニメーション定数
+全アニメーションで統一する spring パラメータ：
+```
+{ type: 'spring', stiffness: 300, damping: 30 }
+```
+特に軽快さが必要な入場アニメーションのみ `stiffness: 400` 使用可。
+
+### ボーダーグラデーション（機能的装飾）
+アクセントカラーは「塗り」ではなく「境界線のグラデーション」として活用する。
+アクティブ状態・色変化の際、ボーダーに沿って光が流れる繊細な階調を適用し、
+影に頼わずパーツの存在感を強調する（工業製品の面取りへの光の当たり方をデジタルで表現）。
+
+### アクセントカラー（変更禁止）
 - **ダークモード** `--color-accent: 80 176 211`（`#50B0D3` — シアンブルー）
 - **ライトモード** `--color-accent: 10 62 216`（`#0a3ed8` — ディープブルー）
-- ライトモードのアクセントは変更しないこと。
+- 「青い発光（グロー）」は機能的インジケーターとして保持。勝手に変更・削除禁止。
 
 ### 入力フィールドの統一ルール
 全入力欄（メモ・タグ・検索窓・数値入力・テキスト入力）に以下を適用する：
 
 ```
-bg-surface-raised
-border border-border/15
-rounded-md
-hover:border-border/30
-focus:border-accent/40  または  focus-within:border-accent/40
-transition-colors
+bg-surface-raised  border border-border/15  rounded-md
+hover:border-border/30  focus-within:border-accent/40  transition-colors
 ```
 
 影・`ring-*`・`box-shadow` は使わない。
 
 ### レイアウトの掟
 - **Floating Dock** は必ず `flex-row`（横並び）。縦並びは禁止。
-- **DetailPanel** にはメモ・タグエリアを配置しない。メモ・タグはメインコンテナ内の `ContextualPanel`（カラー詳細エリア）にのみ配置する。
+- **DetailPanel** にはメモ・タグエリアを配置しない。ContextualPanel 専用。
+
+### ガードレール（削除・非表示の事前承認）
+UI要素（ラベル・ボタン・セクション等）を削除・非表示にする場合は、
+必ず事前にユーザーへ提案し承認を得ること。独断での削除は厳禁。
 
 ---
 
