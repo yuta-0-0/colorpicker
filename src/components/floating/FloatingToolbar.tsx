@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
 import { HandyDock } from './HandyDock'
+import { IconArrowsLeftRight, IconEyedropper, IconCopy, IconCheck, IconFolder } from '@/components/ui/Icons'
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).catch(() => {
@@ -95,7 +96,7 @@ export function FloatingToolbar() {
         flexDirection: isDockLeft ? 'row' : 'row-reverse',
         alignItems: 'flex-start',
         gap: 0,
-        height: 280,
+        height: 320,
         WebkitAppRegion: 'no-drag',
       } as React.CSSProperties}
     >
@@ -106,7 +107,7 @@ export function FloatingToolbar() {
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         style={{
           width: 48,
-          height: 280,
+          height: 320,
           borderRadius: 16,
           background: 'rgba(18, 24, 38, 0.70)',
           backdropFilter: 'blur(24px) saturate(180%)',
@@ -158,7 +159,7 @@ export function FloatingToolbar() {
               WebkitAppRegion: 'no-drag',
             } as React.CSSProperties}
           >
-            ⇄
+            <IconArrowsLeftRight size={14} />
           </motion.button>
         </div>
 
@@ -168,10 +169,10 @@ export function FloatingToolbar() {
         {/* ── 2. クイックアクション ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <TactileButton onClick={handleScreenPicker} title="スポイト">
-            💧
+            <IconEyedropper size={14} />
           </TactileButton>
           <TactileButton onClick={handleCopyHex} title="HEXをコピー">
-            {copied ? '✓' : '📋'}
+            {copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
           </TactileButton>
         </div>
 
@@ -218,7 +219,7 @@ export function FloatingToolbar() {
           onClick={() => setDockOpen(v => !v)}
           title={dockOpen ? 'Dockを閉じる' : 'Dockを開く'}
         >
-          📁
+          <IconFolder size={14} />
         </TactileButton>
       </motion.div>
 

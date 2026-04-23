@@ -15,7 +15,7 @@ export function FloatingSystemView() {
       setSnapSide(side)
       if (side !== 'none') {
         setFloatingState('toolbar')
-        window.electronAPI?.requestFloatingResize({ width: 48, height: 280 })
+        window.electronAPI?.requestFloatingResize({ width: 48, height: 320 })
       } else {
         setFloatingState('tab')
         window.electronAPI?.requestFloatingResize({ width: 80, height: 32 })

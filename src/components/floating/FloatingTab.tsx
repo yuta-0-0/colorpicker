@@ -32,17 +32,6 @@ export function FloatingTab() {
       <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <LiquidDot hex={currentColor.hex} size={14} />
       </div>
-      <span
-        style={{
-          fontSize: 10,
-          color: 'rgba(255,255,255,0.55)',
-          fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-          letterSpacing: '0.02em',
-          WebkitAppRegion: 'no-drag',
-        } as React.CSSProperties}
-      >
-        {currentColor.hex.toUpperCase()}
-      </span>
     </motion.div>
   )
 }

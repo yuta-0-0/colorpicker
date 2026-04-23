@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { useFloatingStore } from '@/store/floatingStore'
 import type { SnapSide } from '@/types/floating'
+import { IconCopy, IconCheck, IconArrowUpRight, IconClock, IconCaretDown, IconPlus } from '@/components/ui/Icons'
 
 interface HandyDockProps {
   snapSide: SnapSide
@@ -61,7 +62,7 @@ function ColorRow({ hex, onCopy, onApply }: { hex: string; onCopy: () => void; o
         }}
         title="コピー"
       >
-        {copied ? '✓' : '📋'}
+        {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
       </button>
       <button
         onClick={onApply}
@@ -75,7 +76,7 @@ function ColorRow({ hex, onCopy, onApply }: { hex: string; onCopy: () => void; o
         }}
         title="メインウィンドウで選択"
       >
-        ↗
+        <IconArrowUpRight size={12} />
       </button>
     </div>
   )
@@ -90,7 +91,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
     : (folders[activeFolderIndex - 1]?.colors ?? [])
 
   const activeFolder = activeFolderIndex > 0 ? folders[activeFolderIndex - 1] : null
-  const folderLabel = activeFolderIndex === 0 ? '🕒 履歴' : `📁 ${activeFolder?.name ?? ''}`
+  const folderLabel = activeFolderIndex === 0 ? '履歴' : (activeFolder?.name ?? '')
 
   const handleApply = (hex: string) => {
     window.electronAPI?.floatingColorSelected(hex)
@@ -109,7 +110,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       style={{
         width: 320,
-        height: 280,
+        height: 320,
         borderRadius: 16,
         background: 'rgba(18, 24, 38, 0.70)',
         backdropFilter: 'blur(24px) saturate(180%)',
@@ -171,7 +172,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
             cursor: 'pointer',
           }}
         >
-          🕒
+          <IconClock size={14} />
         </button>
 
         {/* フォルダドロップダウン */}
@@ -195,7 +196,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {folderLabel}
             </span>
-            <span>▼</span>
+            <IconCaretDown size={10} />
           </button>
           {folderDropdownOpen && (
             <div
@@ -223,7 +224,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
                   color: 'rgba(255,255,255,0.7)', fontSize: 11, cursor: 'pointer',
                 }}
               >
-                🕒 履歴
+                履歴
               </button>
               {folders.map((folder, i) => (
                 <button
@@ -236,7 +237,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
                     color: 'rgba(255,255,255,0.7)', fontSize: 11, cursor: 'pointer',
                   }}
                 >
-                  📁 {folder.name}
+                  {folder.name}
                 </button>
               ))}
             </div>
@@ -256,9 +257,12 @@ export function HandyDock({ snapSide }: HandyDockProps) {
             fontSize: 14,
             padding: '3px 8px',
             cursor: activeFolderIndex > 0 ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          ➕
+          <IconPlus size={14} />
         </button>
       </div>
     </motion.div>

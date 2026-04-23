@@ -39,6 +39,9 @@ export {
   X                   as IconX,
   Copy                as IconCopy,
   Check               as IconCheck,
+  ArrowsLeftRight     as IconArrowsLeftRight,  // スワップボタン
+  CaretDown           as IconCaretDown,        // ドロップダウン矢印
+  ArrowUpRight        as IconArrowUpRight,     // 適用ボタン
   Pencil              as IconPencil,
   Lock                as IconLock,
   LockOpen            as IconLockOpen,
