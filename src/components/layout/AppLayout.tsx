@@ -26,6 +26,7 @@ import { downloadAllDataJSON } from '@/lib/exportUtils'
 import { hasTraditionalColor } from '@/lib/colorUtils'
 import { IconSidebarSimple } from '@/components/ui/Icons'
 import { useHistoryStore } from '@/store/historyStore'
+import type { FSSyncPayload } from '@/types/floating'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useToastStore } from '@/store/toastStore'
 import { ToastContainer } from '@/components/ui/ToastContainer'
@@ -91,7 +92,7 @@ export function AppLayout() {
   const { colors, loading: colorsLoading, fetchColors, addColor } = useColorStore()
   const { fetchFolders, folders } = useFolderStore()
   const { fetchTags, fetchAllColorTags, colorTags } = useTagStore()
-  const { addToHistory: addColorToHistory } = useHistoryStore()
+  const { addToHistory: addColorToHistory, historyColors } = useHistoryStore()
   const isOnline = useNetworkStatus()
   const { addToast } = useToastStore()
   const prevIsOnline = useRef(true)
@@ -145,6 +146,37 @@ export function AppLayout() {
       hasGamutWarning: isOutOfGamut(color.hex),
     })
   }, [selectedColorId, colors])
+
+  // 選択色・履歴・フォルダが変わったら Floating System へプッシュ（Electron のみ）
+  useEffect(() => {
+    if (!window.electronAPI?.pushSyncToFloating) return
+
+    const color = colors.find((c) => c.id === selectedColorId)
+    if (!color) return
+
+    const payload: FSSyncPayload = {
+      currentColor: {
+        hex: color.hex,
+        alpha: color.alpha,
+        name: color.name ?? color.hex,
+      },
+      previousColor: null,
+      history: (historyColors ?? []).slice(0, 20).map((h) => ({
+        hex: h.hex,
+        alpha: h.alpha,
+      })),
+      folders: (folders ?? []).map((f) => ({
+        id: f.id,
+        name: f.name,
+        icon: f.icon ?? null,
+        colors: colors
+          .filter((c) => c.folder_id === f.id)
+          .slice(0, 20)
+          .map((c) => ({ hex: c.hex, alpha: c.alpha, name: c.name ?? c.hex })),
+      })),
+    }
+    window.electronAPI.pushSyncToFloating(payload)
+  }, [selectedColorId, historyColors, folders, colors])
 
   // ネットワーク状態監視
   useEffect(() => {
