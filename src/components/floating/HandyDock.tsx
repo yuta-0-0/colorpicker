@@ -1,6 +1,6 @@
 // src/components/floating/HandyDock.tsx
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useFloatingStore } from '@/store/floatingStore'
 import type { SnapSide } from '@/types/floating'
 
@@ -11,10 +11,15 @@ interface HandyDockProps {
 function ColorRow({ hex, onCopy, onApply }: { hex: string; onCopy: () => void; onApply: () => void }) {
   const [copied, setCopied] = useState(false)
 
+  useEffect(() => {
+    if (!copied) return undefined
+    const timer = setTimeout(() => setCopied(false), 1200)
+    return () => clearTimeout(timer)
+  }, [copied])
+
   const handleCopy = () => {
     onCopy()
     setCopied(true)
-    setTimeout(() => setCopied(false), 1200)
   }
 
   return (
@@ -155,6 +160,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
         {/* 履歴タブ */}
         <button
           onClick={() => setActiveFolderIndex(0)}
+          title="履歴"
           style={{
             background: activeFolderIndex === 0 ? 'rgba(80,176,211,0.20)' : 'none',
             border: activeFolderIndex === 0 ? '0.5px solid rgba(80,176,211,0.40)' : '0.5px solid transparent',
