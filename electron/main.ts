@@ -222,6 +222,22 @@ ipcMain.handle('theme:set', (_, themeSource: 'dark' | 'light' | 'system') => {
 // floating または main どちらから呼ばれたかを追跡
 let screenPickerReturnToFloating = false
 
+// Step 6 修正: EyeDropper は userGesture=true の executeJavaScript で起動する
+// IPC リスナー経由では user activation が取れないため、main プロセスから
+// executeJavaScript(code, true) を使って強制的にジェスチャーとして実行する
+const EYEDROPPER_JS = `
+(async () => {
+  try {
+    const picker = new EyeDropper();
+    const { sRGBHex } = await picker.open();
+    window.electronAPI.reportPickedColor(sRGBHex);
+  } catch {
+    // キャンセル時も reportPickedColor('') で floating を再表示させる（Step 6）
+    window.electronAPI.reportPickedColor('');
+  }
+})();
+`
+
 // step 1: picker 起動要求（floating または main から）
 ipcMain.handle('screen-picker:start', async (event) => {
   const senderWin = BrowserWindow.fromWebContents(event.sender)
@@ -232,11 +248,16 @@ ipcMain.handle('screen-picker:start', async (event) => {
     floatingWin.hide()
   }
 
-  // main window に picker 起動を通知（実装は React 側）
+  // main window 上で EyeDropper を userGesture=true で起動
   const mainWins = BrowserWindow.getAllWindows().filter(
     w => w !== floatingWin && w !== prismTileWin && !w.isDestroyed()
   )
-  mainWins.forEach(w => w.webContents.send('screen-picker:start'))
+  mainWins.forEach(w =>
+    w.webContents.executeJavaScript(EYEDROPPER_JS, true).catch(() => {
+      // executeJavaScript 失敗時は floating を再表示
+      if (floatingWin && !floatingWin.isDestroyed()) floatingWin.show()
+    })
+  )
 
   return null
 })
@@ -319,4 +340,10 @@ ipcMain.on('fs:push-sync', (_, payload: unknown) => {
 ipcMain.on('fs:color-selected', (_, { hex }: { hex: string }) => {
   const wins = BrowserWindow.getAllWindows().filter(w => w !== floatingWin && !w.isDestroyed())
   wins.forEach(w => w.webContents.send('fs:color-selected', { hex }))
+})
+
+// Step 4: Floating System: 名前メタデータ付きで保存 → メインウィンドウへ転送
+ipcMain.on('fs:save-color', (_, payload: { hex: string; alpha: number; name?: string }) => {
+  const wins = BrowserWindow.getAllWindows().filter(w => w !== floatingWin && !w.isDestroyed())
+  wins.forEach(w => w.webContents.send('fs:save-color', payload))
 })

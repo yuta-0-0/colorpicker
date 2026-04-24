@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
 import { SpecularBorder, useSpecularReflection } from './SpecularBorder'
+import { usePrefersDark, getGlassTokens } from './useTheme'
 
 // ── Iris morph 定数 ──────────────────────────────────────────────
 // Tab 内 LiquidDot の中心座標（%）
@@ -13,18 +14,21 @@ const CLIP_OPEN  = `circle(150% at ${DOT_POS})`
 const CLIP_CLOSE = `circle(0% at ${DOT_POS})`
 
 // A→B: iris アニメーション完了後ウィンドウを trim するまでの猶予 (ms)
-const TRIM_DELAY = 680
+const TRIM_DELAY = 700
 // Toolbar の高さ（FloatingToolbar.tsx と同値を保つこと）
-const TOOLBAR_H  = 380
+const TOOLBAR_H  = 420
 
 export function FloatingTab() {
   const { currentColor, setFloatingState, snapSide } = useFloatingStore()
-  const specular     = useSpecularReflection()
+  const specular     = useSpecularReflection({ accentHex: currentColor.hex })
   const trimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isDark = usePrefersDark()
+  const glass  = getGlassTokens(isDark)
 
   // ── エントリ閃光（iris が開ききる頃に光を当てる） ─────────────
   useEffect(() => {
-    const t = setTimeout(() => specular.flash(), 160)
+    const t = setTimeout(() => specular.flash(), 180)
     return () => clearTimeout(t)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -36,12 +40,16 @@ export function FloatingTab() {
   }, [])
 
   // ── A → B 遷移 ───────────────────────────────────────────────
+  // Step 1: 収束 → 溜め → 降下/展開 シークエンス
+  // Phase 1 (収束): Tab が iris close で LiquidDot へ縮む
+  // Phase 2 (溜め): ウィンドウ拡張後 0.25s の沈黙 → Toolbar の iris open 開始
+  // Phase 3/4 (降下/展開): Toolbar の stagger entrance でドットが上から流れ込む
   const handleDoubleClick = useCallback(() => {
-    // Step 1: 高さを先行拡張（幅 80 保持 → Tab が iris-close できる空間を確保）
+    // Step 1: 高さを先行拡張（Tab が iris-close できる空間を確保）
     window.electronAPI?.requestFloatingResize({ width: 80, height: TOOLBAR_H, anchor: 'center' })
     // Step 2: 状態変化（Tab iris-close exit / Toolbar iris-open enter が同時に始まる）
     setFloatingState('toolbar')
-    // Step 3: iris アニメーション完了後、Toolbar 幅 48 に trim
+    // Step 3: iris + stagger 完了後、Toolbar 幅 48 に trim
     if (trimTimerRef.current) clearTimeout(trimTimerRef.current)
     trimTimerRef.current = setTimeout(() => {
       const anchor = snapSide === 'right' ? 'right' : 'left'
@@ -51,18 +59,18 @@ export function FloatingTab() {
 
   return (
     <motion.div
-      // ── Iris Morph ──
+      // ── Phase 1: 収束（LiquidDot へ吸い込まれる iris close）──
       initial={{ clipPath: CLIP_CLOSE }}
       animate={{ clipPath: CLIP_OPEN  }}
       exit={{
         clipPath: CLIP_CLOSE,
         transition: {
-          // 高速クローズ（Toolbar の入場を引き立てる）
-          clipPath: { type: 'spring', stiffness: 480, damping: 40, mass: 0.4 },
+          // 速いクローズで「吸い込まれる」感を演出
+          clipPath: { type: 'spring', stiffness: 520, damping: 42, mass: 0.35 },
         },
       }}
       transition={{
-        // iris open: 僅かに遅らせて先行するクローズを際立たせる
+        // iris open: 少し遅れて LiquidDot の位置から膨らむ
         clipPath: { delay: 0.06, type: 'spring', stiffness: 200, damping: 22, mass: 0.8 },
       }}
       onDoubleClick={handleDoubleClick}
@@ -73,11 +81,10 @@ export function FloatingTab() {
         width: 80,
         height: 32,
         borderRadius: 20,
-        background: 'rgba(18, 24, 38, 0.70)',
+        background: glass.background,
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        // border: none — SpecularBorder が 1.4px chamfer を担う
-        boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.14), inset 0 0 12px rgba(255,255,255,0.04)',
+        boxShadow: glass.boxShadow,
         display: 'flex',
         alignItems: 'center',
         paddingLeft: 10,

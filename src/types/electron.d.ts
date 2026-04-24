@@ -1,11 +1,11 @@
 /**
  * Electron preload で公開される window.electronAPI の型定義
- * ambient declaration file — import / export は不要
  */
 
 declare global {
   interface Window {
     electronAPI?: {
+      setTheme: (themeSource: 'dark' | 'light' | 'system') => Promise<void>
       startScreenPicker: () => Promise<null>
       platform: string
       openPrismTile: () => Promise<void>
@@ -22,7 +22,8 @@ declare global {
         name: string
         hasGamutWarning: boolean
       }) => void) => () => void
-      // Floating System
+
+      // ── Floating System ──────────────────────────────────────
       openFloatingSystem: () => Promise<void>
       closeFloatingSystem: () => Promise<void>
       requestFloatingResize: (size: { width: number; height: number; anchor?: 'center' | 'left' | 'right' }) => Promise<void>
@@ -31,11 +32,15 @@ declare global {
       onFloatingSnapChange: (cb: (data: { side: 'none' | 'left' | 'right' }) => void) => () => void
       floatingColorSelected: (hex: string) => void
       onFloatingColorSelected: (cb: (data: { hex: string }) => void) => () => void
-      // スクリーンピッカー IPC 回路
-      /** main window: floating からの要求で EyeDropper を起動する指示を受け取る */
+
+      // Step 4: メタデータ付き保存
+      floatingSaveColor: (data: { hex: string; alpha: number; name?: string }) => void
+      onFloatingSaveColor: (cb: (data: { hex: string; alpha: number; name?: string }) => void) => () => void
+
+      // ── スクリーンピッカー ────────────────────────────────────
+      /** Step 6: main window 側（現在は executeJavaScript で直接起動するため通常は呼ばれない） */
       onScreenPickerStart: (cb: () => void) => () => void
       onFloatingColorFromPicker: (cb: (data: { hex: string }) => void) => () => void
-      /** main window: EyeDropper 完了後に hex を main process へ報告（空文字=キャンセル） */
       reportPickedColor: (hex: string) => void
     }
   }

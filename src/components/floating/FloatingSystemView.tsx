@@ -1,5 +1,9 @@
 // src/components/floating/FloatingSystemView.tsx
-import { useEffect } from 'react'
+//
+// Step 5/6: スポイト長押しフラグ（pendingSaveAfterPick）に応じて
+//           picker 結果受信時に自動保存を行う
+
+import { useEffect, useRef } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { useFloatingStore } from '@/store/floatingStore'
 import type { FSSyncPayload } from '@/types/floating'
@@ -7,9 +11,22 @@ import { FloatingTab } from './FloatingTab'
 import { FloatingToolbar } from './FloatingToolbar'
 
 export function FloatingSystemView() {
-  const { floatingState, setSnapSide, syncFromIPC, setCurrentColorFromPicker } = useFloatingStore()
+  const {
+    floatingState,
+    setSnapSide,
+    syncFromIPC,
+    setCurrentColorFromPicker,
+    pendingSaveAfterPick,
+    setPendingSaveAfterPick,
+  } = useFloatingStore()
 
-  // IPC: snap 位置変化（State morphing はダブルクリックで行う）
+  // pendingSaveAfterPick を useEffect のクロージャに閉じ込めず ref で追う
+  const saveAfterPickRef = useRef(pendingSaveAfterPick)
+  useEffect(() => {
+    saveAfterPickRef.current = pendingSaveAfterPick
+  }, [pendingSaveAfterPick])
+
+  // IPC: snap 位置変化
   useEffect(() => {
     if (!window.electronAPI?.onFloatingSnapChange) return undefined
     const unsub = window.electronAPI.onFloatingSnapChange(({ side }) => {
@@ -27,18 +44,24 @@ export function FloatingSystemView() {
     return unsub
   }, [syncFromIPC])
 
-  // IPC: スクリーンピッカーで取得した色を受信（Floating → picker → Floating）
+  // IPC: スクリーンピッカー結果を受信（Step 5/6）
+  // 長押しフラグが立っていれば自動保存も行う
   useEffect(() => {
     if (!window.electronAPI?.onFloatingColorFromPicker) return undefined
     const unsub = window.electronAPI.onFloatingColorFromPicker(({ hex }) => {
+      if (!hex) return  // キャンセル時は何もしない（Step 6: 状態は B のまま）
       setCurrentColorFromPicker(hex)
+      // Step 5: 長押し保存フラグが立っていれば即時保存
+      if (saveAfterPickRef.current) {
+        window.electronAPI?.floatingColorSelected(hex)
+        setPendingSaveAfterPick(false)
+      }
     })
     return unsub
-  }, [setCurrentColorFromPicker])
+  }, [setCurrentColorFromPicker, setPendingSaveAfterPick])
 
   return (
     // initial={false}: 初回マウント時は iris アニメーションをスキップ
-    // Tab↔Toolbar 切り替え時のみ iris morph が再生される
     <AnimatePresence initial={false}>
       {floatingState === 'tab'
         ? <FloatingTab key="tab" />

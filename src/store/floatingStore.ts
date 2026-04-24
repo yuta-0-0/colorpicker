@@ -14,6 +14,8 @@ interface FloatingStore {
   folders: FSFolderData[]
   activeFolderIndex: number // 0 = 履歴, 1以降 = folders[index-1]
   miniSlots: (string | null)[]  // 最大4スロット
+  /** スポイト後に自動保存するかどうかのフラグ（長押し判定で true に） */
+  pendingSaveAfterPick: boolean
   // アクション
   setFloatingState: (state: FloatingState) => void
   setSnapSide: (side: SnapSide) => void
@@ -25,6 +27,8 @@ interface FloatingStore {
   setActiveFolderIndex: (index: number) => void
   /** スクリーンピッカーで取得した色を直接セット */
   setCurrentColorFromPicker: (hex: string) => void
+  /** スポイト長押し後の自動保存フラグをセット */
+  setPendingSaveAfterPick: (v: boolean) => void
 }
 
 export const useFloatingStore = create<FloatingStore>((set) => ({
@@ -36,6 +40,7 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
   folders: [],
   activeFolderIndex: 0,
   miniSlots: [null, null, null, null],
+  pendingSaveAfterPick: false,
 
   setFloatingState: (floatingState) => set({ floatingState }),
 
@@ -71,7 +76,6 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
 
   pushMiniSlot: (hex) =>
     set((state) => ({
-      // 先頭に挿入し、末尾（index 3）を押し出す
       miniSlots: [hex, ...state.miniSlots.slice(0, 3)],
     })),
 
@@ -82,4 +86,6 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
       previousColor: state.currentColor,
       currentColor: { hex, alpha: 1, name: hex },
     })),
+
+  setPendingSaveAfterPick: (pendingSaveAfterPick) => set({ pendingSaveAfterPick }),
 }))
