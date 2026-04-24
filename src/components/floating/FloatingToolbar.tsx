@@ -4,7 +4,15 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
 import { HandyDock } from './HandyDock'
-import { IconArrowsLeftRight, IconEyedropper, IconCopy, IconCheck, IconFolder, IconArrowLineUp } from '@/components/ui/Icons'
+import { BorderTrace, useBorderTrace } from './BorderTrace'
+import {
+  IconArrowsLeftRight,
+  IconEyedropper,
+  IconCopy,
+  IconCheck,
+  IconFolder,
+  IconMinus,
+} from '@/components/ui/Icons'
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).catch(() => {
@@ -30,7 +38,7 @@ function TactileButton({
     <motion.button
       onClick={onClick}
       title={title}
-      whileTap={{ scale: 0.97 }}
+      whileTap={{ scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       style={{
         background: 'rgba(255,255,255,0.08)',
@@ -57,10 +65,16 @@ export function FloatingToolbar() {
     currentColor, previousColor, snapSide,
     miniSlots, setMiniSlot, swapColors, setFloatingState,
   } = useFloatingStore()
-  const [copied, setCopied] = useState(false)
-  const [dockOpen, setDockOpen] = useState(false)
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [copied, setCopied]   = useState(false)
+  const [dockOpen, setDockOpen] = useState(false)
+  const copyTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // long-press: スロット上書きタイマー
+  const slotTimers    = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
+
+  const trace = useBorderTrace(true) // mount 時に自動発火
+
+  // ── コピー ──────────────────────────────────────────────────
   const handleCopyHex = useCallback(() => {
     copyToClipboard(currentColor.hex)
     setCopied(true)
@@ -68,10 +82,12 @@ export function FloatingToolbar() {
     copyTimerRef.current = setTimeout(() => setCopied(false), 1500)
   }, [currentColor.hex])
 
+  // ── スポイト ─────────────────────────────────────────────────
   const handleScreenPicker = useCallback(() => {
     window.electronAPI?.startScreenPicker()
   }, [])
 
+  // ── スロット操作 ─────────────────────────────────────────────
   const handleRegisterSlot = useCallback((index: number) => {
     setMiniSlot(index, currentColor.hex)
   }, [currentColor.hex, setMiniSlot])
@@ -81,30 +97,71 @@ export function FloatingToolbar() {
     window.electronAPI?.floatingColorSelected(hex)
   }, [])
 
+  /**
+   * Pointer Down: long-press タイマー開始
+   * 450ms 経過したらそのスロットを現在色で上書き（4枠全て埋まっていても上書き可能）
+   */
+  const handleSlotPointerDown = useCallback((i: number) => {
+    const timer = setTimeout(() => {
+      slotTimers.current.delete(i)
+      setMiniSlot(i, currentColor.hex) // 上書き
+    }, 450)
+    slotTimers.current.set(i, timer)
+  }, [currentColor.hex, setMiniSlot])
+
+  /**
+   * Pointer Up: タイマーが残っていれば short press → 通常動作
+   */
+  const handleSlotPointerUp = useCallback((i: number, hex: string | null) => {
+    const timer = slotTimers.current.get(i)
+    if (!timer) return
+    clearTimeout(timer)
+    slotTimers.current.delete(i)
+    if (hex) {
+      handleSlotSelect(hex) // 適用
+    } else {
+      handleRegisterSlot(i) // 登録
+    }
+  }, [handleSlotSelect, handleRegisterSlot])
+
+  /** Pointer Leave でタイマーキャンセル（ドラッグ中に外れた場合） */
+  const handleSlotPointerLeave = useCallback((i: number) => {
+    const timer = slotTimers.current.get(i)
+    if (timer) {
+      clearTimeout(timer)
+      slotTimers.current.delete(i)
+    }
+  }, [])
+
+  // ── 縮小（Toolbar → Tab） ────────────────────────────────────
   const handleShrink = useCallback(() => {
     setFloatingState('tab')
     window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
   }, [setFloatingState])
 
+  // ── Cleanup ──────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+      slotTimers.current.forEach(t => clearTimeout(t))
     }
   }, [])
 
-  // Dock 開閉に合わせてウィンドウ幅をリサイズ
+  // ── Dock 開閉 → ウィンドウ幅リサイズ ─────────────────────────
   // Toolbar 48px + margin 4px + HandyDock 320px = 372px
+  // anchor は Toolbar を固定する方向に合わせる
   useEffect(() => {
+    const anchor = snapSide === 'right' ? 'right' : 'left'
     window.electronAPI?.requestFloatingResize({
       width: dockOpen ? 372 : 48,
       height: 320,
-      anchor: dockOpen
-        ? (snapSide === 'right' ? 'right' : 'left')
-        : (snapSide === 'right' ? 'right' : 'left'),
+      anchor,
     })
   }, [dockOpen, snapSide])
 
-  const isDockLeft = snapSide === 'left'
+  // snapSide !== 'right' のとき Toolbar は左側に配置し Dock を右展開
+  // snapSide === 'right' のみ row-reverse（Toolbar 右・Dock 左）
+  const isDockLeft = snapSide !== 'right'
 
   return (
     <div
@@ -121,17 +178,28 @@ export function FloatingToolbar() {
       <motion.div
         layoutId="floating-frame"
         layout
-        initial={{ borderColor: 'rgba(80,176,211,0.5)' }}
-        animate={{ borderColor: 'rgba(255,255,255,0.15)' }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        // borderColor を framer-motion に完全委譲（グロー有効化）
+        initial={{ opacity: 0.6, borderColor: 'rgba(80,176,211,1)' }}
+        animate={{ opacity: 1,   borderColor: 'rgba(255,255,255,0.15)' }}
+        exit={{ opacity: 0 }}
+        transition={{
+          default:     { type: 'spring', stiffness: 200, damping: 22 },
+          borderColor: { duration: 1.2, ease: 'easeOut' },
+          opacity:     { duration: 0.15 },
+        }}
+        // hover で再発火
+        onHoverStart={trace.run}
         style={{
+          position: 'relative', // BorderTrace の absolute 基準
           width: 48,
           height: 320,
           borderRadius: 16,
           background: 'rgba(18, 24, 38, 0.70)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          border: '0.5px solid',
+          // shorthand border を使わず個別指定（framer-motion borderColor 競合回避）
+          borderWidth: '0.5px',
+          borderStyle: 'solid',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -139,27 +207,32 @@ export function FloatingToolbar() {
           gap: 8,
           WebkitAppRegion: 'drag',
           flexShrink: 0,
+          overflow: 'hidden',
         } as React.CSSProperties}
       >
-        {/* ── 0. 縮小ボタン ── */}
+        {/* 境界線を走る光 */}
+        <BorderTrace borderRadius={16} background={trace.background} opacity={trace.opacity} />
+
+        {/* ── 0. 縮小ボタン（カプセルに戻す） ── */}
         <motion.button
           onClick={handleShrink}
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           title="カプセルに戻す"
           style={{
             background: 'none',
             border: 'none',
-            color: 'rgba(255,255,255,0.3)',
+            color: 'rgba(255,255,255,0.40)',
             cursor: 'pointer',
-            fontSize: 12,
             padding: 0,
             WebkitAppRegion: 'no-drag',
             display: 'flex',
             alignItems: 'center',
+            position: 'relative',
+            zIndex: 1,
           } as React.CSSProperties}
         >
-          <IconArrowLineUp size={13} />
+          <IconMinus size={14} />
         </motion.button>
 
         {/* ── 1. スワップ領域（イラレ風） ── */}
@@ -170,11 +243,11 @@ export function FloatingToolbar() {
             alignItems: 'center',
             gap: 4,
             WebkitAppRegion: 'no-drag',
+            position: 'relative',
+            zIndex: 1,
           } as React.CSSProperties}
         >
-          {/* アクティブ色（大） */}
           <LiquidDot hex={currentColor.hex} size={24} />
-          {/* サブ色（小・右下にオフセット） */}
           {previousColor && (
             <div style={{ position: 'relative', width: 24, height: 0 }}>
               <div style={{ position: 'absolute', top: -8, left: 6 }}>
@@ -182,10 +255,9 @@ export function FloatingToolbar() {
               </div>
             </div>
           )}
-          {/* スワップボタン */}
           <motion.button
             onClick={swapColors}
-            whileTap={{ scale: 0.97 }}
+            whileTap={{ scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             title="色を入れ替え"
             style={{
@@ -193,7 +265,6 @@ export function FloatingToolbar() {
               border: 'none',
               color: 'rgba(255,255,255,0.4)',
               cursor: 'pointer',
-              fontSize: 14,
               padding: 0,
               marginTop: previousColor ? 10 : 0,
               WebkitAppRegion: 'no-drag',
@@ -204,10 +275,10 @@ export function FloatingToolbar() {
         </div>
 
         {/* 仕切り */}
-        <div style={{ width: 28, height: 0.5, background: 'rgba(255,255,255,0.10)' }} />
+        <div style={{ width: 28, height: 0.5, background: 'rgba(255,255,255,0.10)', position: 'relative', zIndex: 1 }} />
 
         {/* ── 2. クイックアクション ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, WebkitAppRegion: 'no-drag', position: 'relative', zIndex: 1 } as React.CSSProperties}>
           <TactileButton onClick={handleScreenPicker} title="スポイト">
             <IconEyedropper size={14} />
           </TactileButton>
@@ -217,18 +288,24 @@ export function FloatingToolbar() {
         </div>
 
         {/* 仕切り */}
-        <div style={{ width: 28, height: 0.5, background: 'rgba(255,255,255,0.10)' }} />
+        <div style={{ width: 28, height: 0.5, background: 'rgba(255,255,255,0.10)', position: 'relative', zIndex: 1 }} />
 
-        {/* ── 3. ミニスロット（4色） ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        {/* ── 3. ミニスロット（4色）── */}
+        {/* long press (450ms) で上書き / short press で適用 or 登録 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', WebkitAppRegion: 'no-drag', position: 'relative', zIndex: 1 } as React.CSSProperties}>
           {miniSlots.map((hex, i) => (
             <motion.button
               key={i}
-              whileTap={{ scale: 0.97 }}
+              whileTap={{ scale: 0.93 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              onClick={() => hex ? handleSlotSelect(hex) : handleRegisterSlot(i)}
-              onContextMenu={() => setMiniSlot(i, null)}
-              title={hex ? `${hex}（右クリックで解除）` : '現在色を登録'}
+              onPointerDown={() => handleSlotPointerDown(i)}
+              onPointerUp={() => handleSlotPointerUp(i, hex)}
+              onPointerLeave={() => handleSlotPointerLeave(i)}
+              onContextMenu={(e) => { e.preventDefault(); setMiniSlot(i, null) }}
+              title={hex
+                ? `${hex}（クリック:適用 / 長押し:上書き / 右クリック:解除）`
+                : '現在色を登録（長押しで上書き）'
+              }
               style={{
                 width: 22,
                 height: 22,
@@ -252,15 +329,17 @@ export function FloatingToolbar() {
         </div>
 
         {/* 仕切り */}
-        <div style={{ width: 28, height: 0.5, background: 'rgba(255,255,255,0.10)', marginTop: 'auto' }} />
+        <div style={{ width: 28, height: 0.5, background: 'rgba(255,255,255,0.10)', marginTop: 'auto', position: 'relative', zIndex: 1 }} />
 
         {/* ── 4. Dock 展開ボタン ── */}
-        <TactileButton
-          onClick={() => setDockOpen(v => !v)}
-          title={dockOpen ? 'Dockを閉じる' : 'Dockを開く'}
-        >
-          <IconFolder size={14} />
-        </TactileButton>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <TactileButton
+            onClick={() => setDockOpen(v => !v)}
+            title={dockOpen ? 'Dockを閉じる' : 'Dockを開く'}
+          >
+            <IconFolder size={14} />
+          </TactileButton>
+        </div>
       </motion.div>
 
       {/* ── Handy Dock（State C、Toolbarから横に展開） ── */}

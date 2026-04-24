@@ -31,6 +31,9 @@ declare global {
       onFloatingSnapChange: (cb: (data: { side: 'none' | 'left' | 'right' }) => void) => () => void
       floatingColorSelected: (hex: string) => void
       onFloatingColorSelected: (cb: (data: { hex: string }) => void) => () => void
+      // スクリーンピッカー IPC 回路
+      onFloatingColorFromPicker: (cb: (data: { hex: string }) => void) => () => void
+      reportPickedColor: (hex: string) => void
     }
   }
 }

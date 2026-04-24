@@ -53,4 +53,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('fs:color-selected', handler)
     return () => ipcRenderer.removeListener('fs:color-selected', handler)
   },
+
+  // ── スクリーンピッカー IPC 回路 ────────────────────────────────
+  // floating window: ピッカー結果を受信
+  onFloatingColorFromPicker: (cb: (data: { hex: string }) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, data: unknown) => cb(data as { hex: string })
+    ipcRenderer.on('fs:color-from-picker', handler)
+    return () => ipcRenderer.removeListener('fs:color-from-picker', handler)
+  },
+  // main window: ピッカーで取得した色を main process へ報告
+  reportPickedColor: (hex: string) => {
+    ipcRenderer.send('screen-picker:picked', { hex })
+  },
 })

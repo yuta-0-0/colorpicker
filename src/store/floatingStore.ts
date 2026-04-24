@@ -21,6 +21,8 @@ interface FloatingStore {
   swapColors: () => void
   setMiniSlot: (index: number, hex: string | null) => void
   setActiveFolderIndex: (index: number) => void
+  /** スクリーンピッカーで取得した色を直接セット */
+  setCurrentColorFromPicker: (hex: string) => void
 }
 
 export const useFloatingStore = create<FloatingStore>((set) => ({
@@ -66,4 +68,10 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
     }),
 
   setActiveFolderIndex: (activeFolderIndex) => set({ activeFolderIndex }),
+
+  setCurrentColorFromPicker: (hex) =>
+    set((state) => ({
+      previousColor: state.currentColor,
+      currentColor: { hex, alpha: 1, name: hex },
+    })),
 }))

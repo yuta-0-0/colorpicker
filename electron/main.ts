@@ -218,9 +218,38 @@ ipcMain.handle('theme:set', (_, themeSource: 'dark' | 'light' | 'system') => {
   nativeTheme.themeSource = themeSource
 })
 
-// スクリーンピッカー
-ipcMain.handle('screen-picker:start', async () => {
+// ── スクリーンピッカー IPC 回路 ──────────────────────────────────
+// floating または main どちらから呼ばれたかを追跡
+let screenPickerReturnToFloating = false
+
+// step 1: picker 起動要求（floating または main から）
+ipcMain.handle('screen-picker:start', async (event) => {
+  const senderWin = BrowserWindow.fromWebContents(event.sender)
+  screenPickerReturnToFloating = (senderWin === floatingWin)
+
+  if (screenPickerReturnToFloating && floatingWin && !floatingWin.isDestroyed()) {
+    // floating を一時非表示（スクリーンを遮らないように）
+    floatingWin.hide()
+  }
+
+  // main window に picker 起動を通知（実装は React 側）
+  const mainWins = BrowserWindow.getAllWindows().filter(
+    w => w !== floatingWin && w !== prismTileWin && !w.isDestroyed()
+  )
+  mainWins.forEach(w => w.webContents.send('screen-picker:start'))
+
   return null
+})
+
+// step 2: main window が色をピックしたら floating へ転送
+ipcMain.on('screen-picker:picked', (_, { hex }: { hex: string }) => {
+  if (screenPickerReturnToFloating) {
+    if (floatingWin && !floatingWin.isDestroyed()) {
+      floatingWin.show()
+      floatingWin.webContents.send('fs:color-from-picker', { hex })
+    }
+    screenPickerReturnToFloating = false
+  }
 })
 
 // Prism Tile: メインプロセスから開く

@@ -86,6 +86,14 @@ export function HandyDock({ snapSide }: HandyDockProps) {
   const { history, folders, activeFolderIndex, setActiveFolderIndex, currentColor } = useFloatingStore()
   const [folderDropdownOpen, setFolderDropdownOpen] = useState(false)
 
+  // Toolbar が右端スナップのときは Dock が左側に展開される
+  // それ以外（左スナップ・フリー）は右側展開
+  const isDockOnRight = snapSide !== 'right'
+
+  // Dock が右にある → toolbar 側（左）から引き出すように x=-12 → 0
+  // Dock が左にある → toolbar 側（右）から引き出すように x=+12 → 0
+  const slideX = isDockOnRight ? -12 : 12
+
   const displayItems = activeFolderIndex === 0
     ? history.slice(0, 20)
     : (folders[activeFolderIndex - 1]?.colors ?? [])
@@ -104,10 +112,10 @@ export function HandyDock({ snapSide }: HandyDockProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: snapSide === 'left' ? -20 : 20, scaleX: 0.8 }}
-      animate={{ opacity: 1, x: 0, scaleX: 1 }}
-      exit={{ opacity: 0, x: snapSide === 'left' ? -20 : 20, scaleX: 0.8 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      initial={{ opacity: 0, x: slideX }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: slideX }}
+      transition={{ type: 'spring', stiffness: 320, damping: 26 }}
       style={{
         width: 320,
         height: 320,
@@ -119,7 +127,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        margin: snapSide === 'left' ? '0 0 0 4px' : '0 4px 0 0',
+        margin: isDockOnRight ? '0 0 0 4px' : '0 4px 0 0',
         flexShrink: 0,
       } as React.CSSProperties}
     >
