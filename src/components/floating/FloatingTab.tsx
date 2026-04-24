@@ -1,39 +1,69 @@
-import { useCallback } from 'react'
+// src/components/floating/FloatingTab.tsx
+import { useCallback, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
 import { SpecularBorder, useSpecularReflection } from './SpecularBorder'
 
-// ── スプリング定数 ─────────────────────────────────────────────
-// layoutId による形状モーフ専用（大きな寸法変化に ~350ms の流体感を与える）
-const SPRING_MORPH = {
-  type: 'spring', stiffness: 100, damping: 18, mass: 0.8,
-} as const
+// ── Iris morph 定数 ──────────────────────────────────────────────
+// Tab 内 LiquidDot の中心座標（%）
+// paddingLeft:10 + size14/2 = 17px / 80px = 21%、高さ中心 = 50%
+const DOT_POS    = '21% 50%'
+const CLIP_OPEN  = `circle(150% at ${DOT_POS})`
+const CLIP_CLOSE = `circle(0% at ${DOT_POS})`
+
+// A→B: iris アニメーション完了後ウィンドウを trim するまでの猶予 (ms)
+const TRIM_DELAY = 680
+// Toolbar の高さ（FloatingToolbar.tsx と同値を保つこと）
+const TOOLBAR_H  = 380
 
 export function FloatingTab() {
-  const { currentColor, setFloatingState } = useFloatingStore()
-  const specular = useSpecularReflection()
+  const { currentColor, setFloatingState, snapSide } = useFloatingStore()
+  const specular     = useSpecularReflection()
+  const trimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // ── エントリ閃光（iris が開ききる頃に光を当てる） ─────────────
+  useEffect(() => {
+    const t = setTimeout(() => specular.flash(), 160)
+    return () => clearTimeout(t)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Cleanup ──────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (trimTimerRef.current) clearTimeout(trimTimerRef.current)
+    }
+  }, [])
+
+  // ── A → B 遷移 ───────────────────────────────────────────────
   const handleDoubleClick = useCallback(() => {
-    // ①ウィンドウを先に 48×320 に拡張 → ②状態変化でモーフ開始
-    // （先にリサイズすることで Tab が正しいサイズのウィンドウ内でモーフする）
-    window.electronAPI?.requestFloatingResize({ width: 48, height: 320, anchor: 'center' })
+    // Step 1: 高さを先行拡張（幅 80 保持 → Tab が iris-close できる空間を確保）
+    window.electronAPI?.requestFloatingResize({ width: 80, height: TOOLBAR_H, anchor: 'center' })
+    // Step 2: 状態変化（Tab iris-close exit / Toolbar iris-open enter が同時に始まる）
     setFloatingState('toolbar')
-  }, [setFloatingState])
+    // Step 3: iris アニメーション完了後、Toolbar 幅 48 に trim
+    if (trimTimerRef.current) clearTimeout(trimTimerRef.current)
+    trimTimerRef.current = setTimeout(() => {
+      const anchor = snapSide === 'right' ? 'right' : 'left'
+      window.electronAPI?.requestFloatingResize({ width: 48, height: TOOLBAR_H, anchor })
+    }, TRIM_DELAY)
+  }, [setFloatingState, snapSide])
 
   return (
     <motion.div
-      layoutId="floating-frame"
-      layout
-      initial={{ opacity: 0, borderColor: 'rgba(255,255,255,0.38)' }}
-      animate={{ opacity: 1, borderColor: 'rgba(255,255,255,0.12)' }}
-      exit={{ opacity: 0 }}
+      // ── Iris Morph ──
+      initial={{ clipPath: CLIP_CLOSE }}
+      animate={{ clipPath: CLIP_OPEN  }}
+      exit={{
+        clipPath: CLIP_CLOSE,
+        transition: {
+          // 高速クローズ（Toolbar の入場を引き立てる）
+          clipPath: { type: 'spring', stiffness: 480, damping: 40, mass: 0.4 },
+        },
+      }}
       transition={{
-        // 形状モーフ（width/height/borderRadius）はゆっくりしたスプリングで
-        layout:      SPRING_MORPH,
-        // opacity は短く — モーフのビジュアルを優先する
-        opacity:     { duration: 0.10 },
-        borderColor: { duration: 0.9, ease: 'easeOut' },
+        // iris open: 僅かに遅らせて先行するクローズを際立たせる
+        clipPath: { delay: 0.06, type: 'spring', stiffness: 200, damping: 22, mass: 0.8 },
       }}
       onDoubleClick={handleDoubleClick}
       onMouseMove={specular.handleMouseMove}
@@ -46,8 +76,8 @@ export function FloatingTab() {
         background: 'rgba(18, 24, 38, 0.70)',
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        borderWidth: '0.5px',
-        borderStyle: 'solid',
+        // border: none — SpecularBorder が 1.4px chamfer を担う
+        boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.14), inset 0 0 12px rgba(255,255,255,0.04)',
         display: 'flex',
         alignItems: 'center',
         paddingLeft: 10,
@@ -63,7 +93,7 @@ export function FloatingTab() {
         background={specular.background}
         opacity={specular.opacity}
       />
-      {/* LiquidDot: 左寄せ固定・右側は意図的な余白（Liquid Glass の呼吸） */}
+      {/* LiquidDot: 左寄せ固定（Iris の収束点） */}
       <div
         style={{
           WebkitAppRegion: 'no-drag',

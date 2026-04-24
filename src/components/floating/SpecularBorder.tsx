@@ -1,14 +1,14 @@
 /**
- * SpecularBorder — ガラス縁の鏡面反射
+ * SpecularBorder — ガラス縁の鏡面反射 + エントリ / コピー成功フラッシュ
  *
  * 【哲学】自発光ではなく「反射」
- *   マウス（光源）の位置に連動し、マウスに最も近いエッジ・コーナーが
- *   外光を受けて白く輝く。連続ループアニメーションは一切ない。
+ *   マウス（光源）の位置に連動し、近接エッジが外光を受けて輝く。
+ *   flash() は外部から呼び出し可能。
+ *   コピー成功・コンポーネント出現時の「一瞬の閃光」に使う。
  *
  * 【技術】
- *   radial-gradient を mask xor の 1px フレームに投影。
- *   マウス位置を中心とした放射状グラデーションが境界線に映り込み、
- *   コーナーは隣接する 2 辺の輝度が自然に重なって最輝点になる。
+ *   padding: 1.4px の精密な面取りフレーム（Liquid Glass chamfer）。
+ *   radial-gradient を mask xor で 1.4px 境界線に投影。
  *
  * 使い方:
  *   const specular = useSpecularReflection()
@@ -22,15 +22,15 @@
  *   </div>
  */
 import { motion, useMotionValue, animate, type MotionValue } from 'framer-motion'
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
 
 // ── グラデーション生成 ───────────────────────────────────────────
 function makeSpecular(x: number, y: number): string {
   return (
     `radial-gradient(circle at ${x}% ${y}%, ` +
-    `rgba(255,255,255,0.55) 0%, ` +
-    `rgba(255,255,255,0.20) 28%, ` +
-    `rgba(255,255,255,0.06) 55%, ` +
+    `rgba(255,255,255,0.65) 0%, ` +
+    `rgba(255,255,255,0.22) 28%, ` +
+    `rgba(255,255,255,0.07) 55%, ` +
     `transparent 75%)`
   )
 }
@@ -41,14 +41,17 @@ export interface SpecularReflectionControls {
   opacity: MotionValue<number>
   handleMouseMove: (e: React.MouseEvent<HTMLElement>) => void
   handleMouseLeave: () => void
+  /** エントリ閃光・コピー成功閃光（上方光源から一瞬当てて消える） */
+  flash: () => void
 }
 
 export function useSpecularReflection(): SpecularReflectionControls {
-  // background は useTransform を使わず直接 set() することで型問題を回避
-  const background = useMotionValue(makeSpecular(-50, -50))
+  const background = useMotionValue(makeSpecular(50, 0))
   const opacity    = useMotionValue(0)
+  const isHovering = useRef(false)
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    isHovering.current = true
     const rect = e.currentTarget.getBoundingClientRect()
     const x = ((e.clientX - rect.left) / rect.width)  * 100
     const y = ((e.clientY - rect.top)  / rect.height) * 100
@@ -57,10 +60,27 @@ export function useSpecularReflection(): SpecularReflectionControls {
   }, [background, opacity])
 
   const handleMouseLeave = useCallback(() => {
+    isHovering.current = false
     animate(opacity, 0, { duration: 0.45, ease: 'easeOut' })
   }, [opacity])
 
-  return { background, opacity, handleMouseMove, handleMouseLeave }
+  /**
+   * 上方から閃光 → opacity 0.90 → 0 で自然消灯。
+   * ホバー中に呼ばれた場合はフェードアウトをスキップし、ホバーグローを維持。
+   */
+  const flash = useCallback(() => {
+    background.set(makeSpecular(50, 0))
+    animate(opacity, 0.90, {
+      duration: 0.05,
+      onComplete: () => {
+        if (!isHovering.current) {
+          animate(opacity, 0, { duration: 0.70, ease: 'easeOut' })
+        }
+      },
+    })
+  }, [background, opacity])
+
+  return { background, opacity, handleMouseMove, handleMouseLeave, flash }
 }
 
 // ── Component ───────────────────────────────────────────────────
@@ -72,7 +92,7 @@ interface SpecularBorderProps {
 
 /**
  * 親要素に `position: relative` が必要。
- * 親が `overflow: hidden` でも inset:0 なのでクリッピングされない。
+ * padding: 1.4px + mask xor = 1.4px の面取りフレームだけ gradient が可視化。
  */
 export function SpecularBorder({ borderRadius, background, opacity }: SpecularBorderProps) {
   return (
@@ -82,8 +102,8 @@ export function SpecularBorder({ borderRadius, background, opacity }: SpecularBo
         position: 'absolute',
         inset: 0,
         borderRadius,
-        // padding:1px + mask xor = 1px の境界線フレームだけ gradient が可視化
-        padding: 1,
+        // 1.4px 精密面取り（Liquid Glass chamfer）
+        padding: 1.4,
         WebkitMask:
           'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
         WebkitMaskComposite: 'xor' as React.CSSProperties['WebkitMaskComposite'],

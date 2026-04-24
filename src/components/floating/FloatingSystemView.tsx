@@ -1,6 +1,6 @@
 // src/components/floating/FloatingSystemView.tsx
 import { useEffect } from 'react'
-import { AnimatePresence, LayoutGroup } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import { useFloatingStore } from '@/store/floatingStore'
 import type { FSSyncPayload } from '@/types/floating'
 import { FloatingTab } from './FloatingTab'
@@ -37,15 +37,13 @@ export function FloatingSystemView() {
   }, [setCurrentColorFromPicker])
 
   return (
-    // LayoutGroup + AnimatePresence（mode 省略 = "sync"）
-    // layoutId="floating-frame" による Tab↔Toolbar モーフを正しく機能させる
-    <LayoutGroup>
-      <AnimatePresence>
-        {floatingState === 'tab'
-          ? <FloatingTab key="tab" />
-          : <FloatingToolbar key="toolbar" />
-        }
-      </AnimatePresence>
-    </LayoutGroup>
+    // initial={false}: 初回マウント時は iris アニメーションをスキップ
+    // Tab↔Toolbar 切り替え時のみ iris morph が再生される
+    <AnimatePresence initial={false}>
+      {floatingState === 'tab'
+        ? <FloatingTab key="tab" />
+        : <FloatingToolbar key="toolbar" />
+      }
+    </AnimatePresence>
   )
 }

@@ -32,7 +32,10 @@ declare global {
       floatingColorSelected: (hex: string) => void
       onFloatingColorSelected: (cb: (data: { hex: string }) => void) => () => void
       // スクリーンピッカー IPC 回路
+      /** main window: floating からの要求で EyeDropper を起動する指示を受け取る */
+      onScreenPickerStart: (cb: () => void) => () => void
       onFloatingColorFromPicker: (cb: (data: { hex: string }) => void) => () => void
+      /** main window: EyeDropper 完了後に hex を main process へ報告（空文字=キャンセル） */
       reportPickedColor: (hex: string) => void
     }
   }

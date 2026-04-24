@@ -118,7 +118,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
       transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
       style={{
         width: 320,
-        height: 320,
+        height: 380,
         borderRadius: 16,
         background: 'rgba(18, 24, 38, 0.70)',
         backdropFilter: 'blur(24px) saturate(180%)',

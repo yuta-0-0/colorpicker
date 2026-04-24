@@ -349,6 +349,25 @@ export function AppLayout() {
     displayColors,
   })
 
+  // Floating System からのスポイト起動要求
+  // floating が startScreenPicker() → main.ts が 'screen-picker:start' を送信
+  // main window が EyeDropper を開き、結果を reportPickedColor で返す（空=キャンセル）
+  useEffect(() => {
+    if (!window.electronAPI?.onScreenPickerStart) return
+    const unsub = window.electronAPI.onScreenPickerStart(async () => {
+      try {
+        const EyeDropperCtor = (window as unknown as { EyeDropper?: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper
+        if (!EyeDropperCtor) return
+        const { sRGBHex } = await new EyeDropperCtor().open()
+        window.electronAPI?.reportPickedColor(sRGBHex)
+      } catch {
+        // ユーザーキャンセル → 空文字を送って floating を再表示させる
+        window.electronAPI?.reportPickedColor('')
+      }
+    })
+    return unsub
+  }, [])
+
   // ? キーでショートカットヘルプ
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

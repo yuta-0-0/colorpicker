@@ -55,6 +55,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // ── スクリーンピッカー IPC 回路 ────────────────────────────────
+  // main window: floating からの要求で picker 起動を指示される
+  onScreenPickerStart: (cb: () => void) => {
+    const handler = () => cb()
+    ipcRenderer.on('screen-picker:start', handler)
+    return () => ipcRenderer.removeListener('screen-picker:start', handler)
+  },
   // floating window: ピッカー結果を受信
   onFloatingColorFromPicker: (cb: (data: { hex: string }) => void) => {
     const handler = (_: Electron.IpcRendererEvent, data: unknown) => cb(data as { hex: string })

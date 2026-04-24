@@ -242,11 +242,14 @@ ipcMain.handle('screen-picker:start', async (event) => {
 })
 
 // step 2: main window が色をピックしたら floating へ転送
+// hex が空文字の場合はキャンセル扱い → floating を表示するだけで色は更新しない
 ipcMain.on('screen-picker:picked', (_, { hex }: { hex: string }) => {
   if (screenPickerReturnToFloating) {
     if (floatingWin && !floatingWin.isDestroyed()) {
       floatingWin.show()
-      floatingWin.webContents.send('fs:color-from-picker', { hex })
+      if (hex) {
+        floatingWin.webContents.send('fs:color-from-picker', { hex })
+      }
     }
     screenPickerReturnToFloating = false
   }
