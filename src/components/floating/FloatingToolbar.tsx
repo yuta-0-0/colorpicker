@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
 import { HandyDock } from './HandyDock'
-import { BorderTrace, useBorderTrace } from './BorderTrace'
+import { SpecularBorder, useSpecularReflection } from './SpecularBorder'
 import {
   IconArrowsLeftRight,
   IconEyedropper,
@@ -13,6 +13,11 @@ import {
   IconFolder,
   IconMinus,
 } from '@/components/ui/Icons'
+
+// メインウィンドウのパネル・リストと同一スプリング（「吸い付くような」質感）
+const SPRING = { type: 'spring', stiffness: 500, damping: 40, mass: 0.5 } as const
+// ボタンタップ: 即座のフィードバック用（短い）
+const SPRING_TAP = { type: 'spring', stiffness: 300, damping: 30 } as const
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).catch(() => {
@@ -39,7 +44,7 @@ function TactileButton({
       onClick={onClick}
       title={title}
       whileTap={{ scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      transition={SPRING_TAP}
       style={{
         background: 'rgba(255,255,255,0.08)',
         border: '0.5px solid rgba(255,255,255,0.10)',
@@ -66,13 +71,13 @@ export function FloatingToolbar() {
     miniSlots, setMiniSlot, swapColors, setFloatingState,
   } = useFloatingStore()
 
-  const [copied, setCopied]   = useState(false)
+  const [copied, setCopied]     = useState(false)
   const [dockOpen, setDockOpen] = useState(false)
-  const copyTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // long-press: スロット上書きタイマー
-  const slotTimers    = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // long-press: スロット上書きタイマー（スロット番号 → タイマーID）
+  const slotTimers   = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
 
-  const trace = useBorderTrace(true) // mount 時に自動発火
+  const specular = useSpecularReflection()
 
   // ── コピー ──────────────────────────────────────────────────
   const handleCopyHex = useCallback(() => {
@@ -98,39 +103,32 @@ export function FloatingToolbar() {
   }, [])
 
   /**
-   * Pointer Down: long-press タイマー開始
-   * 450ms 経過したらそのスロットを現在色で上書き（4枠全て埋まっていても上書き可能）
+   * long press 450ms → 現在色で上書き（4枠全て埋まっていても可）
+   * short click → 適用 or 登録（従来動作）
    */
   const handleSlotPointerDown = useCallback((i: number) => {
     const timer = setTimeout(() => {
       slotTimers.current.delete(i)
-      setMiniSlot(i, currentColor.hex) // 上書き
+      setMiniSlot(i, currentColor.hex)
     }, 450)
     slotTimers.current.set(i, timer)
   }, [currentColor.hex, setMiniSlot])
 
-  /**
-   * Pointer Up: タイマーが残っていれば short press → 通常動作
-   */
   const handleSlotPointerUp = useCallback((i: number, hex: string | null) => {
     const timer = slotTimers.current.get(i)
     if (!timer) return
     clearTimeout(timer)
     slotTimers.current.delete(i)
     if (hex) {
-      handleSlotSelect(hex) // 適用
+      handleSlotSelect(hex)
     } else {
-      handleRegisterSlot(i) // 登録
+      handleRegisterSlot(i)
     }
   }, [handleSlotSelect, handleRegisterSlot])
 
-  /** Pointer Leave でタイマーキャンセル（ドラッグ中に外れた場合） */
   const handleSlotPointerLeave = useCallback((i: number) => {
     const timer = slotTimers.current.get(i)
-    if (timer) {
-      clearTimeout(timer)
-      slotTimers.current.delete(i)
-    }
+    if (timer) { clearTimeout(timer); slotTimers.current.delete(i) }
   }, [])
 
   // ── 縮小（Toolbar → Tab） ────────────────────────────────────
@@ -148,8 +146,6 @@ export function FloatingToolbar() {
   }, [])
 
   // ── Dock 開閉 → ウィンドウ幅リサイズ ─────────────────────────
-  // Toolbar 48px + margin 4px + HandyDock 320px = 372px
-  // anchor は Toolbar を固定する方向に合わせる
   useEffect(() => {
     const anchor = snapSide === 'right' ? 'right' : 'left'
     window.electronAPI?.requestFloatingResize({
@@ -159,8 +155,7 @@ export function FloatingToolbar() {
     })
   }, [dockOpen, snapSide])
 
-  // snapSide !== 'right' のとき Toolbar は左側に配置し Dock を右展開
-  // snapSide === 'right' のみ row-reverse（Toolbar 右・Dock 左）
+  // snapSide !== 'right' → Toolbar を左側に固定して Dock を右展開
   const isDockLeft = snapSide !== 'right'
 
   return (
@@ -178,26 +173,25 @@ export function FloatingToolbar() {
       <motion.div
         layoutId="floating-frame"
         layout
-        // borderColor を framer-motion に完全委譲（グロー有効化）
-        initial={{ opacity: 0.6, borderColor: 'rgba(80,176,211,1)' }}
-        animate={{ opacity: 1,   borderColor: 'rgba(255,255,255,0.15)' }}
+        // マウント時: ホワイトボーダーが瞬く（ガラス出現演出）
+        initial={{ opacity: 0, borderColor: 'rgba(255,255,255,0.38)' }}
+        animate={{ opacity: 1, borderColor: 'rgba(255,255,255,0.12)' }}
         exit={{ opacity: 0 }}
         transition={{
-          default:     { type: 'spring', stiffness: 200, damping: 22 },
-          borderColor: { duration: 1.2, ease: 'easeOut' },
-          opacity:     { duration: 0.15 },
+          default:     SPRING,
+          borderColor: { duration: 0.9, ease: 'easeOut' },
+          opacity:     { duration: 0.18 },
         }}
-        // hover で再発火
-        onHoverStart={trace.run}
+        onMouseMove={specular.handleMouseMove}
+        onMouseLeave={specular.handleMouseLeave}
         style={{
-          position: 'relative', // BorderTrace の absolute 基準
+          position: 'relative',     // SpecularBorder の absolute 基準
           width: 48,
           height: 320,
           borderRadius: 16,
           background: 'rgba(18, 24, 38, 0.70)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          // shorthand border を使わず個別指定（framer-motion borderColor 競合回避）
           borderWidth: '0.5px',
           borderStyle: 'solid',
           display: 'flex',
@@ -210,14 +204,18 @@ export function FloatingToolbar() {
           overflow: 'hidden',
         } as React.CSSProperties}
       >
-        {/* 境界線を走る光 */}
-        <BorderTrace borderRadius={16} background={trace.background} opacity={trace.opacity} />
+        {/* 鏡面反射（マウス追従） */}
+        <SpecularBorder
+          borderRadius={16}
+          background={specular.background}
+          opacity={specular.opacity}
+        />
 
-        {/* ── 0. 縮小ボタン（カプセルに戻す） ── */}
+        {/* ── 0. 縮小ボタン ── */}
         <motion.button
           onClick={handleShrink}
           whileTap={{ scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          transition={SPRING_TAP}
           title="カプセルに戻す"
           style={{
             background: 'none',
@@ -235,7 +233,7 @@ export function FloatingToolbar() {
           <IconMinus size={14} />
         </motion.button>
 
-        {/* ── 1. スワップ領域（イラレ風） ── */}
+        {/* ── 1. スワップ領域 ── */}
         <div
           style={{
             display: 'flex',
@@ -258,7 +256,7 @@ export function FloatingToolbar() {
           <motion.button
             onClick={swapColors}
             whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={SPRING_TAP}
             title="色を入れ替え"
             style={{
               background: 'none',
@@ -290,14 +288,13 @@ export function FloatingToolbar() {
         {/* 仕切り */}
         <div style={{ width: 28, height: 0.5, background: 'rgba(255,255,255,0.10)', position: 'relative', zIndex: 1 }} />
 
-        {/* ── 3. ミニスロット（4色）── */}
-        {/* long press (450ms) で上書き / short press で適用 or 登録 */}
+        {/* ── 3. ミニスロット ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', WebkitAppRegion: 'no-drag', position: 'relative', zIndex: 1 } as React.CSSProperties}>
           {miniSlots.map((hex, i) => (
             <motion.button
               key={i}
               whileTap={{ scale: 0.93 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              transition={SPRING_TAP}
               onPointerDown={() => handleSlotPointerDown(i)}
               onPointerUp={() => handleSlotPointerUp(i, hex)}
               onPointerLeave={() => handleSlotPointerLeave(i)}
@@ -342,7 +339,7 @@ export function FloatingToolbar() {
         </div>
       </motion.div>
 
-      {/* ── Handy Dock（State C、Toolbarから横に展開） ── */}
+      {/* ── Handy Dock（State C） ── */}
       <AnimatePresence>
         {dockOpen && <HandyDock snapSide={snapSide} />}
       </AnimatePresence>

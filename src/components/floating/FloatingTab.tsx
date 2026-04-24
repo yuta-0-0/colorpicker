@@ -2,11 +2,14 @@ import { useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
-import { BorderTrace, useBorderTrace } from './BorderTrace'
+import { SpecularBorder, useSpecularReflection } from './SpecularBorder'
+
+// メインウィンドウのパネル・リストと同一スプリング（「吸い付くような」質感）
+const SPRING = { type: 'spring', stiffness: 500, damping: 40, mass: 0.5 } as const
 
 export function FloatingTab() {
   const { currentColor, setFloatingState } = useFloatingStore()
-  const trace = useBorderTrace(true) // mount 時に自動発火
+  const specular = useSpecularReflection()
 
   const handleDoubleClick = useCallback(() => {
     setFloatingState('toolbar')
@@ -17,27 +20,28 @@ export function FloatingTab() {
     <motion.div
       layoutId="floating-frame"
       layout
-      // borderColor は shorthand を使わず framer-motion に完全委譲（グロー有効化）
-      initial={{ opacity: 0.6, borderColor: 'rgba(80,176,211,1)' }}
-      animate={{ opacity: 1,   borderColor: 'rgba(255,255,255,0.15)' }}
+      // マウント時: ホワイトボーダーが瞬く（自発光ではなく「ガラスが現れる瞬間に空気を拾う」）
+      // その後は SpecularBorder のマウス反射のみで輝く
+      initial={{ opacity: 0, borderColor: 'rgba(255,255,255,0.38)' }}
+      animate={{ opacity: 1, borderColor: 'rgba(255,255,255,0.12)' }}
       exit={{ opacity: 0 }}
       transition={{
-        default:     { type: 'spring', stiffness: 200, damping: 22 },
-        borderColor: { duration: 1.2, ease: 'easeOut' },
-        opacity:     { duration: 0.15 },
+        default:     SPRING,
+        borderColor: { duration: 0.9, ease: 'easeOut' },
+        opacity:     { duration: 0.18 },
       }}
       onDoubleClick={handleDoubleClick}
-      // hover で再発火
-      onHoverStart={trace.run}
+      onMouseMove={specular.handleMouseMove}
+      onMouseLeave={specular.handleMouseLeave}
       style={{
-        position: 'relative', // BorderTrace の absolute 基準
+        position: 'relative',     // SpecularBorder の absolute 基準
         width: 80,
         height: 32,
         borderRadius: 20,
         background: 'rgba(18, 24, 38, 0.70)',
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        // shorthand border を使わず個別指定（framer-motion borderColor 競合回避）
+        // shorthand border は使わず個別指定（framer-motion borderColor 競合回避）
         borderWidth: '0.5px',
         borderStyle: 'solid',
         display: 'flex',
@@ -50,10 +54,21 @@ export function FloatingTab() {
         overflow: 'hidden',
       } as React.CSSProperties}
     >
-      {/* 境界線を走る光 */}
-      <BorderTrace borderRadius={20} background={trace.background} opacity={trace.opacity} />
+      {/* 鏡面反射（マウス追従） */}
+      <SpecularBorder
+        borderRadius={20}
+        background={specular.background}
+        opacity={specular.opacity}
+      />
 
-      <div style={{ WebkitAppRegion: 'no-drag', position: 'relative', zIndex: 1 } as React.CSSProperties}>
+      {/* LiquidDot: 左寄せ固定・右側は意図的な余白（Liquid Glass の呼吸） */}
+      <div
+        style={{
+          WebkitAppRegion: 'no-drag',
+          position: 'relative',
+          zIndex: 1,
+        } as React.CSSProperties}
+      >
         <LiquidDot hex={currentColor.hex} size={14} />
       </div>
     </motion.div>

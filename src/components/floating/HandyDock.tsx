@@ -115,7 +115,7 @@ export function HandyDock({ snapSide }: HandyDockProps) {
       initial={{ opacity: 0, x: slideX }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: slideX }}
-      transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+      transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
       style={{
         width: 320,
         height: 320,
