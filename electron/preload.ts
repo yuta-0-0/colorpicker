@@ -56,11 +56,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // Step 4: メタデータ付き保存（Floating → main window）
-  floatingSaveColor: (data: { hex: string; alpha: number; name?: string }) =>
+  // memo・tag を追加（State C ののれん入力欄から送信）
+  floatingSaveColor: (data: { hex: string; alpha: number; name?: string; memo?: string; tag?: string }) =>
     ipcRenderer.send('fs:save-color', data),
-  onFloatingSaveColor: (cb: (data: { hex: string; alpha: number; name?: string }) => void) => {
+  onFloatingSaveColor: (cb: (data: { hex: string; alpha: number; name?: string; memo?: string; tag?: string }) => void) => {
     const handler = (_: Electron.IpcRendererEvent, data: unknown) =>
-      cb(data as { hex: string; alpha: number; name?: string })
+      cb(data as { hex: string; alpha: number; name?: string; memo?: string; tag?: string })
     ipcRenderer.on('fs:save-color', handler)
     return () => ipcRenderer.removeListener('fs:save-color', handler)
   },

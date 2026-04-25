@@ -338,8 +338,9 @@ ipcMain.on('fs:color-selected', (_, { hex }: { hex: string }) => {
   wins.forEach(w => w.webContents.send('fs:color-selected', { hex }))
 })
 
-// Step 4: Floating System: 名前メタデータ付きで保存 → メインウィンドウへ転送
-ipcMain.on('fs:save-color', (_, payload: { hex: string; alpha: number; name?: string }) => {
+// Step 4: Floating System: メタデータ付きで保存 → メインウィンドウへ転送
+// memo / tag フィールドを追加（State C ののれん入力から送信）
+ipcMain.on('fs:save-color', (_, payload: { hex: string; alpha: number; name?: string; memo?: string; tag?: string }) => {
   const wins = BrowserWindow.getAllWindows().filter(w => w !== floatingWin && !w.isDestroyed())
   wins.forEach(w => w.webContents.send('fs:save-color', payload))
 })

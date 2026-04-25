@@ -17,7 +17,7 @@ interface ColorStore {
   fetchColors: (folderId?: string | null) => Promise<void>
 
   // 色追加（同一HEXは重複しない）
-  addColor: (hex: string, alpha?: number, folderId?: string | null, options?: { name?: string }) => Promise<Color | null>
+  addColor: (hex: string, alpha?: number, folderId?: string | null, options?: { name?: string; memo?: string }) => Promise<Color | null>
 
   // 初回ログイン時のデフォルト色シード
   seedDefaultColors: () => Promise<void>
@@ -125,7 +125,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     }
   },
 
-  addColor: async (hex, alpha = 1.0, folderId = null, options) => {
+  addColor: async (hex, alpha = 1.0, folderId = null, options?: { name?: string; memo?: string }) => {
     get()._snapshot()
 
     // dev bypass モード: Supabase を使わずローカル state のみで追加
@@ -184,6 +184,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       hex: hex.toUpperCase(),
       alpha,
       name,
+      memo: options?.memo ?? null,
       order: 0,
     }
 

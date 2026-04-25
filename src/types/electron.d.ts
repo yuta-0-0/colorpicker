@@ -33,9 +33,9 @@ declare global {
       floatingColorSelected: (hex: string) => void
       onFloatingColorSelected: (cb: (data: { hex: string }) => void) => () => void
 
-      // Step 4: メタデータ付き保存
-      floatingSaveColor: (data: { hex: string; alpha: number; name?: string }) => void
-      onFloatingSaveColor: (cb: (data: { hex: string; alpha: number; name?: string }) => void) => () => void
+      // Step 4: メタデータ付き保存（name / memo / tag 対応）
+      floatingSaveColor: (data: { hex: string; alpha: number; name?: string; memo?: string; tag?: string }) => void
+      onFloatingSaveColor: (cb: (data: { hex: string; alpha: number; name?: string; memo?: string; tag?: string }) => void) => () => void
 
       // ── スクリーンピッカー ────────────────────────────────────
       /** Step 6: main window 側（現在は executeJavaScript で直接起動するため通常は呼ばれない） */

@@ -6,7 +6,6 @@
 // ── Step 2: 究極の地層レイアウト ────────────────────────────────────
 //   1段目: 縮小ボタン
 //   2段目: LiquidDot（メイン）+ previousColor サブカラー（並置）
-//   ▼ Noren（BookmarkSimple 展開、Step 4）
 //   3〜6段目: 硝子孔スロット（透明＋1.4px chamfer）
 //   7段目: ＋ボタン（充填トリガー）
 //   8段目: Dark/Light 切替
@@ -17,11 +16,7 @@
 //   スロット昇格: promoteSlot(hex) → floatingColorSelected(hex)
 //   重複排除: pushMiniSlot 側で排除済み
 //   ダブルクリック: floatingSaveColor → floatingColorSelected → flash
-//
-// ── Step 4: Noren ────────────────────────────────────────────────────
-//   BookmarkSimple ボタンで height 0→auto スライド展開
-//   Enter / 保存ボタンで確定 → flash → State B へ戻る
-//   クイック保存: 空スロット短押し → 即保存
+//   空スロット短押し: クイック保存（詳細保存は State C ののれん）
 //
 // ── Step 7: Save Flash ───────────────────────────────────────────────
 //   保存成功時に specular.flash()
@@ -43,20 +38,19 @@ import {
   IconPlus,
   IconSun,
   IconMoon,
-  IconBookmarkSimple,
 } from '@/components/ui/Icons'
 
 // ── 定数 ────────────────────────────────────────────────────────────
-const TOOLBAR_H = 480   // 420 → 480 (サブカラー + 8段目追加分)
+const TOOLBAR_H = 480   // Step 2 のサブカラー + 8段目分を含む高さ
 
-// clip-path 定数（Toolbar 空間、48 × 480px）
-// LiquidDot の中心 = top-padding 12 + shrink26/2 + gap8 + dot24/2 = 12+13+8+12 ≈ 9.4% ≈ 10%
+// clip-path 定数（Toolbar 空間: 48 × 480px）
+// LiquidDot 中心 ≈ top-padding 12 + shrink26/2 + gap8 + dot24/2 = 12+13+8+12 ≈ 10%
 const TB_DOT_POS = '50% 10%'
 
-const TB_OPEN   = `circle(150% at ${TB_DOT_POS})`
-const TB_P1_DOT = `circle(3.5% at ${TB_DOT_POS})`   // LiquidDot サイズ
-const TB_P2_OVER= `circle(4.5% at ${TB_DOT_POS})`   // 一回り大きく
-const TB_P3_SM  = `circle(2.5% at ${TB_DOT_POS})`   // 少し小さく（Tab へのハンドオフ）
+const TB_OPEN    = `circle(150% at ${TB_DOT_POS})`
+const TB_P1_DOT  = `circle(3.5% at ${TB_DOT_POS})`
+const TB_P2_OVER = `circle(4.5% at ${TB_DOT_POS})`
+const TB_P3_SM   = `circle(2.5% at ${TB_DOT_POS})`
 
 // タイミング（FloatingTab.tsx の TOOLBAR_DELAY=0.68s に同期）
 const TAB_DELAY      = 0.68
@@ -134,19 +128,15 @@ export function FloatingToolbar() {
     setFloatingState, setPendingSaveAfterPick,
   } = useFloatingStore()
 
-  const [copied, setCopied]             = useState(false)
-  const [dockOpen, setDockOpen]         = useState(false)
+  const [copied, setCopied]               = useState(false)
+  const [dockOpen, setDockOpen]           = useState(false)
   const [eyeLongActive, setEyeLongActive] = useState(false)
-  // Step 4: のれん
-  const [norenOpen, setNorenOpen]       = useState(false)
-  const [norenName, setNorenName]       = useState('')
-  const norenInputRef = useRef<HTMLInputElement>(null)
 
-  const copyTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const slotTimers     = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
-  const trimTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const delayTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const eyeTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copyTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const slotTimers    = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
+  const trimTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const eyeTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isDark   = usePrefersDark()
   const glass    = getGlassTokens(isDark)
@@ -185,7 +175,6 @@ export function FloatingToolbar() {
 
   // ── ドットダブルクリック（Step 3: 履歴保存 + flash）──────────
   const handleDotDoubleClick = useCallback(() => {
-    // メインウィンドウの履歴に保存
     window.electronAPI?.floatingSaveColor?.({
       hex: currentColor.hex,
       alpha: currentColor.alpha,
@@ -221,7 +210,7 @@ export function FloatingToolbar() {
   const handleSlotPointerDown = useCallback((i: number) => {
     slotTimers.current.set(i, setTimeout(() => {
       slotTimers.current.delete(i)
-      setMiniSlot(i, currentColor.hex)  // 長押し = 上書き登録
+      setMiniSlot(i, currentColor.hex)   // 長押し = 上書き
     }, 450))
   }, [currentColor.hex, setMiniSlot])
 
@@ -229,11 +218,11 @@ export function FloatingToolbar() {
     const t = slotTimers.current.get(i); if (!t) return
     clearTimeout(t); slotTimers.current.delete(i)
     if (hex) {
-      // Step 3: 塗りスロット短押し → Active に昇格
+      // 塗りスロット短押し → Active に昇格（Step 3）
       promoteSlot(hex)
       window.electronAPI?.floatingColorSelected(hex)
     } else {
-      // Step 4: 空スロット短押し → クイック保存 + スロット登録
+      // 空スロット短押し → クイック保存 + スロット登録（Step 4）
       window.electronAPI?.floatingSaveColor?.({
         hex: currentColor.hex,
         alpha: currentColor.alpha,
@@ -250,34 +239,11 @@ export function FloatingToolbar() {
     if (t) { clearTimeout(t); slotTimers.current.delete(i) }
   }, [])
 
-  // ── ＋ボタン（充填トリガー）──────────────────────────────────
+  // ── ＋ボタン（充填トリガー・重複排除は store 側）────────────
   const handlePushSlot = useCallback(() => {
     pushMiniSlot(currentColor.hex)
     specular.flash()
   }, [currentColor.hex, pushMiniSlot, specular])
-
-  // ── Step 4: のれん展開 ───────────────────────────────────────
-  const handleOpenNoren = useCallback(() => {
-    setNorenName(currentColor.name ?? currentColor.hex)
-    setNorenOpen(true)
-    setTimeout(() => norenInputRef.current?.focus(), 80)
-  }, [currentColor])
-
-  const handleCloseNoren = useCallback(() => {
-    setNorenOpen(false)
-    setNorenName('')
-  }, [])
-
-  const handleNorenSave = useCallback(() => {
-    window.electronAPI?.floatingSaveColor?.({
-      hex: currentColor.hex,
-      alpha: currentColor.alpha,
-      name: norenName || currentColor.hex,
-    })
-    window.electronAPI?.floatingColorSelected(currentColor.hex)
-    specular.flash()
-    handleCloseNoren()
-  }, [currentColor, norenName, specular, handleCloseNoren])
 
   // ── 縮小（B → A）──────────────────────────────────────────────
   const handleShrink = useCallback(() => {
@@ -409,74 +375,6 @@ export function FloatingToolbar() {
           )}
         </div>
 
-        {/* ── BookmarkSimple ボタン（のれんトリガー）── */}
-        <TactileButton
-          onClick={norenOpen ? handleCloseNoren : handleOpenNoren}
-          title={norenOpen ? 'のれんを閉じる' : '詳細保存（名前付き）'}
-          glass={glass}
-          active={norenOpen}
-        >
-          <IconBookmarkSimple size={13} />
-        </TactileButton>
-
-        {/* ── Step 4: のれんパネル（height 0 → auto スライド）── */}
-        <AnimatePresence>
-          {norenOpen && (
-            <motion.div
-              key="noren"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 32, mass: 0.6 }}
-              style={{
-                overflow: 'hidden', width: '100%',
-                flexShrink: 0, position: 'relative', zIndex: 1,
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 6, padding: '6px 4px',
-                  borderTop: `0.5px solid ${glass.divider}`,
-                  borderBottom: `0.5px solid ${glass.divider}`,
-                }}
-              >
-                <input
-                  ref={norenInputRef}
-                  value={norenName}
-                  onChange={(e) => setNorenName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleNorenSave() }}
-                  placeholder="色の名前"
-                  style={{
-                    width: 36, background: glass.buttonBg,
-                    border: `0.5px solid ${glass.buttonBorder}`,
-                    borderRadius: 5, padding: '3px 5px',
-                    fontSize: 9, color: glass.textPrimary,
-                    outline: 'none', boxSizing: 'border-box',
-                    textAlign: 'center',
-                  } as React.CSSProperties}
-                  onFocus={(e) => { e.currentTarget.style.borderColor = glass.accentBorder }}
-                  onBlur={(e)  => { e.currentTarget.style.borderColor = glass.buttonBorder }}
-                />
-                <motion.button
-                  onClick={handleNorenSave}
-                  whileTap={{ scale: 0.90 }}
-                  transition={SPRING_TAP}
-                  style={{
-                    background: glass.accentBg,
-                    border: `0.5px solid ${glass.accentBorder}`,
-                    borderRadius: 5, padding: '2px 8px',
-                    fontSize: 9, color: glass.accentColor,
-                    cursor: 'pointer', fontWeight: 500,
-                  } as React.CSSProperties}
-                >
-                  保存
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Divider */}
         <div style={{ width: 28, height: 0.5, background: glass.divider, position: 'relative', zIndex: 1, flexShrink: 0 }} />
 
@@ -502,7 +400,7 @@ export function FloatingToolbar() {
         {/* Divider */}
         <div style={{ width: 28, height: 0.5, background: glass.divider, position: 'relative', zIndex: 1, flexShrink: 0 }} />
 
-        {/* ── 地層 3〜6: 硝子孔スロット（透明＋1.4px chamfer エッジ）── */}
+        {/* ── 地層 3〜6: 硝子孔スロット（透明＋薄ボーダー）── */}
         {miniSlots.map((hex, i) => (
           <motion.button
             key={i}
@@ -517,12 +415,8 @@ export function FloatingToolbar() {
               : '（クリック:即保存 / ＋:現在色を登録）'}
             style={{
               width: 22, height: 22, borderRadius: '50%',
-              // 空: transparent 透明体、薄ボーダーのみ（硝子孔）
-              // 塗: その色を表示
               background: hex ?? 'transparent',
-              border: hex
-                ? 'none'
-                : `0.7px solid ${glass.textExtra}`,
+              border: hex ? 'none' : `0.7px solid ${glass.textExtra}`,
               cursor: 'pointer',
               flexShrink: 0, position: 'relative', zIndex: 1,
               WebkitAppRegion: 'no-drag', padding: 0, display: 'block',
@@ -530,7 +424,7 @@ export function FloatingToolbar() {
           />
         ))}
 
-        {/* ── 地層 7: ＋ボタン（充填トリガー）── */}
+        {/* ── 地層 7: ＋ボタン ── */}
         <motion.button
           whileTap={{ scale: 0.88 }}
           transition={SPRING_TAP}
@@ -548,7 +442,7 @@ export function FloatingToolbar() {
           <IconPlus size={10} />
         </motion.button>
 
-        {/* ── 底部の溜まり（ガラス曲面を見せる余白） ── */}
+        {/* ── 底部の溜まり（ガラス曲面） ── */}
         <div style={{ flex: 1, minHeight: 12 }} />
 
         {/* ── 地層 8: Dark/Light 切替 ── */}

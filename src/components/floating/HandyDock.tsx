@@ -1,6 +1,10 @@
 // src/components/floating/HandyDock.tsx
 //
-// Step 4: のれん展開（確定ボタン → 名前/タグ入力欄が height:0→auto でスライド）
+// Step 4: 詳細保存ののれん展開
+//   - 矢印ボタン → IconBookmarkSimple に変更
+//   - のれん: 名前 / メモ / タグ入力欄
+//   - Enter または保存ボタンでメタデータ付き保存 → flash → のれん閉じる
+//
 // Step 6: handleApply で floatingStore の currentColor も更新
 // Step 7: 保存成功時に親の flash() を呼ぶ
 
@@ -10,17 +14,16 @@ import { useFloatingStore } from '@/store/floatingStore'
 import { usePrefersDark, getGlassTokens } from './useTheme'
 import type { SnapSide } from '@/types/floating'
 import {
-  IconCopy, IconCheck, IconArrowUpRight,
+  IconCopy, IconCheck, IconBookmarkSimple,
   IconClock, IconCaretDown, IconPlus, IconX,
 } from '@/components/ui/Icons'
 
 interface HandyDockProps {
   snapSide: SnapSide
-  /** 保存成功時に Toolbar の SpecularBorder を flash させるコールバック */
   onFlash?: () => void
 }
 
-// ── 色行コンポーネント ────────────────────────────────────────
+// ── 色行コンポーネント ──────────────────────────────────────────────
 function ColorRow({
   hex,
   onCopy,
@@ -35,6 +38,7 @@ function ColorRow({
   glass: ReturnType<typeof getGlassTokens>
 }) {
   const [copied, setCopied] = useState(false)
+  const isDark = glass === getGlassTokens(true)
 
   useEffect(() => {
     if (!copied) return undefined
@@ -42,39 +46,39 @@ function ColorRow({
     return () => clearTimeout(timer)
   }, [copied])
 
-  const handleCopy = () => {
-    onCopy()
-    setCopied(true)
-  }
+  const handleCopy = () => { onCopy(); setCopied(true) }
 
   return (
+    // 行全体がホバー・クリック可能（Step 4 リスト改善）
     <div
+      onClick={onApply}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        padding: '5px 10px', borderRadius: 8, cursor: 'default',
+        padding: '6px 10px', borderRadius: 8, cursor: 'pointer',
         transition: 'background 80ms ease',
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.background =
-          `rgba(${glass === getGlassTokens(true) ? '255,255,255' : '10,20,40'},0.06)`
+          `rgba(${isDark ? '255,255,255' : '10,20,40'},0.06)`
       }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
     >
+      {/* 色玉 */}
       <div
         style={{
-          width: 18, height: 18, borderRadius: '50%',
+          width: 16, height: 16, borderRadius: '50%',
           background: hex,
           border: `0.5px solid rgba(128,128,128,0.25)`,
           flexShrink: 0,
-          cursor: 'pointer',
         }}
-        onClick={onApply}
       />
-      <span style={{ fontSize: 11, fontFamily: 'monospace', color: glass.textPrimary, flex: 1 }}>
+      {/* HEX */}
+      <span style={{ fontSize: 10, fontFamily: 'monospace', color: glass.textPrimary, flex: 1 }}>
         {hex.toUpperCase()}
       </span>
+      {/* コピー */}
       <button
-        onClick={handleCopy}
+        onClick={(e) => { e.stopPropagation(); handleCopy() }}
         style={{
           background: 'none', border: 'none',
           color: copied ? glass.accentColor : glass.textExtra,
@@ -82,25 +86,25 @@ function ColorRow({
         }}
         title="コピー"
       >
-        {copied ? <IconCheck size={12} /> : <IconCopy size={12} />}
+        {copied ? <IconCheck size={11} /> : <IconCopy size={11} />}
       </button>
-      {/* Step 4: 矢印 = 確定ボタン（のれん展開） */}
+      {/* 詳細保存（BookmarkSimple — のれん展開）*/}
       <button
-        onClick={onConfirm}
+        onClick={(e) => { e.stopPropagation(); onConfirm() }}
         style={{
           background: 'none', border: 'none',
           color: glass.textExtra,
           cursor: 'pointer', padding: '2px 4px',
         }}
-        title="名前をつけて保存"
+        title="名前・メモ・タグをつけて保存"
       >
-        <IconArrowUpRight size={12} />
+        <IconBookmarkSimple size={11} />
       </button>
     </div>
   )
 }
 
-// ── HandyDock 本体 ────────────────────────────────────────────
+// ── HandyDock 本体 ────────────────────────────────────────────────
 export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
   const {
     history, folders, activeFolderIndex, setActiveFolderIndex,
@@ -111,10 +115,13 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
   const glass  = getGlassTokens(isDark)
 
   const [folderDropdownOpen, setFolderDropdownOpen] = useState(false)
-  // Step 4: のれん状態
-  const [norenOpen, setNorenOpen]       = useState(false)
-  const [norenHex,  setNorenHex]        = useState('')
-  const [norenName, setNorenName]       = useState('')
+
+  // のれん状態
+  const [norenOpen, setNorenOpen]   = useState(false)
+  const [norenHex,  setNorenHex]    = useState('')
+  const [norenName, setNorenName]   = useState('')
+  const [norenMemo, setNorenMemo]   = useState('')
+  const [norenTag,  setNorenTag]    = useState('')
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   const isDockOnRight = snapSide !== 'right'
@@ -124,19 +131,21 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
     ? history.slice(0, 20)
     : (folders[activeFolderIndex - 1]?.colors ?? [])
 
-  const activeFolder = activeFolderIndex > 0 ? folders[activeFolderIndex - 1] : null
-  const folderLabel  = activeFolderIndex === 0 ? '履歴' : (activeFolder?.name ?? '')
+  const activeFolder  = activeFolderIndex > 0 ? folders[activeFolderIndex - 1] : null
+  const folderLabel   = activeFolderIndex === 0 ? '履歴' : (activeFolder?.name ?? '')
 
-  // ── Step 6: handleApply — floatingStore も更新 ────────────
+  // ── handleApply — floatingStore も更新 ───────────────────────
   const handleApply = (hex: string) => {
-    setCurrentColorFromPicker(hex)          // B の LiquidDot をリアルタイム更新
-    window.electronAPI?.floatingColorSelected(hex)  // メインウィンドウへ
+    setCurrentColorFromPicker(hex)
+    window.electronAPI?.floatingColorSelected(hex)
   }
 
-  // ── Step 4: のれん展開 ──────────────────────────────────────
+  // ── のれん展開 ────────────────────────────────────────────────
   const handleConfirm = (hex: string) => {
     setNorenHex(hex)
-    setNorenName(hex)  // 初期名 = hex 値
+    setNorenName(hex)
+    setNorenMemo('')
+    setNorenTag('')
     setNorenOpen(true)
     setTimeout(() => nameInputRef.current?.focus(), 80)
   }
@@ -145,15 +154,22 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
     setNorenOpen(false)
     setNorenHex('')
     setNorenName('')
+    setNorenMemo('')
+    setNorenTag('')
   }
 
-  // ── Step 4: 保存確定 → メタデータ付きでメインへ送信 ─────────
+  // ── 保存確定 ──────────────────────────────────────────────────
   const handleSave = () => {
     if (!norenHex) return
-    // floatingColorSelected（既存 IPC）と floatingSaveColor（新規）を両方送る
-    window.electronAPI?.floatingSaveColor?.({ hex: norenHex, alpha: 1, name: norenName || norenHex })
+    window.electronAPI?.floatingSaveColor?.({
+      hex: norenHex,
+      alpha: 1,
+      name: norenName || norenHex,
+      memo: norenMemo || undefined,
+      tag:  norenTag  || undefined,
+    })
     window.electronAPI?.floatingColorSelected(norenHex)
-    onFlash?.()        // Step 7: 保存成功の鼓動フラッシュ
+    onFlash?.()
     handleNorenClose()
   }
 
@@ -175,8 +191,8 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
       exit={{ opacity: 0, x: slideX }}
       transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
       style={{
-        width: 320,
-        height: 420,       // TOOLBAR_H に合わせる
+        width: 300,
+        height: 480,       // TOOLBAR_H に合わせる
         borderRadius: 16,
         background: glass.dockBg,
         backdropFilter: 'blur(24px) saturate(180%)',
@@ -189,10 +205,11 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
         flexShrink: 0,
       } as React.CSSProperties}
     >
-      {/* ── Step 4: のれん（名前入力パネル）── */}
+      {/* ── のれん（名前・メモ・タグ入力パネル）── */}
       <AnimatePresence>
         {norenOpen && (
           <motion.div
+            key="noren"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -205,32 +222,30 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
                 borderBottom: `0.5px solid ${glass.dockBorder}`,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 8,
+                gap: 7,
               }}
             >
-              {/* ヘッダー（色 + 閉じるボタン）*/}
+              {/* ヘッダー: 色玉 + HEX + 閉じるボタン */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div
                   style={{
-                    width: 20, height: 20, borderRadius: '50%',
+                    width: 18, height: 18, borderRadius: '50%',
                     background: norenHex, flexShrink: 0,
                     border: `0.5px solid rgba(128,128,128,0.25)`,
                   }}
                 />
-                <span style={{ fontSize: 11, fontFamily: 'monospace', color: glass.textPrimary, flex: 1 }}>
+                <span style={{ fontSize: 10, fontFamily: 'monospace', color: glass.textPrimary, flex: 1 }}>
                   {norenHex.toUpperCase()}
                 </span>
                 <button
                   onClick={handleNorenClose}
-                  style={{
-                    background: 'none', border: 'none',
-                    color: glass.textMuted, cursor: 'pointer', padding: 4,
-                  }}
+                  style={{ background: 'none', border: 'none', color: glass.textMuted, cursor: 'pointer', padding: 4 }}
                 >
-                  <IconX size={12} />
+                  <IconX size={11} />
                 </button>
               </div>
-              {/* 名前入力 */}
+
+              {/* 名前 */}
               <input
                 ref={nameInputRef}
                 value={norenName}
@@ -240,34 +255,58 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
                 style={{
                   background: glass.buttonBg,
                   border: `0.5px solid ${glass.buttonBorder}`,
-                  borderRadius: 6,
-                  padding: '5px 8px',
-                  fontSize: 11,
-                  color: glass.textPrimary,
-                  outline: 'none',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = glass.accentBorder
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = glass.buttonBorder
-                }}
+                  borderRadius: 5, padding: '4px 8px',
+                  fontSize: 11, color: glass.textPrimary,
+                  outline: 'none', width: '100%', boxSizing: 'border-box',
+                } as React.CSSProperties}
+                onFocus={(e) => { e.currentTarget.style.borderColor = glass.accentBorder }}
+                onBlur={(e)  => { e.currentTarget.style.borderColor = glass.buttonBorder }}
               />
+
+              {/* メモ */}
+              <textarea
+                value={norenMemo}
+                onChange={(e) => setNorenMemo(e.target.value)}
+                placeholder="メモ（任意）"
+                rows={2}
+                style={{
+                  background: glass.buttonBg,
+                  border: `0.5px solid ${glass.buttonBorder}`,
+                  borderRadius: 5, padding: '4px 8px',
+                  fontSize: 11, color: glass.textPrimary,
+                  outline: 'none', width: '100%', boxSizing: 'border-box',
+                  resize: 'none', fontFamily: 'inherit',
+                } as React.CSSProperties}
+                onFocus={(e) => { e.currentTarget.style.borderColor = glass.accentBorder }}
+                onBlur={(e)  => { e.currentTarget.style.borderColor = glass.buttonBorder }}
+              />
+
+              {/* タグ */}
+              <input
+                value={norenTag}
+                onChange={(e) => setNorenTag(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSave() }}
+                placeholder="タグ（1つ）"
+                style={{
+                  background: glass.buttonBg,
+                  border: `0.5px solid ${glass.buttonBorder}`,
+                  borderRadius: 5, padding: '4px 8px',
+                  fontSize: 11, color: glass.textPrimary,
+                  outline: 'none', width: '100%', boxSizing: 'border-box',
+                } as React.CSSProperties}
+                onFocus={(e) => { e.currentTarget.style.borderColor = glass.accentBorder }}
+                onBlur={(e)  => { e.currentTarget.style.borderColor = glass.buttonBorder }}
+              />
+
               {/* 保存ボタン */}
               <button
                 onClick={handleSave}
                 style={{
                   background: glass.accentBg,
                   border: `0.5px solid ${glass.accentBorder}`,
-                  borderRadius: 6,
-                  padding: '5px 12px',
-                  fontSize: 11,
-                  color: glass.accentColor,
-                  cursor: 'pointer',
-                  alignSelf: 'flex-end',
-                  fontWeight: 500,
+                  borderRadius: 5, padding: '5px 12px',
+                  fontSize: 11, color: glass.accentColor,
+                  cursor: 'pointer', alignSelf: 'flex-end', fontWeight: 500,
                 }}
               >
                 保存
@@ -282,7 +321,7 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '6px 2px',
+          padding: '4px 2px',
           scrollbarWidth: 'none',
         }}
       >
@@ -339,13 +378,9 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
               border: `0.5px solid ${glass.buttonBorder}`,
               borderRadius: 6,
               color: glass.textMuted,
-              fontSize: 10,
-              padding: '3px 8px',
-              cursor: 'pointer',
-              textAlign: 'left',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
+              fontSize: 10, padding: '3px 8px',
+              cursor: 'pointer', textAlign: 'left',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}
           >
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -357,16 +392,11 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
             <div
               style={{
                 position: 'absolute',
-                bottom: '100%',
-                left: 0, right: 0,
+                bottom: '100%', left: 0, right: 0,
                 background: isDark ? 'rgba(14,19,32,0.96)' : 'rgba(242,245,255,0.96)',
                 border: `0.5px solid ${glass.dockBorder}`,
-                borderRadius: 8,
-                padding: 4,
-                marginBottom: 4,
-                maxHeight: 140,
-                overflowY: 'auto',
-                zIndex: 10,
+                borderRadius: 8, padding: 4, marginBottom: 4,
+                maxHeight: 140, overflowY: 'auto', zIndex: 10,
               }}
             >
               <button
@@ -408,8 +438,7 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
             border: `0.5px solid ${glass.accentBorder}`,
             borderRadius: 6,
             color: activeFolderIndex > 0 ? glass.accentColor : glass.textExtra,
-            fontSize: 14,
-            padding: '3px 8px',
+            fontSize: 14, padding: '3px 8px',
             cursor: activeFolderIndex > 0 ? 'pointer' : 'not-allowed',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}

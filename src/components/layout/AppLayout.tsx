@@ -91,7 +91,7 @@ export function AppLayout() {
 
   const { colors, loading: colorsLoading, fetchColors, addColor } = useColorStore()
   const { fetchFolders, folders } = useFolderStore()
-  const { fetchTags, fetchAllColorTags, colorTags } = useTagStore()
+  const { fetchTags, fetchAllColorTags, colorTags, createTag, addTagToColor } = useTagStore()
   const { addToHistory: addColorToHistory, historyColors } = useHistoryStore()
   const isOnline = useNetworkStatus()
   const { addToast } = useToastStore()
@@ -363,17 +363,22 @@ export function AppLayout() {
     return unsub
   }, [addColorToHistory])
 
-  // Step 4: Floating からメタデータ付き保存
+  // Step 4: Floating からメタデータ付き保存（memo・tag 対応）
   useEffect(() => {
     if (!window.electronAPI?.onFloatingSaveColor) return
-    const unsub = window.electronAPI.onFloatingSaveColor(async ({ hex, alpha, name }) => {
+    const unsub = window.electronAPI.onFloatingSaveColor(async ({ hex, alpha, name, memo, tag }) => {
       if (!hex) return
       await addColorToHistory(hex, alpha ?? 1.0)
-      await addColor(hex, alpha ?? 1.0, activeFolderId, { name })
+      const saved = await addColor(hex, alpha ?? 1.0, activeFolderId, { name, memo: memo || undefined })
+      // tag が指定されていれば作成・割り当て
+      if (saved && tag?.trim()) {
+        const createdTag = await createTag(tag.trim())
+        if (createdTag) await addTagToColor(saved.id, createdTag.id)
+      }
       addToast(`${name ?? hex} を保存しました`, 'success')
     })
     return unsub
-  }, [addColor, addColorToHistory, activeFolderId, addToast])
+  }, [addColor, addColorToHistory, activeFolderId, addToast, createTag, addTagToColor])
 
   // ? キーでショートカットヘルプ
   useEffect(() => {
