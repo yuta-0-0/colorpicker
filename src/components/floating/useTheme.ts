@@ -59,10 +59,12 @@ export function getGlassTokens(isDark: boolean): GlassTokens {
     }
   }
   return {
+    // 上端: 光が当たって白く輝く / 中間: 透けて背景が見える / 下端: 微青みで厚みを表現
     background:
-      'linear-gradient(180deg, rgba(255,255,255,0.84) 0%, rgba(232,238,255,0.82) 100%)',
+      'linear-gradient(170deg, rgba(255,255,255,0.68) 0%, rgba(234,242,255,0.50) 60%, rgba(212,226,255,0.56) 100%)',
+    // 上端エッジ: 純白フルハイライト（光の当たり面） / 下端エッジ: 青みシャドウ（厚みの底面） / 内部グロー: 透過光
     boxShadow:
-      'inset 0 1px 0 rgba(255,255,255,0.96), inset 0 0 14px rgba(0,0,0,0.03)',
+      'inset 0 1.5px 0 rgba(255,255,255,1.0), inset 0 -0.5px 0 rgba(180,205,240,0.32), inset 0 0 20px rgba(255,255,255,0.30)',
     textPrimary: 'rgba(10,20,40,0.88)',
     textMuted: 'rgba(10,20,40,0.42)',
     textExtra: 'rgba(10,20,40,0.28)',
@@ -73,7 +75,7 @@ export function getGlassTokens(isDark: boolean): GlassTokens {
     accentBg: 'rgba(10,62,216,0.10)',
     accentBorder: 'rgba(10,62,216,0.24)',
     dockBg:
-      'linear-gradient(180deg, rgba(245,248,255,0.92) 0%, rgba(228,234,252,0.90) 100%)',
+      'linear-gradient(170deg, rgba(248,252,255,0.74) 0%, rgba(222,232,255,0.62) 100%)',
     dockBorder: 'rgba(10,20,40,0.10)',
   }
 }

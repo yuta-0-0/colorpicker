@@ -38,7 +38,7 @@ function ColorRow({
   glass: ReturnType<typeof getGlassTokens>
 }) {
   const [copied, setCopied] = useState(false)
-  const isDark = glass === getGlassTokens(true)
+  const isDark = usePrefersDark()
 
   useEffect(() => {
     if (!copied) return undefined
@@ -125,7 +125,7 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
   const nameInputRef = useRef<HTMLInputElement>(null)
 
   const isDockOnRight = snapSide !== 'right'
-  const slideX = isDockOnRight ? -12 : 12
+  const slideX = isDockOnRight ? 12 : -12
 
   const displayItems = activeFolderIndex === 0
     ? history.slice(0, 20)

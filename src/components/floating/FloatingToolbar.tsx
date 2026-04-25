@@ -8,9 +8,8 @@
 //   2段目: LiquidDot（メイン）+ previousColor サブカラー（並置）
 //   3〜6段目: 硝子孔スロット（透明＋1.4px chamfer）
 //   7段目: ＋ボタン（充填トリガー）
-//   8段目: Dark/Light 切替
-//   9段目: フォルダ（HandyDock）
-//   底部溜まり
+//   8段目: フォルダ（HandyDock）
+//   9段目: Dark/Light 切替
 //
 // ── Step 3: プロの動線 ───────────────────────────────────────────────
 //   スロット昇格: promoteSlot(hex) → floatingColorSelected(hex)
@@ -262,7 +261,7 @@ export function FloatingToolbar() {
   useEffect(() => {
     const anchor = snapSide === 'right' ? 'right' : 'left'
     if (dockOpen) {
-      window.electronAPI?.requestFloatingResize({ width: 372, height: TOOLBAR_H, anchor })
+      window.electronAPI?.requestFloatingResize({ width: 352, height: TOOLBAR_H, anchor })
       return
     }
     const timer = setTimeout(() => {
