@@ -3,23 +3,28 @@
 // ── Iris Morph 多段式（B → A）──────────────────────────────────────
 //   FloatingTab.tsx と対称的な多段停止キーフレームで逆再生を実現
 //
-//   A→B enter: FloatingTab の P3_BDOT 静止中（t=0.68s）から開花
-//     initial = 微小ドット → delay 後にスプリングで全開
+// ── Step 2: 究極の地層レイアウト ────────────────────────────────────
+//   1段目: 縮小ボタン
+//   2段目: LiquidDot（メイン）+ previousColor サブカラー（並置）
+//   ▼ Noren（BookmarkSimple 展開、Step 4）
+//   3〜6段目: 硝子孔スロット（透明＋1.4px chamfer）
+//   7段目: ＋ボタン（充填トリガー）
+//   8段目: Dark/Light 切替
+//   9段目: フォルダ（HandyDock）
+//   底部溜まり
 //
-//   B→A exit: Toolbar が収束しながら 3 段停止
-//     1. 全開 → Toolbar の LiquidDot サイズ(≈4%)で停止
-//     2. 一回り大きく → 停止
-//     3. 少し小さく → そのまま停止（Tab に引き継ぎ）
-//     ★ TB_CLOSE（circle 0%）は使わない = ドットが消える瞬間ゼロ
+// ── Step 3: プロの動線 ───────────────────────────────────────────────
+//   スロット昇格: promoteSlot(hex) → floatingColorSelected(hex)
+//   重複排除: pushMiniSlot 側で排除済み
+//   ダブルクリック: floatingSaveColor → floatingColorSelected → flash
 //
-// ── 寸法計算メモ ────────────────────────────────────────────────────
-//   FloatingToolbar: 48 × 420 px
-//   clip-path circle() 参照値 = √(48²+420²)/√2 ≈ 299 px
+// ── Step 4: Noren ────────────────────────────────────────────────────
+//   BookmarkSimple ボタンで height 0→auto スライド展開
+//   Enter / 保存ボタンで確定 → flash → State B へ戻る
+//   クイック保存: 空スロット短押し → 即保存
 //
-//   LiquidDot(24px): radius=12 → 12/299 ≈ 4.0%
-//   一回り大きい:     radius=15 → 15/299 ≈ 5.0%
-//   小さめ:          radius=9  → 9/299  ≈ 3.0%
-// ─────────────────────────────────────────────────────────────────────
+// ── Step 7: Save Flash ───────────────────────────────────────────────
+//   保存成功時に specular.flash()
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useCallback, useRef, useEffect } from 'react'
@@ -36,41 +41,36 @@ import {
   IconFolder,
   IconMinus,
   IconPlus,
+  IconSun,
+  IconMoon,
+  IconBookmarkSimple,
 } from '@/components/ui/Icons'
 
 // ── 定数 ────────────────────────────────────────────────────────────
-const TOOLBAR_H = 420
+const TOOLBAR_H = 480   // 420 → 480 (サブカラー + 8段目追加分)
 
-// clip-path 定数（Toolbar 空間）
-const TB_DOT_POS = '50% 14%'                          // LiquidDot の中心（%）
+// clip-path 定数（Toolbar 空間、48 × 480px）
+// LiquidDot の中心 = top-padding 12 + shrink26/2 + gap8 + dot24/2 = 12+13+8+12 ≈ 9.4% ≈ 10%
+const TB_DOT_POS = '50% 10%'
 
-const TB_OPEN   = `circle(150% at ${TB_DOT_POS})`    // 全開
-const TB_P1_DOT = `circle(4%   at ${TB_DOT_POS})`    // フェーズ1: LiquidDot サイズ
-const TB_P2_OVER= `circle(5%   at ${TB_DOT_POS})`    // フェーズ2: 一回り大きく
-const TB_P3_SM  = `circle(3%   at ${TB_DOT_POS})`    // フェーズ3: 少し小さく（Tab サイズに合わせ）
+const TB_OPEN   = `circle(150% at ${TB_DOT_POS})`
+const TB_P1_DOT = `circle(3.5% at ${TB_DOT_POS})`   // LiquidDot サイズ
+const TB_P2_OVER= `circle(4.5% at ${TB_DOT_POS})`   // 一回り大きく
+const TB_P3_SM  = `circle(2.5% at ${TB_DOT_POS})`   // 少し小さく（Tab へのハンドオフ）
 
-// ── タイミング（FloatingTab.tsx の TOOLBAR_DELAY=0.68s に同期）──
-const TAB_DELAY     = 0.68          // Tab が開花を始めるタイミング（P3 静止中）
-const EXIT_DURATION = 0.92          // B→A exit 全体の秒数
-const TRIM_DELAY_BA = 1500          // ms: state 変更後、幅 80→幅 80,高さ 32 に縮める猶予
-const DOCK_CLOSE_DELAY = 220        // ms: Dock exit 後にリサイズ
+// タイミング（FloatingTab.tsx の TOOLBAR_DELAY=0.68s に同期）
+const TAB_DELAY      = 0.68
+const EXIT_DURATION  = 0.92
+const TRIM_DELAY_BA  = 1500
+const DOCK_CLOSE_DELAY = 220
 
-// B→A exit キーフレーム（A→B の Tab exit と対称）
-//   ★ TB_CLOSE（circle 0%）を使わない → ドットが消える瞬間ゼロ
+// B→A exit キーフレーム
 const EXIT_FRAMES: string[] = [
-  TB_OPEN,    // 0.00 → 全開
-  TB_P1_DOT,  // 0.28 → LiquidDot サイズへ収束
-  TB_P1_DOT,  // 0.43 → ★停止（溜め1）
-  TB_P2_OVER, // 0.54 → 一回り大きく
-  TB_P2_OVER, // 0.63 → ★停止（溜め2）
-  TB_P3_SM,   // 0.76 → 少し小さく（Tab のドットへのハンドオフ）
-  TB_P3_SM,   // 1.00 → ★停止したまま Tab に引き継ぎ（消えない）
+  TB_OPEN, TB_P1_DOT, TB_P1_DOT, TB_P2_OVER, TB_P2_OVER, TB_P3_SM, TB_P3_SM,
 ]
-
 const EXIT_TIMES: number[] = [0, 0.28, 0.43, 0.54, 0.63, 0.76, 1.0]
 const EXIT_EASES: Easing[] = ['easeIn', 'linear', 'easeInOut', 'linear', 'easeInOut', 'linear']
 
-// スプリング
 const SPRING_TAP = { type: 'spring', stiffness: 300, damping: 30 } as const
 
 // ── ユーティリティ ───────────────────────────────────────────────────
@@ -129,14 +129,18 @@ function TactileButton({
 // ── FloatingToolbar ─────────────────────────────────────────────────
 export function FloatingToolbar() {
   const {
-    currentColor, snapSide,
-    miniSlots, setMiniSlot, pushMiniSlot,
+    currentColor, previousColor, snapSide,
+    miniSlots, setMiniSlot, pushMiniSlot, promoteSlot,
     setFloatingState, setPendingSaveAfterPick,
   } = useFloatingStore()
 
-  const [copied, setCopied]       = useState(false)
-  const [dockOpen, setDockOpen]   = useState(false)
+  const [copied, setCopied]             = useState(false)
+  const [dockOpen, setDockOpen]         = useState(false)
   const [eyeLongActive, setEyeLongActive] = useState(false)
+  // Step 4: のれん
+  const [norenOpen, setNorenOpen]       = useState(false)
+  const [norenName, setNorenName]       = useState('')
+  const norenInputRef = useRef<HTMLInputElement>(null)
 
   const copyTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const slotTimers     = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
@@ -148,13 +152,29 @@ export function FloatingToolbar() {
   const glass    = getGlassTokens(isDark)
   const specular = useSpecularReflection({ accentHex: currentColor.hex })
 
-  // ── エントリ閃光（Toolbar が全開に近づいた頃）──────────────────
+  // ── エントリ閃光 ──────────────────────────────────────────────
   useEffect(() => {
     const t = setTimeout(() => specular.flash(), (TAB_DELAY + 0.4) * 1000)
     return () => clearTimeout(t)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── コピー（Step 7: 鼓動フラッシュ）──────────────────────────────
+  // ── Cleanup ──────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current)  clearTimeout(copyTimerRef.current)
+      if (trimTimerRef.current)  clearTimeout(trimTimerRef.current)
+      if (delayTimerRef.current) clearTimeout(delayTimerRef.current)
+      if (eyeTimerRef.current)   clearTimeout(eyeTimerRef.current)
+      slotTimers.current.forEach(t => clearTimeout(t))
+    }
+  }, [])
+
+  // ── テーマ切替（Step 2, 8段目）──────────────────────────────
+  const handleToggleTheme = useCallback(() => {
+    window.electronAPI?.setTheme(isDark ? 'light' : 'dark')
+  }, [isDark])
+
+  // ── コピー（Step 7: flash）──────────────────────────────────
   const handleCopyHex = useCallback(() => {
     copyToClipboard(currentColor.hex)
     setCopied(true)
@@ -163,13 +183,19 @@ export function FloatingToolbar() {
     copyTimerRef.current = setTimeout(() => setCopied(false), 1500)
   }, [currentColor.hex, specular])
 
-  // ── ドットダブルクリック（Step 5: 即保存）──────────────────────
+  // ── ドットダブルクリック（Step 3: 履歴保存 + flash）──────────
   const handleDotDoubleClick = useCallback(() => {
+    // メインウィンドウの履歴に保存
+    window.electronAPI?.floatingSaveColor?.({
+      hex: currentColor.hex,
+      alpha: currentColor.alpha,
+      name: currentColor.name ?? currentColor.hex,
+    })
     window.electronAPI?.floatingColorSelected(currentColor.hex)
     specular.flash()
-  }, [currentColor.hex, specular])
+  }, [currentColor, specular])
 
-  // ── スポイト（Step 5: 長押し 450ms = 保存フラグ ON）───────────
+  // ── スポイト（長押し 450ms = 保存フラグ ON）─────────────────
   const handleEyePointerDown = useCallback(() => {
     eyeTimerRef.current = setTimeout(() => {
       setEyeLongActive(true)
@@ -189,36 +215,74 @@ export function FloatingToolbar() {
     setPendingSaveAfterPick(false)
   }, [setPendingSaveAfterPick])
 
-  // ── スロット操作 ────────────────────────────────────────────────
+  // ── スロット操作 ────────────────────────────────────────────
   const handleRegisterSlot = useCallback((i: number) => setMiniSlot(i, currentColor.hex), [currentColor.hex, setMiniSlot])
-  const handleSlotSelect   = useCallback((hex: string | null) => { if (hex) window.electronAPI?.floatingColorSelected(hex) }, [])
 
   const handleSlotPointerDown = useCallback((i: number) => {
-    slotTimers.current.set(i, setTimeout(() => { slotTimers.current.delete(i); setMiniSlot(i, currentColor.hex) }, 450))
+    slotTimers.current.set(i, setTimeout(() => {
+      slotTimers.current.delete(i)
+      setMiniSlot(i, currentColor.hex)  // 長押し = 上書き登録
+    }, 450))
   }, [currentColor.hex, setMiniSlot])
 
   const handleSlotPointerUp = useCallback((i: number, hex: string | null) => {
     const t = slotTimers.current.get(i); if (!t) return
     clearTimeout(t); slotTimers.current.delete(i)
-    if (hex) handleSlotSelect(hex); else handleRegisterSlot(i)
-  }, [handleSlotSelect, handleRegisterSlot])
+    if (hex) {
+      // Step 3: 塗りスロット短押し → Active に昇格
+      promoteSlot(hex)
+      window.electronAPI?.floatingColorSelected(hex)
+    } else {
+      // Step 4: 空スロット短押し → クイック保存 + スロット登録
+      window.electronAPI?.floatingSaveColor?.({
+        hex: currentColor.hex,
+        alpha: currentColor.alpha,
+        name: currentColor.name ?? currentColor.hex,
+      })
+      window.electronAPI?.floatingColorSelected(currentColor.hex)
+      specular.flash()
+      handleRegisterSlot(i)
+    }
+  }, [promoteSlot, currentColor, specular, handleRegisterSlot])
 
   const handleSlotPointerLeave = useCallback((i: number) => {
     const t = slotTimers.current.get(i)
     if (t) { clearTimeout(t); slotTimers.current.delete(i) }
   }, [])
 
-  // ── プッシュスロット ──────────────────────────────────────────
+  // ── ＋ボタン（充填トリガー）──────────────────────────────────
   const handlePushSlot = useCallback(() => {
     pushMiniSlot(currentColor.hex)
     specular.flash()
   }, [currentColor.hex, pushMiniSlot, specular])
 
+  // ── Step 4: のれん展開 ───────────────────────────────────────
+  const handleOpenNoren = useCallback(() => {
+    setNorenName(currentColor.name ?? currentColor.hex)
+    setNorenOpen(true)
+    setTimeout(() => norenInputRef.current?.focus(), 80)
+  }, [currentColor])
+
+  const handleCloseNoren = useCallback(() => {
+    setNorenOpen(false)
+    setNorenName('')
+  }, [])
+
+  const handleNorenSave = useCallback(() => {
+    window.electronAPI?.floatingSaveColor?.({
+      hex: currentColor.hex,
+      alpha: currentColor.alpha,
+      name: norenName || currentColor.hex,
+    })
+    window.electronAPI?.floatingColorSelected(currentColor.hex)
+    specular.flash()
+    handleCloseNoren()
+  }, [currentColor, norenName, specular, handleCloseNoren])
+
   // ── 縮小（B → A）──────────────────────────────────────────────
   const handleShrink = useCallback(() => {
-    setDockOpen(false)  // Dock が開いていれば閉じる
+    setDockOpen(false)
     const anchor = snapSide === 'right' ? 'right' : 'left'
-    // 先行リサイズ
     window.electronAPI?.requestFloatingResize({ width: 80, height: TOOLBAR_H, anchor })
     delayTimerRef.current = setTimeout(() => {
       setFloatingState('tab')
@@ -227,17 +291,6 @@ export function FloatingToolbar() {
       }, TRIM_DELAY_BA)
     }, 60)
   }, [setFloatingState, snapSide])
-
-  // ── Cleanup ──────────────────────────────────────────────────
-  useEffect(() => {
-    return () => {
-      if (copyTimerRef.current)  clearTimeout(copyTimerRef.current)
-      if (trimTimerRef.current)  clearTimeout(trimTimerRef.current)
-      if (delayTimerRef.current) clearTimeout(delayTimerRef.current)
-      if (eyeTimerRef.current)   clearTimeout(eyeTimerRef.current)
-      slotTimers.current.forEach(t => clearTimeout(t))
-    }
-  }, [])
 
   // ── Dock 開閉リサイズ ──────────────────────────────────────────
   useEffect(() => {
@@ -266,10 +319,8 @@ export function FloatingToolbar() {
     >
       {/* ── Toolbar 本体 ── */}
       <motion.div
-        // ── A→B enter: FloatingTab の P3 静止中（delay=0.68s）から小ドットが開花 ──
         initial={{ clipPath: TB_P1_DOT }}
         animate={{ clipPath: TB_OPEN }}
-        // ── B→A exit: 多段停止キーフレーム（Tab exit の対称） ──
         exit={{
           clipPath: EXIT_FRAMES as unknown as string,
           transition: {
@@ -280,7 +331,6 @@ export function FloatingToolbar() {
             },
           },
         }}
-        // ── A→B enter transition: Tab の P3_BDOT 静止中に開花 ──
         transition={{
           clipPath: {
             delay: TAB_DELAY,
@@ -311,7 +361,7 @@ export function FloatingToolbar() {
           overflow: 'hidden',
         } as React.CSSProperties}
       >
-        {/* 1.4px 色の記憶シャモファー */}
+        {/* 1.4px 鏡面反射シャモファー */}
         <SpecularBorder
           borderRadius={24}
           background={specular.background}
@@ -338,22 +388,99 @@ export function FloatingToolbar() {
           <IconMinus size={12} />
         </motion.button>
 
-        {/* ── 地層 2: LiquidDot（ダブルクリックで即保存）── */}
+        {/* ── 地層 2: LiquidDot（メイン）＋ サブカラー（並置）── */}
         <div
           onDoubleClick={handleDotDoubleClick}
-          title="現在色（ダブルクリックで即保存）"
+          title="現在色（ダブルクリックで履歴に保存）"
           style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: 3,
             flexShrink: 0, position: 'relative', zIndex: 1,
             cursor: 'pointer', WebkitAppRegion: 'no-drag',
           } as React.CSSProperties}
         >
-          <LiquidDot hex={currentColor.hex} size={24} />
+          <LiquidDot hex={currentColor.hex} size={24} layoutId="fs-active-dot" />
+          {previousColor && (
+            <LiquidDot
+              hex={previousColor.hex}
+              size={14}
+              style={{ opacity: 0.55 }}
+            />
+          )}
         </div>
+
+        {/* ── BookmarkSimple ボタン（のれんトリガー）── */}
+        <TactileButton
+          onClick={norenOpen ? handleCloseNoren : handleOpenNoren}
+          title={norenOpen ? 'のれんを閉じる' : '詳細保存（名前付き）'}
+          glass={glass}
+          active={norenOpen}
+        >
+          <IconBookmarkSimple size={13} />
+        </TactileButton>
+
+        {/* ── Step 4: のれんパネル（height 0 → auto スライド）── */}
+        <AnimatePresence>
+          {norenOpen && (
+            <motion.div
+              key="noren"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 32, mass: 0.6 }}
+              style={{
+                overflow: 'hidden', width: '100%',
+                flexShrink: 0, position: 'relative', zIndex: 1,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  gap: 6, padding: '6px 4px',
+                  borderTop: `0.5px solid ${glass.divider}`,
+                  borderBottom: `0.5px solid ${glass.divider}`,
+                }}
+              >
+                <input
+                  ref={norenInputRef}
+                  value={norenName}
+                  onChange={(e) => setNorenName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleNorenSave() }}
+                  placeholder="色の名前"
+                  style={{
+                    width: 36, background: glass.buttonBg,
+                    border: `0.5px solid ${glass.buttonBorder}`,
+                    borderRadius: 5, padding: '3px 5px',
+                    fontSize: 9, color: glass.textPrimary,
+                    outline: 'none', boxSizing: 'border-box',
+                    textAlign: 'center',
+                  } as React.CSSProperties}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = glass.accentBorder }}
+                  onBlur={(e)  => { e.currentTarget.style.borderColor = glass.buttonBorder }}
+                />
+                <motion.button
+                  onClick={handleNorenSave}
+                  whileTap={{ scale: 0.90 }}
+                  transition={SPRING_TAP}
+                  style={{
+                    background: glass.accentBg,
+                    border: `0.5px solid ${glass.accentBorder}`,
+                    borderRadius: 5, padding: '2px 8px',
+                    fontSize: 9, color: glass.accentColor,
+                    cursor: 'pointer', fontWeight: 500,
+                  } as React.CSSProperties}
+                >
+                  保存
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Divider */}
         <div style={{ width: 28, height: 0.5, background: glass.divider, position: 'relative', zIndex: 1, flexShrink: 0 }} />
 
-        {/* ── スポイト（長押し 450ms = 保存フラグ ON）── */}
+        {/* ── スポイト ── */}
         <TactileButton
           onPointerDown={handleEyePointerDown}
           onPointerUp={handleEyePointerUp}
@@ -375,7 +502,7 @@ export function FloatingToolbar() {
         {/* Divider */}
         <div style={{ width: 28, height: 0.5, background: glass.divider, position: 'relative', zIndex: 1, flexShrink: 0 }} />
 
-        {/* ── 地層 3〜6: ミニスロット 4個（色あり=枠線なし）── */}
+        {/* ── 地層 3〜6: 硝子孔スロット（透明＋1.4px chamfer エッジ）── */}
         {miniSlots.map((hex, i) => (
           <motion.button
             key={i}
@@ -385,11 +512,17 @@ export function FloatingToolbar() {
             onPointerUp={() => handleSlotPointerUp(i, hex)}
             onPointerLeave={() => handleSlotPointerLeave(i)}
             onContextMenu={(e) => { e.preventDefault(); setMiniSlot(i, null) }}
-            title={hex ? `${hex}（クリック:適用 / 長押し:上書き / 右クリック:解除）` : '（長押しで登録）'}
+            title={hex
+              ? `${hex}（クリック:Active昇格 / 長押し:上書き / 右クリック:解除）`
+              : '（クリック:即保存 / ＋:現在色を登録）'}
             style={{
               width: 22, height: 22, borderRadius: '50%',
-              background: hex ?? glass.buttonBg,
-              border: hex ? 'none' : `0.5px dashed ${glass.buttonBorder}`,
+              // 空: transparent 透明体、薄ボーダーのみ（硝子孔）
+              // 塗: その色を表示
+              background: hex ?? 'transparent',
+              border: hex
+                ? 'none'
+                : `0.7px solid ${glass.textExtra}`,
               cursor: 'pointer',
               flexShrink: 0, position: 'relative', zIndex: 1,
               WebkitAppRegion: 'no-drag', padding: 0, display: 'block',
@@ -397,7 +530,7 @@ export function FloatingToolbar() {
           />
         ))}
 
-        {/* ── 地層 7: ＋ボタン ── */}
+        {/* ── 地層 7: ＋ボタン（充填トリガー）── */}
         <motion.button
           whileTap={{ scale: 0.88 }}
           transition={SPRING_TAP}
@@ -415,10 +548,19 @@ export function FloatingToolbar() {
           <IconPlus size={10} />
         </motion.button>
 
-        {/* ── 底部の溜まり（ガラス曲面を見せる余白）── */}
+        {/* ── 底部の溜まり（ガラス曲面を見せる余白） ── */}
         <div style={{ flex: 1, minHeight: 12 }} />
 
-        {/* ── Dock 展開ボタン ── */}
+        {/* ── 地層 8: Dark/Light 切替 ── */}
+        <TactileButton
+          onClick={handleToggleTheme}
+          title={isDark ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+          glass={glass}
+        >
+          {isDark ? <IconSun size={13} /> : <IconMoon size={13} />}
+        </TactileButton>
+
+        {/* ── 地層 9: Dock 展開ボタン ── */}
         <TactileButton
           onClick={() => setDockOpen(v => !v)}
           title={dockOpen ? 'Dockを閉じる' : 'Dockを開く'}
