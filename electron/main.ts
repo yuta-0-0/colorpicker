@@ -243,10 +243,9 @@ ipcMain.handle('screen-picker:start', async (event) => {
   const senderWin = BrowserWindow.fromWebContents(event.sender)
   screenPickerReturnToFloating = (senderWin === floatingWin)
 
-  if (screenPickerReturnToFloating && floatingWin && !floatingWin.isDestroyed()) {
-    // floating を一時非表示（スクリーンを遮らないように）
-    floatingWin.hide()
-  }
+  // ── Step 6: floatingWin は hide しない ──────────────────────────
+  // transparent: true のウィンドウは EyeDropper の邪魔にならない。
+  // スポイト実行中も「手元に機材がある安心感」を維持する。
 
   // main window 上で EyeDropper を userGesture=true で起動
   const mainWins = BrowserWindow.getAllWindows().filter(
@@ -254,8 +253,7 @@ ipcMain.handle('screen-picker:start', async (event) => {
   )
   mainWins.forEach(w =>
     w.webContents.executeJavaScript(EYEDROPPER_JS, true).catch(() => {
-      // executeJavaScript 失敗時は floating を再表示
-      if (floatingWin && !floatingWin.isDestroyed()) floatingWin.show()
+      // executeJavaScript 失敗時は何もしない（floatingWin は show 済み）
     })
   )
 
@@ -263,14 +261,12 @@ ipcMain.handle('screen-picker:start', async (event) => {
 })
 
 // step 2: main window が色をピックしたら floating へ転送
-// hex が空文字の場合はキャンセル扱い → floating を表示するだけで色は更新しない
+// hex が空文字の場合はキャンセル扱い → 色更新なし
 ipcMain.on('screen-picker:picked', (_, { hex }: { hex: string }) => {
   if (screenPickerReturnToFloating) {
-    if (floatingWin && !floatingWin.isDestroyed()) {
-      floatingWin.show()
-      if (hex) {
-        floatingWin.webContents.send('fs:color-from-picker', { hex })
-      }
+    // floatingWin は hide していないので show 不要
+    if (floatingWin && !floatingWin.isDestroyed() && hex) {
+      floatingWin.webContents.send('fs:color-from-picker', { hex })
     }
     screenPickerReturnToFloating = false
   }
