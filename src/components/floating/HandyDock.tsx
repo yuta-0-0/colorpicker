@@ -192,7 +192,7 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
       transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
       style={{
         width: 300,
-        height: 480,       // TOOLBAR_H に合わせる
+        height: 420,       // TOOLBAR_H に合わせる
         borderRadius: 16,
         background: glass.dockBg,
         backdropFilter: 'blur(24px) saturate(180%)',

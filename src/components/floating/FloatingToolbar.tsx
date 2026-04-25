@@ -41,11 +41,11 @@ import {
 } from '@/components/ui/Icons'
 
 // ── 定数 ────────────────────────────────────────────────────────────
-const TOOLBAR_H = 480   // Step 2 のサブカラー + 8段目分を含む高さ
+const TOOLBAR_H = 420   // スペーサー除去後の実測値 ~410px に余白を加えた値
 
-// clip-path 定数（Toolbar 空間: 48 × 480px）
-// LiquidDot 中心 ≈ top-padding 12 + shrink26/2 + gap8 + dot24/2 = 12+13+8+12 ≈ 10%
-const TB_DOT_POS = '50% 10%'
+// clip-path 定数（Toolbar 空間: 48 × 420px）
+// LiquidDot 中心 = top-padding 12 + shrink26 + gap8 + dot24/2 = 58px → 58/420 ≈ 14%
+const TB_DOT_POS = '50% 14%'
 
 const TB_OPEN    = `circle(150% at ${TB_DOT_POS})`
 const TB_P1_DOT  = `circle(3.5% at ${TB_DOT_POS})`
@@ -442,25 +442,22 @@ export function FloatingToolbar() {
           <IconPlus size={10} />
         </motion.button>
 
-        {/* ── 底部の溜まり（ガラス曲面） ── */}
-        <div style={{ flex: 1, minHeight: 12 }} />
-
-        {/* ── 地層 8: Dark/Light 切替 ── */}
-        <TactileButton
-          onClick={handleToggleTheme}
-          title={isDark ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
-          glass={glass}
-        >
-          {isDark ? <IconSun size={13} /> : <IconMoon size={13} />}
-        </TactileButton>
-
-        {/* ── 地層 9: Dock 展開ボタン ── */}
+        {/* ── 地層 8: Dock 展開ボタン ── */}
         <TactileButton
           onClick={() => setDockOpen(v => !v)}
           title={dockOpen ? 'Dockを閉じる' : 'Dockを開く'}
           glass={glass} active={dockOpen}
         >
           <IconFolder size={13} />
+        </TactileButton>
+
+        {/* ── 地層 9: Dark/Light 切替 ── */}
+        <TactileButton
+          onClick={handleToggleTheme}
+          title={isDark ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+          glass={glass}
+        >
+          {isDark ? <IconSun size={13} /> : <IconMoon size={13} />}
         </TactileButton>
       </motion.div>
 
