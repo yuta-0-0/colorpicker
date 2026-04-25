@@ -51,6 +51,7 @@ export {
   ArrowBendDownRight  as IconArrowBendDownRight,  // サブフォルダ追加
   NotePencil          as IconNotePencil,          // メモ拡大編集
   FloppyDisk          as IconFloppyDisk,          // 保存
+  BookmarkSimple      as IconBookmarkSimple,       // 詳細保存（のれん展開）
 
   // ── FAB / BulkActionBar ──────────────────────────────────
   Sparkle          as IconSparkle,

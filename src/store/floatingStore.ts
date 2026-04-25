@@ -22,8 +22,10 @@ interface FloatingStore {
   syncFromIPC: (payload: FSSyncPayload) => void
   swapColors: () => void
   setMiniSlot: (index: number, hex: string | null) => void
-  /** 現在色をスロット先頭に挿入し、末尾を押し出す（プッシュ追加） */
+  /** 現在色をスロット先頭に挿入し、末尾を押し出す（プッシュ追加・重複スキップ） */
   pushMiniSlot: (hex: string) => void
+  /** スロット内の色を Active に昇格し、そのスロットを空にする */
+  promoteSlot: (hex: string) => void
   setActiveFolderIndex: (index: number) => void
   /** スクリーンピッカーで取得した色を直接セット */
   setCurrentColorFromPicker: (hex: string) => void
@@ -75,8 +77,18 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
     }),
 
   pushMiniSlot: (hex) =>
+    set((state) => {
+      // 既にスロット内に同じ色があれば何もしない（重複排除）
+      if (state.miniSlots.some(s => s === hex)) return state
+      return { miniSlots: [hex, ...state.miniSlots.slice(0, 3)] }
+    }),
+
+  promoteSlot: (hex) =>
     set((state) => ({
-      miniSlots: [hex, ...state.miniSlots.slice(0, 3)],
+      previousColor: state.currentColor,
+      currentColor: { hex, alpha: 1, name: hex },
+      // そのスロットを空に（Active に昇格したので除去）
+      miniSlots: state.miniSlots.map(s => (s === hex ? null : s)),
     })),
 
   setActiveFolderIndex: (activeFolderIndex) => set({ activeFolderIndex }),
