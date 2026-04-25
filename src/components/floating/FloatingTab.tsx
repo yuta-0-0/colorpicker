@@ -147,8 +147,8 @@ export function FloatingTab() {
         overflow: 'hidden',
       } as React.CSSProperties}
     >
-      {/* 内部カラーにじみ（マウス追従） */}
-      <ColorBleed borderRadius={20} innerGlow={specular.innerGlow} />
+      {/* 内部カラーにじみ（マウスが来たときだけ縁から滲む） */}
+      <ColorBleed borderRadius={20} innerGlow={specular.innerGlow} innerGlowOpacity={specular.innerGlowOpacity} />
       {/* 1.4px 鏡面反射シャモファー */}
       <SpecularBorder
         borderRadius={20}
