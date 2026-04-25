@@ -59,9 +59,9 @@ export function getGlassTokens(isDark: boolean): GlassTokens {
     }
   }
   return {
-    // 上端: 光が当たって白く輝く / 中間: 透けて背景が見える / 下端: 微青みで厚みを表現
+    // 上端: 光を受ける白 / 下端: 微青み — 差を縮めて均質なガラス感に
     background:
-      'linear-gradient(170deg, rgba(255,255,255,0.68) 0%, rgba(234,242,255,0.50) 60%, rgba(212,226,255,0.56) 100%)',
+      'linear-gradient(180deg, rgba(255,255,255,0.63) 0%, rgba(224,232,255,0.57) 100%)',
     // 上端エッジ: 純白フルハイライト（光の当たり面） / 下端エッジ: 青みシャドウ（厚みの底面） / 内部グロー: 透過光
     boxShadow:
       'inset 0 1.5px 0 rgba(255,255,255,1.0), inset 0 -0.5px 0 rgba(180,205,240,0.32), inset 0 0 20px rgba(255,255,255,0.30)',

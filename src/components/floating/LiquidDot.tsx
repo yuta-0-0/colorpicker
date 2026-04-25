@@ -11,15 +11,20 @@ interface LiquidDotProps {
   /** framer-motion のレイアウトアニメーション識別子（A↔B ドット降下に使用） */
   layoutId?: string
   style?: React.CSSProperties
+  /** layoutId FLIP の開始タイミング・バネを個別制御するためのトランジション */
+  layoutTransition?: object
 }
 
-export function LiquidDot({ hex, size = 16, className = '', layoutId, style }: LiquidDotProps) {
+export function LiquidDot({ hex, size = 16, className = '', layoutId, style, layoutTransition }: LiquidDotProps) {
   return (
     <motion.div
       layoutId={layoutId}
       initial={{ backgroundColor: hex }}
       animate={{ backgroundColor: hex }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      transition={{
+        backgroundColor: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
+        ...(layoutTransition ? { layout: layoutTransition } : {}),
+      }}
       className={className}
       style={{
         width: `${size}px`,

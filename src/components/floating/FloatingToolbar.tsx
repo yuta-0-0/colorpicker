@@ -51,8 +51,8 @@ const TB_P1_DOT  = `circle(3.5% at ${TB_DOT_POS})`
 const TB_P2_OVER = `circle(4.5% at ${TB_DOT_POS})`
 const TB_P3_SM   = `circle(2.5% at ${TB_DOT_POS})`
 
-// タイミング（FloatingTab.tsx の TOOLBAR_DELAY=0.68s に同期）
-const TAB_DELAY      = 0.68
+// タイミング（FloatingTab.tsx の TOOLBAR_DELAY=0.85s に同期）
+const TAB_DELAY      = 0.85
 const EXIT_DURATION  = 0.92
 const TRIM_DELAY_BA  = 1500
 const DOCK_CLOSE_DELAY = 220
@@ -366,7 +366,13 @@ export function FloatingToolbar() {
             cursor: 'pointer', WebkitAppRegion: 'no-drag',
           } as React.CSSProperties}
         >
-          <LiquidDot hex={currentColor.hex} size={24} layoutId="fs-active-dot" />
+          {/* layoutId: A→B 時 FLIP を iris 収束後（0.43s）から開始、展開より前に完了 */}
+          <LiquidDot
+            hex={currentColor.hex}
+            size={24}
+            layoutId="fs-active-dot"
+            layoutTransition={{ delay: 0.43, type: 'spring', stiffness: 280, damping: 28 }}
+          />
           {previousColor && (
             <LiquidDot
               hex={previousColor.hex}

@@ -41,7 +41,7 @@ const P3_BDOT   = `circle(20%   at ${DOT_POS})`     // フェーズ3: B アク�
 // ── タイミング定数 ──────────────────────────────────────────────────
 const EXIT_DURATION   = 0.92        // A→B exit 全体の秒数
 const TOOLBAR_H       = 420         // FloatingToolbar.tsx と同値
-const TOOLBAR_DELAY   = 0.68        // Toolbar が開花を始めるタイミング（P3_BDOT 静止中）
+const TOOLBAR_DELAY   = 0.85        // Toolbar が開花を始めるタイミング（FLIP 完了後）
 const TRIM_DELAY      = 1650        // ms: state 変更後、幅を 48 に縮める猶予
 
 // A→B exit キーフレーム
@@ -162,8 +162,13 @@ export function FloatingTab() {
           zIndex: 1,
         } as React.CSSProperties}
       >
-        {/* layoutId="fs-active-dot": A↔B 遷移時に framer-motion がドットを物理的に移動させる */}
-        <LiquidDot hex={currentColor.hex} size={14} layoutId="fs-active-dot" />
+        {/* layoutId: B→A 時 FLIP を iris 収束後（0.43s）から開始 */}
+        <LiquidDot
+          hex={currentColor.hex}
+          size={14}
+          layoutId="fs-active-dot"
+          layoutTransition={{ delay: 0.43, type: 'spring', stiffness: 280, damping: 28 }}
+        />
       </div>
     </motion.div>
   )

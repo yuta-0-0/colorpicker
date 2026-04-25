@@ -30,10 +30,11 @@ function makeSpecular(x: number, y: number, accentHex?: string): string {
   if (accentHex) {
     const rgb = hexToRgb(accentHex)
     if (rgb) {
-      const r = Math.round(0.40 * 255 + 0.60 * rgb[0])
-      const g = Math.round(0.40 * 255 + 0.60 * rgb[1])
-      const b = Math.round(0.40 * 255 + 0.60 * rgb[2])
-      highlightColor = `rgba(${r},${g},${b},0.88)`
+      // white 55% + accent 45%（前回より白を増やして抑制）
+      const r = Math.round(0.55 * 255 + 0.45 * rgb[0])
+      const g = Math.round(0.55 * 255 + 0.45 * rgb[1])
+      const b = Math.round(0.55 * 255 + 0.45 * rgb[2])
+      highlightColor = `rgba(${r},${g},${b},0.78)`
     }
   }
   return (
