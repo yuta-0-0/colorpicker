@@ -27,7 +27,7 @@ import { motion } from 'framer-motion'
 import type { Easing } from 'motion-utils'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
-import { SpecularBorder, useSpecularReflection } from './SpecularBorder'
+import { SpecularBorder, ColorBleed, useSpecularReflection } from './SpecularBorder'
 import { usePrefersDark, getGlassTokens } from './useTheme'
 
 // ── clip-path 定数 ──────────────────────────────────────────────────
@@ -147,6 +147,9 @@ export function FloatingTab() {
         overflow: 'hidden',
       } as React.CSSProperties}
     >
+      {/* 内部カラーにじみ（マウス追従） */}
+      <ColorBleed borderRadius={20} innerGlow={specular.innerGlow} />
+      {/* 1.4px 鏡面反射シャモファー */}
       <SpecularBorder
         borderRadius={20}
         background={specular.background}

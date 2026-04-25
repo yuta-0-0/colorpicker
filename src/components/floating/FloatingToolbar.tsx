@@ -26,7 +26,7 @@ import type { Easing } from 'motion-utils'
 import { useFloatingStore } from '@/store/floatingStore'
 import { LiquidDot } from './LiquidDot'
 import { HandyDock } from './HandyDock'
-import { SpecularBorder, useSpecularReflection } from './SpecularBorder'
+import { SpecularBorder, ColorBleed, useSpecularReflection } from './SpecularBorder'
 import { usePrefersDark, getGlassTokens, type GlassTokens } from './useTheme'
 import {
   IconEyedropper,
@@ -326,6 +326,8 @@ export function FloatingToolbar() {
           overflow: 'hidden',
         } as React.CSSProperties}
       >
+        {/* 内部カラーにじみ（マウス追従） */}
+        <ColorBleed borderRadius={24} innerGlow={specular.innerGlow} />
         {/* 1.4px 鏡面反射シャモファー */}
         <SpecularBorder
           borderRadius={24}
