@@ -1,10 +1,11 @@
 // src/components/floating/FloatingSystemView.tsx
 //
-// Step 5/6: スポイト長押しフラグ（pendingSaveAfterPick）に応じて
-//           picker 結果受信時に自動保存を行う
+// LayoutGroup: FloatingTab と FloatingToolbar の layoutId="fs-active-dot" を
+// framer-motion に認識させ、A↔B 遷移時にドットが物理的に降下・上昇する
+// （Step 1: Iris Morphing — 核の不滅 + 降下シーケンス）
 
 import { useEffect, useRef } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, LayoutGroup } from 'framer-motion'
 import { useFloatingStore } from '@/store/floatingStore'
 import type { FSSyncPayload } from '@/types/floating'
 import { FloatingTab } from './FloatingTab'
@@ -20,7 +21,7 @@ export function FloatingSystemView() {
     setPendingSaveAfterPick,
   } = useFloatingStore()
 
-  // pendingSaveAfterPick を useEffect のクロージャに閉じ込めず ref で追う
+  // pendingSaveAfterPick を ref で追う（useEffect のクロージャ問題を防ぐ）
   const saveAfterPickRef = useRef(pendingSaveAfterPick)
   useEffect(() => {
     saveAfterPickRef.current = pendingSaveAfterPick
@@ -44,14 +45,12 @@ export function FloatingSystemView() {
     return unsub
   }, [syncFromIPC])
 
-  // IPC: スクリーンピッカー結果を受信（Step 5/6）
-  // 長押しフラグが立っていれば自動保存も行う
+  // IPC: スクリーンピッカー結果（Step 6: 長押し保存フラグ対応）
   useEffect(() => {
     if (!window.electronAPI?.onFloatingColorFromPicker) return undefined
     const unsub = window.electronAPI.onFloatingColorFromPicker(({ hex }) => {
-      if (!hex) return  // キャンセル時は何もしない（Step 6: 状態は B のまま）
+      if (!hex) return  // キャンセル時は何もしない
       setCurrentColorFromPicker(hex)
-      // Step 5: 長押し保存フラグが立っていれば即時保存
       if (saveAfterPickRef.current) {
         window.electronAPI?.floatingColorSelected(hex)
         setPendingSaveAfterPick(false)
@@ -61,12 +60,17 @@ export function FloatingSystemView() {
   }, [setCurrentColorFromPicker, setPendingSaveAfterPick])
 
   return (
-    // initial={false}: 初回マウント時は iris アニメーションをスキップ
-    <AnimatePresence initial={false}>
-      {floatingState === 'tab'
-        ? <FloatingTab key="tab" />
-        : <FloatingToolbar key="toolbar" />
-      }
-    </AnimatePresence>
+    // LayoutGroup: Tab と Toolbar の "fs-active-dot" layoutId を橋渡し
+    // → A→B 遷移時: Tab の dot が Toolbar の row-2 位置へ物理的に降下
+    // → B→A 遷移時: Toolbar の dot が Tab の位置へ物理的に上昇
+    <LayoutGroup>
+      {/* initial={false}: 初回マウント時は iris アニメーションをスキップ */}
+      <AnimatePresence initial={false}>
+        {floatingState === 'tab'
+          ? <FloatingTab key="tab" />
+          : <FloatingToolbar key="toolbar" />
+        }
+      </AnimatePresence>
+    </LayoutGroup>
   )
 }

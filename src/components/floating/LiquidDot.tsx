@@ -1,15 +1,22 @@
 // src/components/floating/LiquidDot.tsx
+//
+// layoutId prop を受け取ることで、FloatingTab ↔ FloatingToolbar 間の
+// framer-motion FLIP アニメーション（ドット降下/上昇）を実現する。
 import { motion } from 'framer-motion'
 
 interface LiquidDotProps {
   hex: string
   size?: number
   className?: string
+  /** framer-motion のレイアウトアニメーション識別子（A↔B ドット降下に使用） */
+  layoutId?: string
+  style?: React.CSSProperties
 }
 
-export function LiquidDot({ hex, size = 16, className = '' }: LiquidDotProps) {
+export function LiquidDot({ hex, size = 16, className = '', layoutId, style }: LiquidDotProps) {
   return (
     <motion.div
+      layoutId={layoutId}
       initial={{ backgroundColor: hex }}
       animate={{ backgroundColor: hex }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -20,6 +27,7 @@ export function LiquidDot({ hex, size = 16, className = '' }: LiquidDotProps) {
         borderRadius: '50%',
         border: '0.5px solid rgba(255,255,255,0.25)',
         flexShrink: 0,
+        ...style,
       }}
     />
   )

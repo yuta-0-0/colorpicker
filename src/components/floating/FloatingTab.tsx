@@ -159,7 +159,8 @@ export function FloatingTab() {
           zIndex: 1,
         } as React.CSSProperties}
       >
-        <LiquidDot hex={currentColor.hex} size={14} />
+        {/* layoutId="fs-active-dot": A↔B 遷移時に framer-motion がドットを物理的に移動させる */}
+        <LiquidDot hex={currentColor.hex} size={14} layoutId="fs-active-dot" />
       </div>
     </motion.div>
   )
