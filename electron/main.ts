@@ -23,6 +23,8 @@ let dockOffsetY = 7    // ProxyTab top: 光学中心 = (46-32)/2 = 7px（Bento�
 // Explosion アニメーション中は win.on('show') での floatingWin.hide() をスキップ
 // → Tab A が Explosion の「窓」として main の展開を見届ける
 let explosionAnimating = false
+// ProxyTab outer double-click 後、hide-ready で Blooming を自動起動するフラグ
+let pendingAutoToolbar = false
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -398,15 +400,19 @@ ipcMain.on('fs:save-color', (_, payload: { hex: string; alpha: number; name?: st
 
 // Implosion 完了通知: AppLayout がアニメ完了後に送信
 // → メインウィンドウを隠し、同時に floatingWin を ProxyTab 座標に出現させる
+// pendingAutoToolbar が立っている場合は fs:auto-open-toolbar も送信（ProxyTab → Toolbar 直行）
 ipcMain.on('main:hide-ready', () => {
   if (!mainWin || mainWin.isDestroyed()) return
   const mb = mainWin.getBounds()
   mainWin.hide()
-  // ProxyTab と全く同じ座標に floatingWin を配置して show（シームレスな入れ替わり）
   if (floatingWin && !floatingWin.isDestroyed()) {
     floatingWin.setPosition(mb.x + dockOffsetX, mb.y + dockOffsetY)
     floatingWin.show()
     floatingWin.focus()
+    if (pendingAutoToolbar) {
+      pendingAutoToolbar = false
+      floatingWin.webContents.send('fs:auto-open-toolbar')
+    }
   }
 })
 
@@ -430,61 +436,67 @@ ipcMain.on('fs:trigger-implosion', () => {
   mainWin.webContents.send('main:trigger-hide', { relX, relY })
 })
 
-// ── ProxyTab outer double-click → A→B Blooming ─────────────────────────
-// ProxyTab（AppLayout 内）がダブルクリックされたとき：
-//   1. floatingWin を ProxyTab と同座標に配置（シームレスな入れ替わり）
-//   2. floatingWin を show（main はそのまま表示継続）
-//   3. fs:auto-open-toolbar を送信 → FloatingSystemView が Blooming を自律実行
+// ── ProxyTab outer double-click → Implosion → A→B Blooming ─────────────
+// 【重要】main を hide させてから floatingWin を出す（ProxyTab との dual-visibility を防ぐ）
+// fs:trigger-implosion（ドットクリック）と同じ Implosion フローを踏む。
+// pendingAutoToolbar フラグで hide-ready 後に fs:auto-open-toolbar を追加送信する。
+//
+// フロー:
+//   1. ProxyTab dot 中心座標で main:trigger-hide（Implosion アニメーション開始）
+//   2. AppLayout が 0.6s 収束アニメーション → mainHideReady()
+//   3. main:hide-ready: mainWin.hide() → floatingWin.show() → fs:auto-open-toolbar
+//   4. FloatingSystemView: resize → wait 60ms → setFloatingState('toolbar') → Blooming
 ipcMain.on('proxy:open-toolbar', () => {
   if (!mainWin || mainWin.isDestroyed()) return
-  if (!floatingWin || floatingWin.isDestroyed()) return
   const mb = mainWin.getBounds()
-  // ProxyTab と 1px の誤差もなく重ねて出現させる（dockOffsetX/Y は ProxyTab の top-left）
-  floatingWin.setPosition(mb.x + dockOffsetX, mb.y + dockOffsetY)
-  floatingWin.show()
-  floatingWin.focus()
-  // FloatingSystemView に Blooming シーケンスを開始させる（1ms のラグもなく同時送信）
-  floatingWin.webContents.send('fs:auto-open-toolbar')
+  pendingAutoToolbar = true
+  // Implosion と同じ爆縮点（ProxyTab ドット中心）
+  const cx = mb.x + dockOffsetX + 17
+  const cy = mb.y + dockOffsetY + 16
+  const relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
+  const relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
+  mainWin.webContents.send('main:trigger-hide', { relX, relY })
 })
 
 // Explosion トリガー: FloatingToolbar HeroDot ダブルクリック → Main を爆発展開
 //
-// ── 新フロー（Tab A が Explosion の「窓」になる）─────────────────────
-//   1. floatingWin（Tab A）を消さない → alwaysOnTop で前景に残る
-//   2. main:will-show → AppLayout が clip-path を 0% にセット
-//   3. mainWin.show() → win.on('show') は explosionAnimating=true でスキップ
-//   4. Explosion アニメーション中（0.6s）は floatingWin（Tab A）が前景で静止
-//   5. 完了後（+700ms）: floatingWin を ProxyTab 座標に瞬間移動 → hide
-//      ProxyTab が同座標を引き継ぐ（シームレスなハンドオフ）
+// ── フロー（Tab A が Explosion の「窓」になる + 位置ズレ根治）──────────
+//   1. floatingWin の現在位置に合わせて mainWin を移動
+//      → ProxyTab screen 座標 = floatingWin screen 座標（完全一致）
+//   2. floatingWin（Tab A）は消さない → alwaysOnTop で前景に残る
+//   3. main:will-show（relX/relY = ProxyTab dot の mainWin 内相対位置）
+//   4. mainWin.show() → win.on('show') は explosionAnimating=true でスキップ
+//   5. Explosion（0.6s）: Tab A が静止したまま main が後ろで展開
+//   6. +700ms: floatingWin を hide（ProxyTab が同座標を引き継ぐ = 位置ズレなし）
 ipcMain.on('main:show-from-floating', () => {
   if (!mainWin || mainWin.isDestroyed()) return
   const fb = floatingWin?.isDestroyed() ? null : floatingWin?.getBounds()
   const mb = mainWin.getBounds()
-  let relX = 50
-  let relY = 10
+  const { workAreaSize: wa } = screen.getPrimaryDisplay()
+
   if (fb) {
-    // Tab ドット中心（paddingLeft=10, dotR=7 → cx=17 / dotCenter Y=16）の
-    // mainWin 内相対位置 → Explosion の起点
-    const cx = fb.x + 17
-    const cy = fb.y + 16
-    relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
-    relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
+    // mainWin を「ProxyTab が Tab A と完全に重なる位置」に移動（hide 中なので画面外から不可視）
+    //   ProxyTab screen x = mainWin.x + dockOffsetX → mainWin.x = fb.x - dockOffsetX
+    //   ProxyTab screen y = mainWin.y + dockOffsetY → mainWin.y = fb.y - dockOffsetY
+    const newMX = Math.max(0, Math.min(fb.x - dockOffsetX, wa.width  - mb.width))
+    const newMY = Math.max(0, Math.min(fb.y - dockOffsetY, wa.height - mb.height))
+    mainWin.setPosition(newMX, newMY)
   }
-  // Explosion アニメーション開始: floatingWin は消さない
+
+  // ProxyTab ドット中心の mainWin 内相対位置（mainWin を移動後も dockOffset は固定）
+  const relX = Math.max(0, Math.min(100, ((dockOffsetX + 17) / mb.width)  * 100))
+  const relY = Math.max(0, Math.min(100, ((dockOffsetY + 16) / mb.height) * 100))
+
   explosionAnimating = true
   mainWin.webContents.send('main:will-show', { relX, relY, animate: true })
   setTimeout(() => {
     mainWin!.show()
     mainWin!.focus()
-    // Explosion アニメーション（0.6s）完了後 → floatingWin を ProxyTab 座標へ瞬間移動して hide
-    // setPosition + hide を同一 tick 実行 = ユーザーには位置変化が見えない
+    // Explosion 完了後（0.6s + 80ms margin）: floatingWin を hide
+    // ProxyTab が同座標を引き継ぐためテレポートは不要
     setTimeout(() => {
       explosionAnimating = false
-      if (floatingWin && !floatingWin.isDestroyed()) {
-        const newMB = mainWin!.getBounds()
-        floatingWin.setPosition(newMB.x + dockOffsetX, newMB.y + dockOffsetY)
-        floatingWin.hide()
-      }
-    }, 700)  // 20ms(show delay) + 600ms(animation) + 80ms(margin)
+      if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
+    }, 700)
   }, 20)
 })
