@@ -81,14 +81,10 @@ export function FloatingTab() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── ドットダブルクリック: Implosion トリガー（ドック離脱） ─────────
-  // e.stopPropagation(): FloatingTab 全体の onDoubleClick（A→B）と衝突させない
-  const handleDotDoubleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    window.electronAPI?.triggerImplosionFromDock?.()
-  }, [])
-
   // ── A → B 遷移 ──────────────────────────────────────────────────
+  // ドットのダブルクリックも outer の onDoubleClick（A→B）にバブルさせる。
+  // Implosion は ProxyTab（メインウィンドウ内）のドットが担当する。
+  // ※ FloatingWin が Tab 状態で表示中 = main は既に hide 済みなので Implosion 不要。
   const handleDoubleClick = useCallback(() => {
     window.electronAPI?.requestFloatingResize({ width: 80, height: TOOLBAR_H, anchor: 'center' })
     delayTimerRef.current = setTimeout(() => {
@@ -166,9 +162,9 @@ export function FloatingTab() {
         opacity={specular.opacity}
       />
       {/* ドット位置確保（no-drag 領域）: 視覚は FloatingSystemView の HeroDot が担当 */}
-      {/* onDoubleClick: Implosion（母艦へ戻る）/ hover: HeroDot scale 1.1 */}
+      {/* onDoubleClick: 設定しない → outer の handleDoubleClick（A→B）にバブル */}
+      {/* hover: HeroDot scale 1.1 制御のみ */}
       <div
-        onDoubleClick={handleDotDoubleClick}
         onMouseEnter={() => setDotHovered(true)}
         onMouseLeave={() => setDotHovered(false)}
         style={{
