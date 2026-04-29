@@ -47,6 +47,12 @@ declare global {
       triggerImplosionFromDock?: () => void
       updateDockOffset?: (offsetX: number, offsetY: number) => void
 
+      // ── ProxyTab A→B 回路 ────────────────────────────────
+      /** ProxyTab outer double-click → floatingWin show + Blooming */
+      proxyOpenToolbar?: () => void
+      /** FloatingSystemView: Blooming 自動起動合図を受信 */
+      onFloatingAutoOpenToolbar?: (cb: () => void) => () => void
+
       // ── Implosion / Explosion ─────────────────────────────
       onMainTriggerHide: (cb: (coords: { relX: number; relY: number }) => void) => () => void
       mainHideReady: () => void

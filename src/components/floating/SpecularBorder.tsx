@@ -77,13 +77,19 @@ export interface SpecularReflectionControls {
 
 interface UseSpecularOptions {
   accentHex?: string
+  /** 非ホバー時の境界線不透明度（デフォルト 0.30）。FloatingProxy では 1.0 を渡す。 */
+  baseOpacity?: number
 }
 
 export function useSpecularReflection(
-  { accentHex }: UseSpecularOptions = {}
+  { accentHex, baseOpacity: baseOpacityProp }: UseSpecularOptions = {}
 ): SpecularReflectionControls {
+  // effectiveBaseRef: レンダー間で安定した ref として保持（コールバック deps に不要）
+  const effectiveBaseRef = useRef(baseOpacityProp ?? BASE_OPACITY)
+  effectiveBaseRef.current = baseOpacityProp ?? BASE_OPACITY
+
   const background       = useMotionValue(makeSpecular(50, 0, accentHex))
-  const opacity          = useMotionValue(BASE_OPACITY)
+  const opacity          = useMotionValue(effectiveBaseRef.current)
   const innerGlow        = useMotionValue(makeInnerGlow(50, 50, accentHex))
   // にじみは最初は完全透明
   const innerGlowOpacity = useMotionValue(0)
@@ -122,7 +128,7 @@ export function useSpecularReflection(
   const handleMouseLeave = useCallback(() => {
     isHovering.current = false
     // エッジ: BASE_OPACITY まで戻す
-    animate(opacity, BASE_OPACITY, { duration: 0.45, ease: 'easeOut' })
+    animate(opacity, effectiveBaseRef.current, { duration: 0.45, ease: 'easeOut' })
     // にじみ: 最後の位置からゆっくりフェードアウト（位置はリセットしない）
     animate(innerGlowOpacity, 0, { duration: 0.50, ease: 'easeOut' })
   }, [opacity, innerGlowOpacity])
@@ -136,7 +142,7 @@ export function useSpecularReflection(
     setTimeout(() => {
       background.set(makeSpecular(50, 0, accentRef.current))
       if (!isHovering.current) {
-        animate(opacity, BASE_OPACITY, { duration: 0.65, ease: 'easeOut' })
+        animate(opacity, effectiveBaseRef.current, { duration: 0.65, ease: 'easeOut' })
       }
     }, 40)
   }, [background, opacity])

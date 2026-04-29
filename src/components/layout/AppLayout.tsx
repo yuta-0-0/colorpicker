@@ -107,7 +107,7 @@ export function AppLayout() {
     if (!window.electronAPI?.updateDockOffset) return
     if (sidebarCollapsed) return
     const offsetX = 10 + sidebarWidth + 10
-    window.electronAPI.updateDockOffset(offsetX, 4)
+    window.electronAPI.updateDockOffset(offsetX, 7)
   }, [sidebarWidth, sidebarCollapsed])
   const [showAddModal, setShowAddModal] = useState(false)
   const [showShortcutHelp, setShowShortcutHelp] = useState(false)
@@ -470,16 +470,10 @@ export function AppLayout() {
         className="app-frame absolute inset-0 pointer-events-none"
         style={{ zIndex: -1 }}
       />
-      {/* ── FloatingProxy: メインウィンドウ表示中に FloatingTab の代役を担う ──
-          本物の FloatingWindow は hide() 状態。Implosion が発火した瞬間に
-          ProxyTab 座標へ floatingWin を show() して完璧な入れ替わりを実現。 */}
-      {isElectron && (
-        <FloatingProxy
-          left={sidebarWidth + 20}
-          hex={proxyHex}
-        />
-      )}
-      {/* ── 全幅ドラッグバー：absolute で最前面に配置（Electron のみ） ── */}
+      {/* ── 全幅ドラッグバー：absolute（Electron のみ）── */}
+      {/* DOM 順序: drag bar → FloatingProxy の順にすることで、
+          Electron の no-drag 判定が後着の FloatingProxy を必ず優先する。
+          z-index（drag:10 / proxy:50）との二重保険で確実にイベントを捕捉。 */}
       {isElectron && (
         <div
           className="app-drag absolute top-0 left-0 right-0 z-10 flex items-center"
@@ -494,6 +488,15 @@ export function AppLayout() {
             <IconSidebarSimple size={14} />
           </button>
         </div>
+      )}
+      {/* ── FloatingProxy: drag bar の後ろに配置（DOM 後着 + z-index:50 で no-drag 確実勝利）──
+          本物の FloatingWindow は hide() 状態。Implosion が発火した瞬間に
+          ProxyTab 座標へ floatingWin を show() して完璧な入れ替わりを実現。 */}
+      {isElectron && (
+        <FloatingProxy
+          left={sidebarWidth + 20}
+          hex={proxyHex}
+        />
       )}
 
       {/* ── Bentos 行（ドラッグバー分だけ上に余白） ── */}

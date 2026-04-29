@@ -50,13 +50,16 @@ export function FloatingSystemView() {
     currentColor,
     isDotHovered,
     setSnapSide,
+    setFloatingState,
     syncFromIPC,
     setCurrentColorFromPicker,
     pendingSaveAfterPick,
     setPendingSaveAfterPick,
   } = useFloatingStore()
 
-  const saveAfterPickRef = useRef(pendingSaveAfterPick)
+  const saveAfterPickRef    = useRef(pendingSaveAfterPick)
+  // auto-open-toolbar タイマー（proxy:open-toolbar → A→B Blooming）
+  const autoToolbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     saveAfterPickRef.current = pendingSaveAfterPick
   }, [pendingSaveAfterPick])
@@ -92,6 +95,37 @@ export function FloatingSystemView() {
     })
     return unsub
   }, [setCurrentColorFromPicker, setPendingSaveAfterPick])
+
+  // IPC: ProxyTab outer double-click → A→B Blooming 自動起動
+  // main.ts から floatingWin に fs:auto-open-toolbar が届いたら
+  // FloatingTab の handleDoubleClick と完全に同一のシーケンスを実行する。
+  //
+  //   t=0ms    : requestFloatingResize(80×420) ← ウィンドウ高さ展開
+  //   t=60ms   : setFloatingState('toolbar')   ← Blooming アニメーション開始
+  //   t=60+1700: requestFloatingResize(48×420) ← 幅トリム（TRIM_DELAY と同値）
+  //
+  // FloatingSystemView がオーナーになることで FloatingTab の cleanup と競合しない。
+  useEffect(() => {
+    if (!window.electronAPI?.onFloatingAutoOpenToolbar) return undefined
+    const unsub = window.electronAPI.onFloatingAutoOpenToolbar(() => {
+      // Step 1: 高さを Toolbar サイズに拡張（先に window を広げる）
+      window.electronAPI?.requestFloatingResize({ width: 80, height: 420, anchor: 'center' })
+      // Step 2: 60ms 後に state 変更 → HeroDot + clip-path アニメーション開始
+      autoToolbarTimerRef.current = setTimeout(() => {
+        setFloatingState('toolbar')
+        // Step 3: TRIM — FloatingToolbar の AB_ENTER から十分後（TRIM_DELAY=1700ms）
+        autoToolbarTimerRef.current = setTimeout(() => {
+          const { snapSide } = useFloatingStore.getState()
+          const anchor = snapSide === 'right' ? 'right' : 'left'
+          window.electronAPI?.requestFloatingResize({ width: 48, height: 420, anchor })
+        }, 1700)
+      }, 60)
+    })
+    return () => {
+      unsub?.()
+      if (autoToolbarTimerRef.current) clearTimeout(autoToolbarTimerRef.current)
+    }
+  }, [setFloatingState])
 
   const isToolbar   = floatingState === 'toolbar'
   const dot         = isToolbar ? TOOL_DOT : TAB_DOT

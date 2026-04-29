@@ -87,11 +87,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // ── Docking System ────────────────────────────────────────
-  // FloatingTab ドットクリック → Implosion トリガー
+  // FloatingTab / ProxyTab ドットクリック → Implosion トリガー
   triggerImplosionFromDock: () => ipcRenderer.send('fs:trigger-implosion'),
   // AppLayout がサイドバー幅変化を main に通知
   updateDockOffset: (offsetX: number, offsetY: number) =>
     ipcRenderer.send('main:update-dock-offset', { offsetX, offsetY }),
+
+  // ── ProxyTab A→B 回路 ──────────────────────────────────────
+  // ProxyTab outer double-click → floatingWin show + Blooming 自動起動
+  // （main は hide せず、floatingWin だけ ProxyTab 座標に出現）
+  proxyOpenToolbar: () => ipcRenderer.send('proxy:open-toolbar'),
+
+  // FloatingSystemView: main.ts からの Blooming 開始合図を受信
+  onFloatingAutoOpenToolbar: (cb: () => void) => {
+    const handler = () => cb()
+    ipcRenderer.on('fs:auto-open-toolbar', handler)
+    return () => ipcRenderer.removeListener('fs:auto-open-toolbar', handler)
+  },
 
   // ── Implosion / Explosion ─────────────────────────────────
   // AppLayout: main:trigger-hide を受信してアニメ開始

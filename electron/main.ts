@@ -18,7 +18,7 @@ let floatingWin: BrowserWindow | null = null
 // メインウィンドウが hide() したとき＝Implosion 完了後に、
 // ProxyTab と同座標に floatingWin を show() して「本物が現れた」ように見せる。
 let dockOffsetX = 172  // ProxyTab left: 10(pad) + 152(sidebar) + 10(gap)
-let dockOffsetY = 4    // ProxyTab top: (40-32)/2 = 4px（ドラッグバー内上下等分）
+let dockOffsetY = 7    // ProxyTab top: 光学中心 = (46-32)/2 = 7px（Bento境界まで上下均等）
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -422,6 +422,23 @@ ipcMain.on('fs:trigger-implosion', () => {
   const relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
   const relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
   mainWin.webContents.send('main:trigger-hide', { relX, relY })
+})
+
+// ── ProxyTab outer double-click → A→B Blooming ─────────────────────────
+// ProxyTab（AppLayout 内）がダブルクリックされたとき：
+//   1. floatingWin を ProxyTab と同座標に配置（シームレスな入れ替わり）
+//   2. floatingWin を show（main はそのまま表示継続）
+//   3. fs:auto-open-toolbar を送信 → FloatingSystemView が Blooming を自律実行
+ipcMain.on('proxy:open-toolbar', () => {
+  if (!mainWin || mainWin.isDestroyed()) return
+  if (!floatingWin || floatingWin.isDestroyed()) return
+  const mb = mainWin.getBounds()
+  // ProxyTab と 1px の誤差もなく重ねて出現させる（dockOffsetX/Y は ProxyTab の top-left）
+  floatingWin.setPosition(mb.x + dockOffsetX, mb.y + dockOffsetY)
+  floatingWin.show()
+  floatingWin.focus()
+  // FloatingSystemView に Blooming シーケンスを開始させる（1ms のラグもなく同時送信）
+  floatingWin.webContents.send('fs:auto-open-toolbar')
 })
 
 // Explosion トリガー: FloatingToolbar HeroDot ダブルクリック → Main を爆発展開
