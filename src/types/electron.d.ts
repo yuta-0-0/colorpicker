@@ -42,6 +42,17 @@ declare global {
       onScreenPickerStart: (cb: () => void) => () => void
       onFloatingColorFromPicker: (cb: (data: { hex: string }) => void) => () => void
       reportPickedColor: (hex: string) => void
+
+      // ── Docking System ────────────────────────────────────
+      triggerImplosionFromDock?: () => void
+      updateDockOffset?: (offsetX: number, offsetY: number) => void
+
+      // ── Implosion / Explosion ─────────────────────────────
+      onMainTriggerHide: (cb: (coords: { relX: number; relY: number }) => void) => () => void
+      mainHideReady: () => void
+      onMainWillShow: (cb: (data: { relX: number; relY: number; animate: boolean }) => void) => () => void
+      requestMainShowFromFloating: () => void
+
     }
   }
 }

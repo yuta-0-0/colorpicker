@@ -1,19 +1,54 @@
 // src/components/floating/FloatingSystemView.tsx
 //
-// LayoutGroup: FloatingTab と FloatingToolbar の layoutId="fs-active-dot" を
-// framer-motion に認識させ、A↔B 遷移時にドットが物理的に降下・上昇する
-// （Step 1: Iris Morphing — 核の不滅 + 降下シーケンス）
+// ── HeroDot アーキテクチャ ────────────────────────────────────────────
+//   FloatingTab / FloatingToolbar の内部ドットを廃止し、
+//   FloatingSystemView が「HeroDot」を直接ホスト。
+//   ドットは clip-path に閉じ込められず、常時表示・物理的に移動する。
+//
+// ── 座標系（80×420px プレリサイズ済みウィンドウ内）───────────────────
+//   Tab   ドット: left=10, top=9,  size=14  (center: 17, 16)
+//   Toolbar ドット: left=12, top=46, size=24  (center: 24, 58)
+//
+// ── タイムライン ────────────────────────────────────────────────────
+//   A→B: [0-280ms]Tab収束 → [280-480ms]Dot拡大 → [480-630ms]Hold★ → [630-930ms]Dot移動 → [914-1274ms]Toolbar展開
+//   B→A: [0ms]Button吸込 ≒ [40-590ms]Toolbar吸収 → [590-790ms]Dot縮小 → [790-940ms]Hold★ → [940-1240ms]Dot移動 → [1224-1404ms]Tab復元
 
 import { useEffect, useRef } from 'react'
-import { AnimatePresence, LayoutGroup } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
+import type { Easing } from 'motion-utils'
 import { useFloatingStore } from '@/store/floatingStore'
 import type { FSSyncPayload } from '@/types/floating'
 import { FloatingTab } from './FloatingTab'
 import { FloatingToolbar } from './FloatingToolbar'
 
+// ── HeroDot 座標 ────────────────────────────────────────────────────
+const TAB_DOT  = { left: 10, top: 9,  size: 14 } as const  // Tab dot top-left + size
+const TOOL_DOT = { left: 12, top: 46, size: 24 } as const  // Toolbar dot top-left + size
+
+// ── タイミング ──────────────────────────────────────────────────────
+const AB_PAUSE = 0.150  // Hold: 拡大完了→移動開始の静止時間
+const BA_PAUSE = 0.150  // Hold: 縮小完了→移動開始の静止時間
+const DOT_TRAVEL   = 0.300   // 移動 duration
+const DOT_RESIZE   = 0.200   // サイズ変化 duration（ゆっくり）
+
+// A→B: resize は Tab exit(280ms) 完了と同時にスタート
+const AB_RESIZE_DELAY = 0.280
+// A→B: travel は resize(200ms) + Hold(150ms) 後
+const AB_TRAVEL_DELAY = AB_RESIZE_DELAY + DOT_RESIZE + AB_PAUSE  // 0.630
+
+// B→A: resize は 背景収束(550ms) 完了後にスタート（縮小が先）
+const BA_RESIZE_DELAY = 0.550  // = BA_EXIT_DUR(0.55)
+// B→A: travel は resize(200ms) + Hold(150ms) 後（移動が後）
+const BA_TRAVEL_DELAY = BA_RESIZE_DELAY + DOT_RESIZE + BA_PAUSE  // 0.900
+
+const EASE_QUINT: Easing   = [0.8, 0, 0.6, 1] as Easing   // とろっと：出だし・着地ともに極限まで緩やか
+const EASE_IN_OUT: Easing  = [0.87, 0, 0.13, 1] as Easing // ドット移動：ゆったり出発、溶けるように着地
+
 export function FloatingSystemView() {
   const {
     floatingState,
+    currentColor,
+    isDotHovered,
     setSnapSide,
     syncFromIPC,
     setCurrentColorFromPicker,
@@ -21,7 +56,6 @@ export function FloatingSystemView() {
     setPendingSaveAfterPick,
   } = useFloatingStore()
 
-  // pendingSaveAfterPick を ref で追う（useEffect のクロージャ問題を防ぐ）
   const saveAfterPickRef = useRef(pendingSaveAfterPick)
   useEffect(() => {
     saveAfterPickRef.current = pendingSaveAfterPick
@@ -45,11 +79,11 @@ export function FloatingSystemView() {
     return unsub
   }, [syncFromIPC])
 
-  // IPC: スクリーンピッカー結果（Step 6: 長押し保存フラグ対応）
+  // IPC: スクリーンピッカー結果
   useEffect(() => {
     if (!window.electronAPI?.onFloatingColorFromPicker) return undefined
     const unsub = window.electronAPI.onFloatingColorFromPicker(({ hex }) => {
-      if (!hex) return  // キャンセル時は何もしない
+      if (!hex) return
       setCurrentColorFromPicker(hex)
       if (saveAfterPickRef.current) {
         window.electronAPI?.floatingColorSelected(hex)
@@ -59,18 +93,62 @@ export function FloatingSystemView() {
     return unsub
   }, [setCurrentColorFromPicker, setPendingSaveAfterPick])
 
+  const isToolbar   = floatingState === 'toolbar'
+  const dot         = isToolbar ? TOOL_DOT : TAB_DOT
+  const delayResize = isToolbar ? AB_RESIZE_DELAY : BA_RESIZE_DELAY
+  const delayTravel = isToolbar ? AB_TRAVEL_DELAY : BA_TRAVEL_DELAY
+
   return (
-    // LayoutGroup: Tab と Toolbar の "fs-active-dot" layoutId を橋渡し
-    // → A→B 遷移時: Tab の dot が Toolbar の row-2 位置へ物理的に降下
-    // → B→A 遷移時: Toolbar の dot が Tab の位置へ物理的に上昇
-    <LayoutGroup>
-      {/* initial={false}: 初回マウント時は iris アニメーションをスキップ */}
-      <AnimatePresence initial={false}>
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* mode="popLayout": Tab exit と Toolbar mount が同時進行 → HeroDot が物理移動できる */}
+      <AnimatePresence mode="popLayout" initial={false}>
         {floatingState === 'tab'
           ? <FloatingTab key="tab" />
           : <FloatingToolbar key="toolbar" />
         }
       </AnimatePresence>
-    </LayoutGroup>
+
+      {/* ── HeroDot: コンポーネントの制約から解放されたドット ────────
+          ・常時レンダリング（消えない・途切れない）
+          ・floatingState 変化後 delay 秒で物理的に移動・サイズ変化
+          ・pointerEvents none = 下要素の drag・click を透過          */}
+      <motion.div
+        initial={false}
+        animate={{
+          // left: top と完全同一の times/ease で補間 → レーザー直線軌道
+          left: isToolbar
+            ? [TAB_DOT.left,  TAB_DOT.left,  TOOL_DOT.left]   // A→B: 10→10→12 (anticip なし、topと同期)
+            : [TOOL_DOT.left, TOOL_DOT.left, TAB_DOT.left],   // B→A: 12→12→10
+          // 移動の溜め: 逆方向に 4px 引いてから発射
+          top: isToolbar
+            ? [TAB_DOT.top,  TAB_DOT.top  - 4, TOOL_DOT.top]  // A→B: 9→5→46
+            : [TOOL_DOT.top, TOOL_DOT.top + 4, TAB_DOT.top],  // B→A: 46→50→9
+          // サイズ: Hold の前後で変化させる（単一ターゲット＋EASE_QUINT で滑らか）
+          width:  dot.size,
+          height: dot.size,
+          // 色: 液体のように 0.2s で混ざりながら変化
+          backgroundColor: currentColor.hex,
+          // ホバー: Tab 状態のみ scale 1.1（Toolbar 状態はドット大きいのでスキップ）
+          scale: !isToolbar && isDotHovered ? 1.1 : 1.0,
+        }}
+        transition={{
+          // left と top: 完全同一の ease + times で x/y 補間を 1ms 単位で同期
+          left:            { delay: delayTravel, duration: DOT_TRAVEL, ease: EASE_IN_OUT, times: [0, 0.08, 1.0] },
+          top:             { delay: delayTravel, duration: DOT_TRAVEL, ease: EASE_IN_OUT, times: [0, 0.08, 1.0] },
+          width:           { delay: delayResize, duration: DOT_RESIZE, ease: EASE_QUINT },
+          height:          { delay: delayResize, duration: DOT_RESIZE, ease: EASE_QUINT },
+          backgroundColor: { duration: 0.2, ease: EASE_QUINT },
+          // SSOT spring: { stiffness: 300, damping: 30 }
+          scale:           { type: 'spring', stiffness: 300, damping: 30 },
+        }}
+        style={{
+          position:        'absolute',
+          borderRadius:    '50%',
+          zIndex:          100,
+          pointerEvents:   'none',
+          WebkitAppRegion: 'no-drag',
+        } as React.CSSProperties}
+      />
+    </div>
   )
 }

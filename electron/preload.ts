@@ -85,4 +85,32 @@ contextBridge.exposeInMainWorld('electronAPI', {
   reportPickedColor: (hex: string) => {
     ipcRenderer.send('screen-picker:picked', { hex })
   },
+
+  // ── Docking System ────────────────────────────────────────
+  // FloatingTab ドットクリック → Implosion トリガー
+  triggerImplosionFromDock: () => ipcRenderer.send('fs:trigger-implosion'),
+  // AppLayout がサイドバー幅変化を main に通知
+  updateDockOffset: (offsetX: number, offsetY: number) =>
+    ipcRenderer.send('main:update-dock-offset', { offsetX, offsetY }),
+
+  // ── Implosion / Explosion ─────────────────────────────────
+  // AppLayout: main:trigger-hide を受信してアニメ開始
+  onMainTriggerHide: (cb: (coords: { relX: number; relY: number }) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, data: unknown) =>
+      cb(data as { relX: number; relY: number })
+    ipcRenderer.on('main:trigger-hide', handler)
+    return () => ipcRenderer.removeListener('main:trigger-hide', handler)
+  },
+  // AppLayout: Implosion アニメ完了後に呼ぶ → main.ts が hide()
+  mainHideReady: () => ipcRenderer.send('main:hide-ready'),
+
+  // AppLayout: main:will-show を受信して Explosion アニメ開始
+  onMainWillShow: (cb: (data: { relX: number; relY: number; animate: boolean }) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, data: unknown) =>
+      cb(data as { relX: number; relY: number; animate: boolean })
+    ipcRenderer.on('main:will-show', handler)
+    return () => ipcRenderer.removeListener('main:will-show', handler)
+  },
+  // FloatingToolbar: HeroDot ダブルクリック後に Main 復元を要求
+  requestMainShowFromFloating: () => ipcRenderer.send('main:show-from-floating'),
 })

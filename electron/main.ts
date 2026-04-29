@@ -6,8 +6,19 @@ const isDev = !app.isPackaged
 // Prism Tile ウィンドウの参照
 let prismTileWin: BrowserWindow | null = null
 
+// メインウィンドウの参照（IPC ハンドラから直接アクセスするためモジュール変数）
+let mainWin: BrowserWindow | null = null
+
 // Floating System ウィンドウの参照
 let floatingWin: BrowserWindow | null = null
+
+// ── ProxyDocking System ─────────────────────────────────────────────
+// メインウィンドウが表示されている間は floatingWin を hide() し、
+// メインウィンドウ内の FloatingProxy（React）がビジュアルを担当する。
+// メインウィンドウが hide() したとき＝Implosion 完了後に、
+// ProxyTab と同座標に floatingWin を show() して「本物が現れた」ように見せる。
+let dockOffsetX = 172  // ProxyTab left: 10(pad) + 152(sidebar) + 10(gap)
+let dockOffsetY = 4    // ProxyTab top: (40-32)/2 = 4px（ドラッグバー内上下等分）
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -127,6 +138,8 @@ function createFloatingSystemWindow() {
   let lastSnapSide: 'none' | 'left' | 'right' = 'none'
   floatingWin.on('moved', () => {
     if (!floatingWin || floatingWin.isDestroyed()) return
+    // メインウィンドウが表示中（floatingWin が hide 状態）はスナップ判定スキップ
+    if (mainWin && !mainWin.isDestroyed() && mainWin.isVisible()) return
     const winBounds = floatingWin.getBounds()
     const { workAreaSize: wa } = screen.getPrimaryDisplay()
 
@@ -168,12 +181,42 @@ app.on('second-instance', () => {
 
 app.whenReady().then(() => {
   if (!gotLock) return
-  const win = createWindow()
+  mainWin = createWindow()
+  const win = mainWin
 
-  // メインウィンドウ呼び出し
+  // ── ProxyDocking: FloatingSystem は起動直後に hide() して待機 ────────
+  // メインウィンドウが visible な間は FloatingProxy（React 内）が代役を務める。
+  // main hide → floatingWin が ProxyTab 座標に show() → 本物が現れる演出。
+  const fWin = createFloatingSystemWindow()
+  const ib = win.getBounds()
+  fWin.setPosition(ib.x + dockOffsetX, ib.y + dockOffsetY)
+  fWin.hide()  // メインが表示中は常に非表示
+
+  // メインウィンドウが再び表示される（Explosion 後）→ floatingWin を隠す
+  win.on('show', () => {
+    if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
+  })
+
+  // メインウィンドウが隠れる（Implosion 完了）→ floatingWin を ProxyTab 座標に出現
+  // ※ main:hide-ready で呼ぶため、ここでは何もしない（hide-ready が制御する）
+
+  // メインウィンドウ呼び出し（トグル: 表示中→Implosion / 非表示→即表示）
   const mainShortcutOk = globalShortcut.register('CommandOrControl+Shift+P', () => {
-    if (win.isMinimized()) win.restore()
-    win.focus()
+    if (win.isVisible() && win.isFocused()) {
+      // Implosion: ProxyTab の座標（dockOffset）を爆縮点として AppLayout に送る
+      const mb = win.getBounds()
+      const cx = mb.x + dockOffsetX + 17  // ProxyTab ドット中心 X
+      const cy = mb.y + dockOffsetY + 16  // ProxyTab ドット中心 Y
+      const relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
+      const relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
+      win.webContents.send('main:trigger-hide', { relX, relY })
+    } else {
+      // Explosion: floatingWin を先に hide してから main を show（チラツキ防止）
+      if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
+      if (win.isMinimized()) win.restore()
+      win.webContents.send('main:will-show', { relX: 50, relY: 50, animate: false })
+      setTimeout(() => { win.show(); win.focus() }, 16)
+    }
   })
   if (!mainShortcutOk) {
     console.warn('Failed to register global shortcut ⌘+Shift+P')
@@ -343,4 +386,61 @@ ipcMain.on('fs:color-selected', (_, { hex }: { hex: string }) => {
 ipcMain.on('fs:save-color', (_, payload: { hex: string; alpha: number; name?: string; memo?: string; tag?: string }) => {
   const wins = BrowserWindow.getAllWindows().filter(w => w !== floatingWin && !w.isDestroyed())
   wins.forEach(w => w.webContents.send('fs:save-color', payload))
+})
+
+// ── Implosion / Explosion IPC ────────────────────────────────────────
+
+// Implosion 完了通知: AppLayout がアニメ完了後に送信
+// → メインウィンドウを隠し、同時に floatingWin を ProxyTab 座標に出現させる
+ipcMain.on('main:hide-ready', () => {
+  if (!mainWin || mainWin.isDestroyed()) return
+  const mb = mainWin.getBounds()
+  mainWin.hide()
+  // ProxyTab と全く同じ座標に floatingWin を配置して show（シームレスな入れ替わり）
+  if (floatingWin && !floatingWin.isDestroyed()) {
+    floatingWin.setPosition(mb.x + dockOffsetX, mb.y + dockOffsetY)
+    floatingWin.show()
+    floatingWin.focus()
+  }
+})
+
+// ── Docking System IPC ──────────────────────────────────────────────
+
+// AppLayout がサイドバー幅の変化を通知 → dockOffset を更新（ハンドオフ座標に使用）
+ipcMain.on('main:update-dock-offset', (_, { offsetX, offsetY }: { offsetX: number; offsetY: number }) => {
+  dockOffsetX = offsetX
+  dockOffsetY = offsetY
+})
+
+// ProxyTab のドットダブルクリック → Implosion 座標を計算して AppLayout に送信
+ipcMain.on('fs:trigger-implosion', () => {
+  if (!mainWin || mainWin.isDestroyed()) return
+  const mb = mainWin.getBounds()
+  // ProxyTab ドット中心 = dockOffset + ドット内オフセット (10px padding + 7px radius)
+  const cx = mb.x + dockOffsetX + 17
+  const cy = mb.y + dockOffsetY + 16
+  const relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
+  const relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
+  mainWin.webContents.send('main:trigger-hide', { relX, relY })
+})
+
+// Explosion トリガー: FloatingToolbar HeroDot ダブルクリック → Main を爆発展開
+// floatingWin の現在座標から relX/relY を算出して AppLayout に通知
+ipcMain.on('main:show-from-floating', () => {
+  if (!mainWin || mainWin.isDestroyed()) return
+  const fb = floatingWin?.isDestroyed() ? null : floatingWin?.getBounds()
+  const mb = mainWin.getBounds()
+  let relX = 50
+  let relY = 10
+  if (fb && mb) {
+    const cx = fb.x + 17
+    const cy = fb.y + 16
+    relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
+    relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
+  }
+  // floatingWin を先に hide してチラツキ防止（win.on('show') でも hide するが先手を打つ）
+  if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
+  // AppLayout に先に通知 → clip 初期化 → ウィンドウ表示
+  mainWin.webContents.send('main:will-show', { relX, relY, animate: true })
+  setTimeout(() => { mainWin!.show(); mainWin!.focus() }, 20)
 })

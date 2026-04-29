@@ -1,96 +1,98 @@
 // src/components/floating/FloatingTab.tsx
 //
-// ── Iris Morph 多段式（A → B）──────────────────────────────────────
-//   キーフレーム配列の「同じ値を隣り合わせ」= 各段で静止（溜め）を作る
-//   times が「フェーズ境界」を定義する
+// ── HeroDot アーキテクチャ対応版 ─────────────────────────────────────
+//   内部 LiquidDot は廃止。視覚ドットは FloatingSystemView の HeroDot が担当。
+//   この component は「背景ガラスの収束・復元」のみを担当する。
 //
-//   A→B exit フェーズ：
-//     1. 高速収束 → LiquidDot サイズで停止
-//     2. 一回り大きく → 停止（溜め）
-//     3. B アクティブカラーサイズへ膨らむ → そのまま停止（ハンドオフ待機）
-//     ★ CLOSE（circle 0%）は使わない = ドットが消える瞬間ゼロ
+// ── clip-path タイムライン ──────────────────────────────────────────
+//   A→B exit:  OPEN → P1_DOT  (150ms, EASE_QUINT) → 背景がドットに吸い込まれる
+//   B→A enter: P1_DOT → OPEN  (150ms, EASE_QUINT, delay 418ms) → ドット帰還後に復元
 //
-//   B→A enter フェーズ：
-//     Toolbar の収束後に「B ドットサイズ」から Tab を展開する（逆再生の起点）
-//
-// ── 寸法計算メモ ────────────────────────────────────────────────────
-//   FloatingTab: 80 × 32 px
-//   clip-path circle() の参照値 = √(80²+32²)/√2 ≈ 60.9 px
-//
-//   LiquidDot (size=14):    radius=7px → 7/60.9 ≈ 11.5%
-//   一回り大きい:            radius≈9px → 9/60.9 ≈ 14.8% ≈ 15%
-//   B アクティブカラー(24px): radius=12  → 12/60.9 ≈ 19.7% ≈ 20%
-// ─────────────────────────────────────────────────────────────────────
+// ── 寸法メモ ────────────────────────────────────────────────────────
+//   FloatingTab: 80 × 32px, 参照距離 ≈ 60.9px
+//   P1_DOT: 14px dot → radius 7px → 7/60.9 ≈ 11.5%
 
 import { useCallback, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import type { Easing } from 'motion-utils'
 import { useFloatingStore } from '@/store/floatingStore'
-import { LiquidDot } from './LiquidDot'
 import { SpecularBorder, ColorBleed, useSpecularReflection } from './SpecularBorder'
 import { usePrefersDark, getGlassTokens } from './useTheme'
 
 // ── clip-path 定数 ──────────────────────────────────────────────────
-const DOT_POS   = '21% 50%'                         // Tab 内 LiquidDot の中心（%）
-
-const OPEN      = `circle(150% at ${DOT_POS})`      // 全開
-const P1_DOT    = `circle(11.5% at ${DOT_POS})`     // フェーズ1: LiquidDot サイズ
-const P2_OVER   = `circle(15%   at ${DOT_POS})`     // フェーズ2: 一回り大きく（溜め前）
-const P3_BDOT   = `circle(20%   at ${DOT_POS})`     // フェーズ3: B アクティブカラーサイズ
+const DOT_POS = '21% 50%'                      // HeroDot 中心の % 位置
+const OPEN    = `circle(150% at ${DOT_POS})`   // 全開
+const P1_DOT  = `circle(11.5% at ${DOT_POS})` // 14px dot サイズ（吸い込み先）
 
 // ── タイミング定数 ──────────────────────────────────────────────────
-const EXIT_DURATION   = 0.92        // A→B exit 全体の秒数
-const TOOLBAR_H       = 420         // FloatingToolbar.tsx と同値
-const TOOLBAR_DELAY   = 0.85        // Toolbar が開花を始めるタイミング（FLIP 完了後）
-const TRIM_DELAY      = 1650        // ms: state 変更後、幅を 48 に縮める猶予
+const TOOLBAR_H      = 420
+const AB_EXIT_DUR    = 0.28   // A→B: 背景収束 280ms（ゆっくり）
+const BA_ENTER_DELAY = 1.184  // B→A: Dot移動完了(1200ms)の16ms前に展開開始
+const BA_ENTER_DUR   = 0.18   // B→A: 背景復元 180ms
+const TRIM_DELAY     = 1700   // ms: A→B アニメーション完了後のウィンドウトリム
+// B→A: FloatingTab マウントから 1700ms 後にウィンドウを 80×32 に戻す
+// ※ FloatingToolbar のアンマウント cleanup でタイマーが消えるため FloatingTab 側で担う
+const TRIM_DELAY_BA  = 1700
 
-// A→B exit キーフレーム
-//   ★ CLOSE（circle 0%）を使わない → ドットが消える瞬間ゼロ
-//   同値 2 連続 = 停止（溜め）
-const EXIT_FRAMES: string[] = [
-  OPEN,      // 0.00 → 全開からスタート
-  P1_DOT,    // 0.28 → LiquidDot へ収束
-  P1_DOT,    // 0.43 → ★停止（溜め1）
-  P2_OVER,   // 0.54 → 一回り大きく膨らむ
-  P2_OVER,   // 0.63 → ★停止（溜め2）
-  P3_BDOT,   // 0.76 → B カラーサイズへ
-  P3_BDOT,   // 1.00 → ★停止したまま Toolbar に引き継ぎ（消えない）
-]
+// ── イージング ──────────────────────────────────────────────────────
+const EASE_QUINT: Easing = [0.8, 0, 0.6, 1] as Easing  // とろっと：出だし・着地ともに極限まで緩やか
 
-const EXIT_TIMES: number[] = [0, 0.28, 0.43, 0.54, 0.63, 0.76, 1.0]
-const EXIT_EASES: Easing[] = ['easeIn', 'linear', 'easeInOut', 'linear', 'easeInOut', 'linear']
 
 export function FloatingTab() {
-  const { currentColor, setFloatingState, snapSide } = useFloatingStore()
-  const specular     = useSpecularReflection({ accentHex: currentColor.hex })
-  const trimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const {
+    currentColor, setFloatingState, snapSide,
+    setExplosionPending, setDotHovered,
+  } = useFloatingStore()
+  const specular         = useSpecularReflection({ accentHex: currentColor.hex })
+  const trimTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const delayTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const explosionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isDark = usePrefersDark()
   const glass  = getGlassTokens(isDark)
 
-  // ── エントリ閃光 ────────────────────────────────────────────────
-  useEffect(() => {
-    const t = setTimeout(() => specular.flash(), TOOLBAR_DELAY * 1000 + 100)
-    return () => clearTimeout(t)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── Cleanup ─────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
-      if (trimTimerRef.current)  clearTimeout(trimTimerRef.current)
-      if (delayTimerRef.current) clearTimeout(delayTimerRef.current)
+      if (trimTimerRef.current)      clearTimeout(trimTimerRef.current)
+      if (delayTimerRef.current)     clearTimeout(delayTimerRef.current)
+      if (explosionTimerRef.current) clearTimeout(explosionTimerRef.current)
     }
+  }, [])
+
+  // ── B→A トリム + Explosion（FloatingTab マウント時に担当）────────
+  // FloatingToolbar のアンマウント cleanup でタイマーが消えるため、
+  // マウントされた FloatingTab 側で TRIM_DELAY_BA 後に処理する。
+  useEffect(() => {
+    explosionTimerRef.current = setTimeout(() => {
+      // B→A 後のウィンドウトリム（80×32 に戻す）
+      window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
+      // Explosion フラグが立っていればメインウィンドウを復元
+      if (useFloatingStore.getState().explosionPending) {
+        setTimeout(() => {
+          window.electronAPI?.requestMainShowFromFloating?.()
+          setExplosionPending(false)
+        }, 100)
+      }
+    }, TRIM_DELAY_BA)
+    return () => {
+      if (explosionTimerRef.current) clearTimeout(explosionTimerRef.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── ドットダブルクリック: Implosion トリガー（ドック離脱） ─────────
+  // e.stopPropagation(): FloatingTab 全体の onDoubleClick（A→B）と衝突させない
+  const handleDotDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    window.electronAPI?.triggerImplosionFromDock?.()
   }, [])
 
   // ── A → B 遷移 ──────────────────────────────────────────────────
   const handleDoubleClick = useCallback(() => {
-    // 先行リサイズ（描画欠けを防ぐ）
     window.electronAPI?.requestFloatingResize({ width: 80, height: TOOLBAR_H, anchor: 'center' })
-    // 60ms 後に状態変化（ウィンドウ再描画を待つ）
     delayTimerRef.current = setTimeout(() => {
       setFloatingState('toolbar')
-      // アニメーション完了後に幅をトリム
       trimTimerRef.current = setTimeout(() => {
         const anchor = snapSide === 'right' ? 'right' : 'left'
         window.electronAPI?.requestFloatingResize({ width: 48, height: TOOLBAR_H, anchor })
@@ -100,29 +102,22 @@ export function FloatingTab() {
 
   return (
     <motion.div
-      // ── B→A 再マウント時の起点: B アクティブカラーサイズの円から展開 ──
-      // AnimatePresence initial={false} により初回マウント時はスキップ
-      initial={{ clipPath: P3_BDOT }}
+      // B→A enter: P1_DOT（ドット位置）から OPEN（全開）へ展開
+      // HeroDot 帰還(434ms) の16ms前(418ms)から開始
+      initial={{ clipPath: P1_DOT }}
       animate={{ clipPath: OPEN }}
-      // ── A→B exit: 多段停止キーフレーム ──
+      // A→B exit: OPEN → P1_DOT へ収束
       exit={{
-        clipPath: EXIT_FRAMES as unknown as string,
+        clipPath: P1_DOT,
         transition: {
-          clipPath: {
-            times: EXIT_TIMES,
-            duration: EXIT_DURATION,
-            ease: EXIT_EASES as Easing[],
-          },
+          clipPath: { duration: AB_EXIT_DUR, ease: EASE_QUINT },
         },
       }}
-      // ── B→A enter transition: Toolbar の P3 静止中に開花 ──
       transition={{
         clipPath: {
-          delay: TOOLBAR_DELAY,
-          type: 'spring',
-          stiffness: 200,
-          damping: 22,
-          mass: 0.8,
+          delay:    BA_ENTER_DELAY,
+          duration: BA_ENTER_DUR,
+          ease:     EASE_QUINT,
         },
       }}
       onDoubleClick={handleDoubleClick}
@@ -132,11 +127,6 @@ export function FloatingTab() {
         position: 'relative',
         width: 80,
         height: 32,
-        borderRadius: 20,
-        background: glass.background,
-        backdropFilter: 'blur(24px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        boxShadow: glass.boxShadow,
         display: 'flex',
         alignItems: 'center',
         paddingLeft: 10,
@@ -147,7 +137,27 @@ export function FloatingTab() {
         overflow: 'hidden',
       } as React.CSSProperties}
     >
-      {/* 内部カラーにじみ（マウスが来たときだけ縁から滲む） */}
+      {/* ── ガラス背景層 ──────────────────────────────────────────────
+          ProxyTab 方式では floatingWin は常に free 状態で表示されるため、
+          ガラスは常時 opacity:1。B→A 入場時は BA_ENTER_DELAY 後にフェードイン。 */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{
+          opacity: { delay: BA_ENTER_DELAY, duration: 0.008, ease: 'linear' },
+        }}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: 20,
+          background: glass.background,
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          boxShadow: glass.boxShadow,
+          pointerEvents: 'none',
+        } as React.CSSProperties}
+      />
+      {/* 内部カラーにじみ */}
       <ColorBleed borderRadius={20} innerGlow={specular.innerGlow} innerGlowOpacity={specular.innerGlowOpacity} />
       {/* 1.4px 鏡面反射シャモファー */}
       <SpecularBorder
@@ -155,21 +165,22 @@ export function FloatingTab() {
         background={specular.background}
         opacity={specular.opacity}
       />
+      {/* ドット位置確保（no-drag 領域）: 視覚は FloatingSystemView の HeroDot が担当 */}
+      {/* onDoubleClick: Implosion（母艦へ戻る）/ hover: HeroDot scale 1.1 */}
       <div
+        onDoubleClick={handleDotDoubleClick}
+        onMouseEnter={() => setDotHovered(true)}
+        onMouseLeave={() => setDotHovered(false)}
         style={{
           WebkitAppRegion: 'no-drag',
           position: 'relative',
           zIndex: 1,
+          width: 14,
+          height: 14,
+          borderRadius: '50%',
+          flexShrink: 0,
         } as React.CSSProperties}
-      >
-        {/* layoutId: B→A 時 FLIP を iris 収束後（0.43s）から開始 */}
-        <LiquidDot
-          hex={currentColor.hex}
-          size={14}
-          layoutId="fs-active-dot"
-          layoutTransition={{ delay: 0.43, type: 'spring', stiffness: 280, damping: 28 }}
-        />
-      </div>
+      />
     </motion.div>
   )
 }

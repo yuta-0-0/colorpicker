@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useAnimation } from 'framer-motion'
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { ListView } from '@/components/views/ListView'
 import { GalleryView } from '@/components/views/GalleryView'
@@ -31,6 +31,7 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useToastStore } from '@/store/toastStore'
 import { ToastContainer } from '@/components/ui/ToastContainer'
 import { isOutOfGamut } from '@/lib/printUtils'
+import { FloatingProxy } from '@/components/floating/FloatingProxy'
 
 // 色相カテゴリを返す（FilterBar の HUE_FILTERS ラベルと一致させる）
 // 10分類：赤/橙/黄/緑/青/紫/ピンク/白/グレー/黒
@@ -98,6 +99,16 @@ export function AppLayout() {
   const prevIsOnline = useRef(true)
   const [sidebarWidth, setSidebarWidth] = useState(152)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // ── Docking System: サイドバー幅変化を main に通知 ────────────────
+  // ドック X = 10(外pad) + sidebarWidth + 10(gap)  Y = 4(drag bar 内)
+  // 折りたたみ時は更新しない（FloatingTab をその位置でキープし信号と重なるのを防ぐ）
+  useEffect(() => {
+    if (!window.electronAPI?.updateDockOffset) return
+    if (sidebarCollapsed) return
+    const offsetX = 10 + sidebarWidth + 10
+    window.electronAPI.updateDockOffset(offsetX, 4)
+  }, [sidebarWidth, sidebarCollapsed])
   const [showAddModal, setShowAddModal] = useState(false)
   const [showShortcutHelp, setShowShortcutHelp] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
@@ -395,6 +406,43 @@ export function AppLayout() {
 
   useDynamicFavicon(selectedColor?.hex ?? null)
 
+  // ── Implosion / Explosion clip-path アニメーション ──────────────────
+  // Electron 専用: Cmd+Shift+P で Implosion、HeroDot ダブルクリックで Explosion
+  // EASE_QUINT に合わせた 0.6s の円形 clip-path で収束 / 放射展開
+  const EASE_QUINT_APP = [0.8, 0, 0.6, 1] as const
+  const clipControls = useAnimation()
+
+  useEffect(() => {
+    if (!window.electronAPI?.onMainTriggerHide) return
+    return window.electronAPI.onMainTriggerHide(({ relX, relY }) => {
+      clipControls.start({
+        clipPath: `circle(0% at ${relX}% ${relY}%)`,
+        transition: { duration: 0.6, ease: EASE_QUINT_APP },
+      }).then(() => {
+        window.electronAPI?.mainHideReady()
+      })
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clipControls])
+
+  useEffect(() => {
+    if (!window.electronAPI?.onMainWillShow) return
+    return window.electronAPI.onMainWillShow(({ relX, relY, animate }) => {
+      if (animate) {
+        // 即時: 収束状態に設定 → 展開アニメーション
+        clipControls.set({ clipPath: `circle(0% at ${relX}% ${relY}%)` })
+        clipControls.start({
+          clipPath: 'circle(150% at 50% 50%)',
+          transition: { duration: 0.6, ease: EASE_QUINT_APP },
+        })
+      } else {
+        // アニメなし: 即時全開
+        clipControls.set({ clipPath: 'circle(150% at 50% 50%)' })
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clipControls])
+
   const sectionTitle =
     activeSection === 'favorites' ? 'お気に入り' :
     activeSection === 'history' ? '最近使った色' :
@@ -407,8 +455,30 @@ export function AppLayout() {
 
   const isElectron = !!(window as Window & { electronAPI?: unknown }).electronAPI
 
+  // ── ProxyTab: FloatingProxy に渡す現在色（メインウィンドウ選択色と同期） ───
+  // floatingStore の currentColor と同期させるのが理想だが、
+  // ProxyTab は AppLayout 内なので colorStore の選択色をそのまま使う
+  const proxyHex = selectedColor?.hex ?? '#3A7BD5'
+
   return (
-    <div className="relative h-screen overflow-hidden rounded-3xl app-frame text-text-primary">
+    <motion.div
+      animate={clipControls}
+      className="relative h-screen overflow-hidden rounded-3xl text-text-primary"
+    >
+      {/* ── app-frame 背景レイヤー（z:-1）──────────────────────────────── */}
+      <div
+        className="app-frame absolute inset-0 pointer-events-none"
+        style={{ zIndex: -1 }}
+      />
+      {/* ── FloatingProxy: メインウィンドウ表示中に FloatingTab の代役を担う ──
+          本物の FloatingWindow は hide() 状態。Implosion が発火した瞬間に
+          ProxyTab 座標へ floatingWin を show() して完璧な入れ替わりを実現。 */}
+      {isElectron && (
+        <FloatingProxy
+          left={sidebarWidth + 20}
+          hex={proxyHex}
+        />
+      )}
       {/* ── 全幅ドラッグバー：absolute で最前面に配置（Electron のみ） ── */}
       {isElectron && (
         <div
@@ -590,7 +660,7 @@ export function AppLayout() {
       <ShortcutHelpModal open={showShortcutHelp} onClose={() => setShowShortcutHelp(false)} />
       <ToastContainer />
       <LiquidDock />
-    </div>
+    </motion.div>
   )
 }
 

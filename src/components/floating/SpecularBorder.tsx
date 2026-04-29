@@ -128,15 +128,17 @@ export function useSpecularReflection(
   }, [opacity, innerGlowOpacity])
 
   const flash = useCallback(() => {
-    background.set(makeSpecular(50, 0, accentRef.current))
-    animate(opacity, 1.0, {
-      duration: 0.04,
-      onComplete: () => {
-        if (!isHovering.current) {
-          animate(opacity, BASE_OPACITY, { duration: 0.65, ease: 'easeOut' })
-        }
-      },
-    })
+    // 純白グラデーションに即切り替えて 40ms キープ → 通常スペキュラーに戻す
+    background.set(
+      'radial-gradient(circle at 50% 0%, rgba(255,255,255,1.0) 0%, rgba(255,255,255,0.95) 40%, rgba(255,255,255,0.6) 70%, transparent 100%)'
+    )
+    animate(opacity, 1.0, { duration: 0.001 })
+    setTimeout(() => {
+      background.set(makeSpecular(50, 0, accentRef.current))
+      if (!isHovering.current) {
+        animate(opacity, BASE_OPACITY, { duration: 0.65, ease: 'easeOut' })
+      }
+    }, 40)
   }, [background, opacity])
 
   return { background, opacity, innerGlow, innerGlowOpacity, handleMouseMove, handleMouseLeave, flash }

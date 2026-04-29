@@ -16,6 +16,10 @@ interface FloatingStore {
   miniSlots: (string | null)[]  // 最大4スロット
   /** スポイト後に自動保存するかどうかのフラグ（長押し判定で true に） */
   pendingSaveAfterPick: boolean
+  /** HeroDot ダブルクリック後、FloatingTab マウント時に Explosion を発火するフラグ */
+  explosionPending: boolean
+  /** FloatingTab ドット上にマウスが乗っている（HeroDot scale 1.1 用） */
+  isDotHovered: boolean
   // アクション
   setFloatingState: (state: FloatingState) => void
   setSnapSide: (side: SnapSide) => void
@@ -31,6 +35,8 @@ interface FloatingStore {
   setCurrentColorFromPicker: (hex: string) => void
   /** スポイト長押し後の自動保存フラグをセット */
   setPendingSaveAfterPick: (v: boolean) => void
+  setExplosionPending: (v: boolean) => void
+  setDotHovered: (v: boolean) => void
 }
 
 export const useFloatingStore = create<FloatingStore>((set) => ({
@@ -43,6 +49,8 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
   activeFolderIndex: 0,
   miniSlots: [null, null, null, null],
   pendingSaveAfterPick: false,
+  explosionPending: false,
+  isDotHovered: false,
 
   setFloatingState: (floatingState) => set({ floatingState }),
 
@@ -100,4 +108,6 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
     })),
 
   setPendingSaveAfterPick: (pendingSaveAfterPick) => set({ pendingSaveAfterPick }),
+  setExplosionPending: (explosionPending) => set({ explosionPending }),
+  setDotHovered: (isDotHovered) => set({ isDotHovered }),
 }))
