@@ -20,6 +20,10 @@ let floatingWin: BrowserWindow | null = null
 let dockOffsetX = 172  // ProxyTab left: 10(pad) + 152(sidebar) + 10(gap)
 let dockOffsetY = 7    // ProxyTab top: 光学中心 = (46-32)/2 = 7px（Bento境界まで上下均等）
 
+// Explosion アニメーション中は win.on('show') での floatingWin.hide() をスキップ
+// → Tab A が Explosion の「窓」として main の展開を見届ける
+let explosionAnimating = false
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
@@ -192,9 +196,11 @@ app.whenReady().then(() => {
   fWin.setPosition(ib.x + dockOffsetX, ib.y + dockOffsetY)
   fWin.hide()  // メインが表示中は常に非表示
 
-  // メインウィンドウが再び表示される（Explosion 後）→ floatingWin を隠す
+  // メインウィンドウが再び表示される → floatingWin を隠す
+  // ただし Explosion アニメーション中（explosionAnimating=true）は即時 hide しない。
+  // floatingWin（Tab A）が Explosion の前景として残り、完了後に ProxyTab へ引き継ぐ。
   win.on('show', () => {
-    if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
+    if (!explosionAnimating && floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
   })
 
   // メインウィンドウが隠れる（Implosion 完了）→ floatingWin を ProxyTab 座標に出現
@@ -442,22 +448,43 @@ ipcMain.on('proxy:open-toolbar', () => {
 })
 
 // Explosion トリガー: FloatingToolbar HeroDot ダブルクリック → Main を爆発展開
-// floatingWin の現在座標から relX/relY を算出して AppLayout に通知
+//
+// ── 新フロー（Tab A が Explosion の「窓」になる）─────────────────────
+//   1. floatingWin（Tab A）を消さない → alwaysOnTop で前景に残る
+//   2. main:will-show → AppLayout が clip-path を 0% にセット
+//   3. mainWin.show() → win.on('show') は explosionAnimating=true でスキップ
+//   4. Explosion アニメーション中（0.6s）は floatingWin（Tab A）が前景で静止
+//   5. 完了後（+700ms）: floatingWin を ProxyTab 座標に瞬間移動 → hide
+//      ProxyTab が同座標を引き継ぐ（シームレスなハンドオフ）
 ipcMain.on('main:show-from-floating', () => {
   if (!mainWin || mainWin.isDestroyed()) return
   const fb = floatingWin?.isDestroyed() ? null : floatingWin?.getBounds()
   const mb = mainWin.getBounds()
   let relX = 50
   let relY = 10
-  if (fb && mb) {
+  if (fb) {
+    // Tab ドット中心（paddingLeft=10, dotR=7 → cx=17 / dotCenter Y=16）の
+    // mainWin 内相対位置 → Explosion の起点
     const cx = fb.x + 17
     const cy = fb.y + 16
     relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
     relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
   }
-  // floatingWin を先に hide してチラツキ防止（win.on('show') でも hide するが先手を打つ）
-  if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
-  // AppLayout に先に通知 → clip 初期化 → ウィンドウ表示
+  // Explosion アニメーション開始: floatingWin は消さない
+  explosionAnimating = true
   mainWin.webContents.send('main:will-show', { relX, relY, animate: true })
-  setTimeout(() => { mainWin!.show(); mainWin!.focus() }, 20)
+  setTimeout(() => {
+    mainWin!.show()
+    mainWin!.focus()
+    // Explosion アニメーション（0.6s）完了後 → floatingWin を ProxyTab 座標へ瞬間移動して hide
+    // setPosition + hide を同一 tick 実行 = ユーザーには位置変化が見えない
+    setTimeout(() => {
+      explosionAnimating = false
+      if (floatingWin && !floatingWin.isDestroyed()) {
+        const newMB = mainWin!.getBounds()
+        floatingWin.setPosition(newMB.x + dockOffsetX, newMB.y + dockOffsetY)
+        floatingWin.hide()
+      }
+    }, 700)  // 20ms(show delay) + 600ms(animation) + 80ms(margin)
+  }, 20)
 })
