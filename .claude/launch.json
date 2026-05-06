@@ -13,5 +13,15 @@
       "runtimeArgs": ["run", "dev"],
       "port": 5173
     }
+  ,
+    {
+      "name": "Vite (Production Mode)",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["node_modules/.bin/vite", "--port", "5174"],
+      "env": {
+        "VITE_DEV_BYPASS_AUTH": "false"
+      },
+      "port": 5174
+    }
   ]
 }

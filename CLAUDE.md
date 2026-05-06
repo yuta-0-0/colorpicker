@@ -74,6 +74,126 @@ UI要素（ラベル・ボタン・セクション等）を削除・非表示に
 
 ---
 
+## Blooming Sequence 絶対基準（変更禁止・要許可）
+
+> **⚠️ この章の数値は120点の完成品として確定している。1ms・1%・0.001の微調整も必ずユーザーの許可を得てから行うこと。**
+
+### アーキテクチャ概要
+- **HeroDot**: `FloatingSystemView` に常時レンダリングされる `position:absolute` の `motion.div`（zIndex:100）。Tab/Toolbar の内部ドットは廃止。
+- **ウィンドウ座標系**: 80×420px（プレリサイズ済み）内で全座標を管理。
+- **AnimatePresence mode="popLayout"**: Tab exit と Toolbar mount が同時進行し、HeroDotが物理移動できる。
+
+### HeroDot 座標（px・変更禁止）
+
+| State | left | top | size | center |
+|---|---|---|---|---|
+| Tab（State A） | 10 | 9 | 14 | (17, 16) |
+| Toolbar（State B） | 12 | 46 | 24 | (24, 58) |
+
+### イージング定数（bezier・変更禁止）
+
+```ts
+EASE_QUINT:   [0.8, 0, 0.6, 1]    // とろっと：背景収束・ボタン・HeroDotサイズ変化
+EASE_IN_OUT:  [0.87, 0, 0.13, 1]  // HeroDot移動専用：ゆったり出発、溶けるように着地
+```
+
+### A→B タイムライン（ms 単位・変更禁止）
+
+```
+[0-280ms]   Tab背景収束          AB_EXIT_DUR = 0.28s  ease: EASE_QUINT
+[280-480ms] HeroDot拡大          DOT_RESIZE = 0.200s  delay: AB_RESIZE_DELAY(0.280)
+[480-630ms] Hold ★               AB_PAUSE = 0.150s
+[630-930ms] HeroDot移動          DOT_TRAVEL = 0.300s  delay: AB_TRAVEL_DELAY(0.630)
+            └ 溜め: top -4px を times[0.08]で挿入（直線軌道維持）
+[914ms〜]   Toolbar背景展開      AB_ENTER_DELAY = 0.914s  AB_ENTER_DUR = 0.36s
+[914ms〜]   ボタンスタッガー溢出（20ms 刻み、ENTER_DUR = 0.30s）
+```
+
+**ボタンスタッガー起点**（AB_ENTER_DELAY からのオフセット秒）:
+
+| 要素 | offset |
+|---|---|
+| 縮小ボタン | +0.00 |
+| Divider 1 | +0.02 |
+| スポイト | +0.04 |
+| コピー | +0.06 |
+| Divider 2 | +0.08 |
+| Slot 0〜3 | +0.10〜+0.16（i×0.02） |
+| ＋ボタン | +0.18 |
+| Dockボタン | +0.20 |
+| Dark/Light | +0.22 |
+
+### B→A タイムライン（ms 単位・変更禁止）
+
+```
+[0ms]       ボタン吸い込み開始   BA_BUTTON_EXIT_DUR = 0.22s
+            └ exit: y:-20, scale:0.7, opacity:0  ease: EASE_QUINT
+[0ms〜]     Toolbar背景収束      BA_BG_EXIT_DELAY = 0.00s（ボタンと同時）
+            └ BA_EXIT_DUR = 0.55s  ease: EASE_QUINT
+[550-750ms] HeroDot縮小          DOT_RESIZE = 0.200s  delay: BA_RESIZE_DELAY(0.550)
+[750-900ms] Hold ★               BA_PAUSE = 0.150s
+[900-1200ms] HeroDot移動         DOT_TRAVEL = 0.300s  delay: BA_TRAVEL_DELAY(0.900)
+             └ 溜め: top +4px を times[0.08]で挿入（直線軌道維持）
+[1184ms〜]  Tab背景復元          BA_ENTER_DELAY = 1.184s  BA_ENTER_DUR = 0.18s
+```
+
+### clip-path 定数（変更禁止）
+
+**FloatingTab（80×420px空間、参照距離 ≈ 60.9px）:**
+```ts
+DOT_POS  = '21% 50%'
+OPEN     = 'circle(150% at 21% 50%)'   // 全開
+P1_DOT   = 'circle(11.5% at 21% 50%)' // 14px dot（7px radius / 60.9px ≈ 11.5%）
+```
+
+**FloatingToolbar（48×420px空間、参照距離 ≈ 298.9px）:**
+```ts
+TB_DOT_POS    = '50% 14%'
+TB_OPEN       = 'circle(150% at 50% 14%)'  // 全開
+TB_DOT_ORIGIN = 'circle(4% at 50% 14%)'   // 12px radius（HeroDot到着位置）
+```
+
+### HeroDot transition 詳細
+
+```ts
+// left/top: 完全同一の ease+times で x/y を1ms単位で同期（曲線軌道防止）
+left/top: { delay: delayTravel, duration: 0.300, ease: EASE_IN_OUT, times: [0, 0.08, 1.0] }
+width/height: { delay: delayResize, duration: 0.200, ease: EASE_QUINT }
+
+// A→B
+delayResize = AB_RESIZE_DELAY = 0.280
+delayTravel = AB_TRAVEL_DELAY = 0.630
+
+// B→A
+delayResize = BA_RESIZE_DELAY = 0.550
+delayTravel = BA_TRAVEL_DELAY = 0.900
+```
+
+### TRIM_DELAY（ウィンドウリサイズタイマー・変更禁止）
+
+```ts
+TRIM_DELAY    = 1700  // ms: A→B（FloatingTab内）
+TRIM_DELAY_BA = 1700  // ms: B→A（FloatingToolbar内）
+```
+
+### ガラス背景トークン（Floating System）
+
+**ダークモード:**
+```
+background: linear-gradient(180deg, rgba(35,47,68,0.78) 0%, rgba(12,18,34,0.75) 100%)
+boxShadow:  inset 0 1px 0 rgba(255,255,255,0.22), inset 0 0 14px rgba(255,255,255,0.04)
+backdropFilter: blur(24px) saturate(180%)
+```
+
+**ライトモード:**
+```
+background: linear-gradient(180deg, rgba(255,255,255,0.63) 0%, rgba(224,232,255,0.57) 100%)
+boxShadow:  inset 0 1.5px 0 rgba(255,255,255,1.0), inset 0 -0.5px 0 rgba(180,205,240,0.32), inset 0 0 20px rgba(255,255,255,0.30)
+backdropFilter: blur(24px) saturate(180%)
+```
+
+---
+
 ## プロジェクト概要
 
 グラフィックデザイナー・DTPデザイナー向けのカラー管理アプリ。

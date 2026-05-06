@@ -105,6 +105,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('fs:auto-open-toolbar', handler)
   },
 
+  // FloatingSystemView: main:implosion-start からの State A 強制リセット合図
+  onFloatingResetToTab: (cb: () => void) => {
+    const handler = () => cb()
+    ipcRenderer.on('fs:reset-to-tab', handler)
+    return () => ipcRenderer.removeListener('fs:reset-to-tab', handler)
+  },
+
   // ── Implosion / Explosion ─────────────────────────────────
   // AppLayout: main:trigger-hide を受信してアニメ開始
   onMainTriggerHide: (cb: (coords: { relX: number; relY: number }) => void) => {
@@ -113,6 +120,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('main:trigger-hide', handler)
     return () => ipcRenderer.removeListener('main:trigger-hide', handler)
   },
+  // AppLayout: Implosion アニメ開始直後に呼ぶ → floatingWin を先行配置（show なし）+ トラフィックライト非表示
+  mainImplosionStart: () => ipcRenderer.send('main:implosion-start'),
+  // AppLayout: Explosion アニメ完了後に呼ぶ → トラフィックライト復元
+  mainTrafficLightsShow: () => ipcRenderer.send('main:traffic-lights-show'),
   // AppLayout: Implosion アニメ完了後に呼ぶ → main.ts が hide()
   mainHideReady: () => ipcRenderer.send('main:hide-ready'),
 
@@ -123,6 +134,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('main:will-show', handler)
     return () => ipcRenderer.removeListener('main:will-show', handler)
   },
-  // FloatingToolbar: HeroDot ダブルクリック後に Main 復元を要求
+  // AppLayout: Explosion Phase 1 開始直前に main に通知 → setOpacity(1) のタイミング同期
+  notifyExplosionStart: () => ipcRenderer.send('main:explosion-start'),
+
+  // FloatingTab: HeroDot ダブルクリック後に Main 復元を要求（B→A→Main フロー）
   requestMainShowFromFloating: () => ipcRenderer.send('main:show-from-floating'),
+
+  // FloatingToolbar: B→Main 直結（ガラスカプセル出現前に Main を起動）
+  requestMainShowFromBDirect: () => ipcRenderer.send('main:show-from-b-direct'),
 })

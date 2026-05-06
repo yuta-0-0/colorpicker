@@ -13,7 +13,7 @@
 //   P1_DOT: 14px dot → radius 7px → 7/60.9 ≈ 11.5%
 
 import { useCallback, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
+import { motion, type AnimationDefinition } from 'framer-motion'
 import type { Easing } from 'motion-utils'
 import { useFloatingStore } from '@/store/floatingStore'
 import { SpecularBorder, ColorBleed, useSpecularReflection } from './SpecularBorder'
@@ -29,10 +29,8 @@ const TOOLBAR_H      = 420
 const AB_EXIT_DUR    = 0.28   // A→B: 背景収束 280ms（ゆっくり）
 const BA_ENTER_DELAY = 1.184  // B→A: Dot移動完了(1200ms)の16ms前に展開開始
 const BA_ENTER_DUR   = 0.18   // B→A: 背景復元 180ms
-const TRIM_DELAY     = 1700   // ms: A→B アニメーション完了後のウィンドウトリム
-// B→A: FloatingTab マウントから 1700ms 後にウィンドウを 80×32 に戻す
-// ※ FloatingToolbar のアンマウント cleanup でタイマーが消えるため FloatingTab 側で担う
-const TRIM_DELAY_BA  = 1700
+const TRIM_DELAY     = 1700   // ms: A→B アニメーション完了後のウィンドウトリム（A→B のみ使用）
+// B→A のトリム・Explosion トリガーは TRIM_DELAY_BA タイマー廃止→ onAnimationComplete に統合
 
 // ── イージング ──────────────────────────────────────────────────────
 const EASE_QUINT: Easing = [0.8, 0, 0.6, 1] as Easing  // とろっと：出だし・着地ともに極限まで緩やか
@@ -43,10 +41,9 @@ export function FloatingTab() {
     currentColor, setFloatingState, snapSide,
     setExplosionPending, setDotHovered,
   } = useFloatingStore()
-  const specular         = useSpecularReflection({ accentHex: currentColor.hex })
-  const trimTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const delayTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const explosionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const specular      = useSpecularReflection({ accentHex: currentColor.hex })
+  const trimTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isDark = usePrefersDark()
   const glass  = getGlassTokens(isDark)
@@ -54,32 +51,27 @@ export function FloatingTab() {
   // ── Cleanup ─────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
-      if (trimTimerRef.current)      clearTimeout(trimTimerRef.current)
-      if (delayTimerRef.current)     clearTimeout(delayTimerRef.current)
-      if (explosionTimerRef.current) clearTimeout(explosionTimerRef.current)
+      if (trimTimerRef.current)  clearTimeout(trimTimerRef.current)
+      if (delayTimerRef.current) clearTimeout(delayTimerRef.current)
     }
   }, [])
 
-  // ── B→A トリム + Explosion（FloatingTab マウント時に担当）────────
-  // FloatingToolbar のアンマウント cleanup でタイマーが消えるため、
-  // マウントされた FloatingTab 側で TRIM_DELAY_BA 後に処理する。
-  useEffect(() => {
-    explosionTimerRef.current = setTimeout(() => {
-      // B→A 後のウィンドウトリム（80×32 に戻す）
-      window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
-      // Explosion フラグが立っていればメインウィンドウを復元
-      if (useFloatingStore.getState().explosionPending) {
-        setTimeout(() => {
-          window.electronAPI?.requestMainShowFromFloating?.()
-          setExplosionPending(false)
-        }, 100)
-      }
-    }, TRIM_DELAY_BA)
-    return () => {
-      if (explosionTimerRef.current) clearTimeout(explosionTimerRef.current)
+  // ── B→A 完了ハンドラー（onAnimationComplete → イベント駆動型ハンドオフ）───
+  // TRIM_DELAY_BA タイマーを廃止し、Framer Motion の完了イベントを唯一のトリガーとする。
+  // animate={{ clipPath: OPEN }} が完了した瞬間にのみ発火。
+  // exit={{ clipPath: P1_DOT }} 完了時は定義オブジェクトが異なるため自動的にスキップ。
+  const handleBaComplete = useCallback((def: AnimationDefinition) => {
+    // exit アニメーション（clipPath: P1_DOT）と区別するため animate 側（OPEN）のみ対応
+    if (typeof def !== 'object' || def === null) return
+    if (!('clipPath' in def) || (def as { clipPath: string }).clipPath !== OPEN) return
+    // 80×420 → 80×32 にトリム（B→A 後のウィンドウ縮小）
+    window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
+    // explosionPending が立っていれば Main を復元（B→A→Main フロー）
+    if (useFloatingStore.getState().explosionPending) {
+      window.electronAPI?.requestMainShowFromFloating?.()
+      setExplosionPending(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [setExplosionPending])
 
   // ── A → B 遷移 ──────────────────────────────────────────────────
   // ドットのダブルクリックも outer の onDoubleClick（A→B）にバブルさせる。
@@ -116,6 +108,7 @@ export function FloatingTab() {
           ease:     EASE_QUINT,
         },
       }}
+      onAnimationComplete={handleBaComplete}
       onDoubleClick={handleDoubleClick}
       onMouseMove={specular.handleMouseMove}
       onMouseLeave={specular.handleMouseLeave}

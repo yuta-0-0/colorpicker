@@ -55,14 +55,31 @@ export function FloatingSystemView() {
     setCurrentColorFromPicker,
     pendingSaveAfterPick,
     setPendingSaveAfterPick,
+    isBToMainPending,
+    setBToMainPending,
   } = useFloatingStore()
 
   const saveAfterPickRef    = useRef(pendingSaveAfterPick)
   // auto-open-toolbar タイマー（proxy:open-toolbar → A→B Blooming）
   const autoToolbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // B→Main 直結タイマー（FloatingToolbar アンマウント後も継続させるため FloatingSystemView が保持）
+  const bToMainTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     saveAfterPickRef.current = pendingSaveAfterPick
   }, [pendingSaveAfterPick])
+
+  // IPC: B→Main 直結タイマー（FloatingToolbar の cleanup に消されないようここで管理）
+  useEffect(() => {
+    if (!isBToMainPending) return
+    setBToMainPending(false)  // フラグ即クリア（二重起動防止）
+    if (bToMainTimerRef.current) clearTimeout(bToMainTimerRef.current)
+    // BA_ENTER_DELAY=1184ms の直前に Main を起動（ガラスカプセル出現前）
+    bToMainTimerRef.current = setTimeout(() => {
+      bToMainTimerRef.current = null
+      window.electronAPI?.requestMainShowFromBDirect?.()
+    }, 1100)
+  // setBToMainPending は安定した関数参照なので deps に含めても問題なし
+  }, [isBToMainPending, setBToMainPending])
 
   // IPC: snap 位置変化
   useEffect(() => {
@@ -96,6 +113,19 @@ export function FloatingSystemView() {
     return unsub
   }, [setCurrentColorFromPicker, setPendingSaveAfterPick])
 
+  // IPC: main:implosion-start → State A(Tab) 強制リセット
+  // Implosion アニメーション中に floatingWin を State A(Tab/80×32) へ戻す。
+  // show() 時点で State B(Toolbar)のままにならないための事前リセット。
+  useEffect(() => {
+    if (!window.electronAPI?.onFloatingResetToTab) return undefined
+    const unsub = window.electronAPI.onFloatingResetToTab(() => {
+      setFloatingState('tab')
+      // main:implosion-start 側で setBounds(80×32) 済みだが念のため React 側からも要求
+      window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
+    })
+    return unsub
+  }, [setFloatingState])
+
   // IPC: ProxyTab outer double-click → A→B Blooming 自動起動
   // main.ts から floatingWin に fs:auto-open-toolbar が届いたら
   // FloatingTab の handleDoubleClick と完全に同一のシーケンスを実行する。
@@ -108,8 +138,9 @@ export function FloatingSystemView() {
   useEffect(() => {
     if (!window.electronAPI?.onFloatingAutoOpenToolbar) return undefined
     const unsub = window.electronAPI.onFloatingAutoOpenToolbar(() => {
-      // Step 1: 高さを Toolbar サイズに拡張（先に window を広げる）
-      window.electronAPI?.requestFloatingResize({ width: 80, height: 420, anchor: 'center' })
+      // Step 1: 高さを画面高に拡張しトップへ吸着（先に window を広げる）
+      const screenH = window.screen.availHeight
+      window.electronAPI?.requestFloatingResize({ width: 80, height: screenH, anchor: 'top' })
       // Step 2: 60ms 後に state 変更 → HeroDot + clip-path アニメーション開始
       autoToolbarTimerRef.current = setTimeout(() => {
         setFloatingState('toolbar')
@@ -117,7 +148,7 @@ export function FloatingSystemView() {
         autoToolbarTimerRef.current = setTimeout(() => {
           const { snapSide } = useFloatingStore.getState()
           const anchor = snapSide === 'right' ? 'right' : 'left'
-          window.electronAPI?.requestFloatingResize({ width: 48, height: 420, anchor })
+          window.electronAPI?.requestFloatingResize({ width: 48, height: screenH, anchor })
         }, 1700)
       }, 60)
     })
@@ -147,6 +178,7 @@ export function FloatingSystemView() {
           ・floatingState 変化後 delay 秒で物理的に移動・サイズ変化
           ・pointerEvents none = 下要素の drag・click を透過          */}
       <motion.div
+        layoutId="hero-dot"
         initial={false}
         animate={{
           // left: top と完全同一の times/ease で補間 → レーザー直線軌道

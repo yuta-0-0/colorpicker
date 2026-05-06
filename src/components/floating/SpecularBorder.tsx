@@ -152,12 +152,17 @@ export function useSpecularReflection(
 
 // ── SpecularBorder ────────────────────────────────────────────────────
 interface SpecularBorderProps {
-  borderRadius: number
+  borderRadius: number | string
   background: MotionValue<string>
   opacity: MotionValue<number>
+  /** 指定すると、その辺だけ 1.4px の鏡面枠を表示する（吸着スラブ用） */
+  side?: 'left' | 'right'
 }
 
-export function SpecularBorder({ borderRadius, background, opacity }: SpecularBorderProps) {
+export function SpecularBorder({ borderRadius, background, opacity, side }: SpecularBorderProps) {
+  const padding = side === 'left'  ? '0 0 0 1.4px'
+                : side === 'right' ? '0 1.4px 0 0'
+                : '1.4px'
   return (
     <motion.div
       aria-hidden="true"
@@ -165,7 +170,7 @@ export function SpecularBorder({ borderRadius, background, opacity }: SpecularBo
         position: 'absolute',
         inset: 0,
         borderRadius,
-        padding: 1.4,
+        padding,
         WebkitMask:
           'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
         WebkitMaskComposite: 'xor' as React.CSSProperties['WebkitMaskComposite'],
@@ -181,7 +186,7 @@ export function SpecularBorder({ borderRadius, background, opacity }: SpecularBo
 
 // ── ColorBleed ────────────────────────────────────────────────────────
 interface ColorBleedProps {
-  borderRadius: number
+  borderRadius: number | string
   innerGlow: MotionValue<string>
   innerGlowOpacity: MotionValue<number>
 }

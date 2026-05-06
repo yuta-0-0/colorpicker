@@ -37,6 +37,9 @@ interface FloatingStore {
   setPendingSaveAfterPick: (v: boolean) => void
   setExplosionPending: (v: boolean) => void
   setDotHovered: (v: boolean) => void
+  /** B→Main 直結: FloatingToolbar アンマウント後も FloatingSystemView でタイマー継続 */
+  isBToMainPending: boolean
+  setBToMainPending: (v: boolean) => void
 }
 
 export const useFloatingStore = create<FloatingStore>((set) => ({
@@ -51,6 +54,7 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
   pendingSaveAfterPick: false,
   explosionPending: false,
   isDotHovered: false,
+  isBToMainPending: false,
 
   setFloatingState: (floatingState) => set({ floatingState }),
 
@@ -110,4 +114,5 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
   setPendingSaveAfterPick: (pendingSaveAfterPick) => set({ pendingSaveAfterPick }),
   setExplosionPending: (explosionPending) => set({ explosionPending }),
   setDotHovered: (isDotHovered) => set({ isDotHovered }),
+  setBToMainPending: (isBToMainPending) => set({ isBToMainPending }),
 }))

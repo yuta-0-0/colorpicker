@@ -217,11 +217,18 @@ app.whenReady().then(() => {
       const cy = mb.y + dockOffsetY + 16  // ProxyTab ドット中心 Y
       const relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
       const relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
+      // 二相最適化: アニメーション開始と同時に floatingWin を先行配置
+      // main:hide-ready は hide + show のみ（座標計算なし）
+      if (floatingWin && !floatingWin.isDestroyed()) {
+        floatingWin.setPosition(mb.x + dockOffsetX, mb.y + dockOffsetY)
+      }
       win.webContents.send('main:trigger-hide', { relX, relY })
     } else {
       // Explosion: floatingWin を先に hide してから main を show（チラツキ防止）
       if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
       if (win.isMinimized()) win.restore()
+      // アニメなし: トラフィックライトを show 前に即時復元
+      if (process.platform === 'darwin') win.setWindowButtonVisibility(true)
       win.webContents.send('main:will-show', { relX: 50, relY: 50, animate: false })
       setTimeout(() => { win.show(); win.focus() }, 16)
     }
@@ -353,10 +360,19 @@ ipcMain.handle('fs:close', () => {
 })
 
 // Floating System: ウィンドウリサイズ要求（React → main）
-ipcMain.handle('fs:request-resize', (_, { width, height, anchor = 'left' }: { width: number; height: number; anchor?: 'center' | 'left' | 'right' }) => {
+ipcMain.handle('fs:request-resize', (_, { width, height, anchor = 'left' }: { width: number; height: number; anchor?: 'center' | 'left' | 'right' | 'top' }) => {
   if (!floatingWin || floatingWin.isDestroyed()) return
-  const { workAreaSize: wa } = screen.getPrimaryDisplay()
+  const display = screen.getPrimaryDisplay()
+  const { workAreaSize: wa } = display
+  const workArea = display.workArea
   const bounds = floatingWin.getBounds()
+
+  if (anchor === 'top') {
+    // 画面トップに吸着: 現在の x を維持して y=workArea.top に固定
+    const newX = Math.max(workArea.x, Math.min(bounds.x, workArea.x + wa.width - width))
+    floatingWin.setBounds({ x: newX, y: workArea.y, width, height })
+    return
+  }
 
   let newX: number
   if (anchor === 'center') {
@@ -398,15 +414,47 @@ ipcMain.on('fs:save-color', (_, payload: { hex: string; alpha: number; name?: st
 
 // ── Implosion / Explosion IPC ────────────────────────────────────────
 
-// Implosion 完了通知: AppLayout がアニメ完了後に送信
-// → メインウィンドウを隠し、同時に floatingWin を ProxyTab 座標に出現させる
-// pendingAutoToolbar が立っている場合は fs:auto-open-toolbar も送信（ProxyTab → Toolbar 直行）
+// Implosion 開始通知: AppLayout が startImplosion() 冒頭で即送信
+// → floatingWin を ProxyTab 座標 (State A Tab サイズ 80×32) に先行配置・リセット
+// → main:hide-ready は hide + show だけに専念（位置計算なし）
+ipcMain.on('main:implosion-start', () => {
+  if (!mainWin || mainWin.isDestroyed()) return
+  if (!floatingWin || floatingWin.isDestroyed()) return
+  const mb = mainWin.getBounds()
+  // ProxyTab 座標に配置 + State A のサイズ(80×32)に強制リセット
+  // 前回 State B(Toolbar)のままだと show() 時に縦長で出てしまうのを防ぐ
+  floatingWin.setBounds({
+    x: mb.x + dockOffsetX,
+    y: mb.y + dockOffsetY,
+    width: 80,
+    height: 32,
+  })
+  // React 状態も State A(Tab)にリセット
+  floatingWin.webContents.send('fs:reset-to-tab')
+  // clip-path 収束アニメーションと同時にトラフィックライトを非表示
+  if (process.platform === 'darwin') mainWin.setWindowButtonVisibility(false)
+})
+
+// B→Main: renderer の RAF×2 完了 → Phase 1 start() 直前に送信される
+// setOpacity(0) で show した mainWin を、コンポジターが新フレームをコミット済みのタイミングで出現させる
+ipcMain.on('main:explosion-start', () => {
+  if (!mainWin || mainWin.isDestroyed()) return
+  mainWin.setOpacity(1)
+})
+
+// Explosion 完了通知: onAnimationComplete → mainTrafficLightsShow() で送信
+// clip-path が circle(150%) に達したタイミング = トラフィックライトが視覚的に現れるべき瞬間
+ipcMain.on('main:traffic-lights-show', () => {
+  if (!mainWin || mainWin.isDestroyed()) return
+  if (process.platform === 'darwin') mainWin.setWindowButtonVisibility(true)
+})
+
+// Implosion 完了通知: onAnimationComplete → mainHideReady() で送信
+// floatingWin は main:implosion-start で既に位置決め済みなので hide + show のみ
 ipcMain.on('main:hide-ready', () => {
   if (!mainWin || mainWin.isDestroyed()) return
-  const mb = mainWin.getBounds()
   mainWin.hide()
   if (floatingWin && !floatingWin.isDestroyed()) {
-    floatingWin.setPosition(mb.x + dockOffsetX, mb.y + dockOffsetY)
     floatingWin.show()
     floatingWin.focus()
     if (pendingAutoToolbar) {
@@ -424,16 +472,11 @@ ipcMain.on('main:update-dock-offset', (_, { offsetX, offsetY }: { offsetX: numbe
   dockOffsetY = offsetY
 })
 
-// ProxyTab のドットダブルクリック → Implosion 座標を計算して AppLayout に送信
+// ProxyTab のドットダブルクリック → Implosion
+// アニメーションはレンダラー側が relX/relY を即計算して先行開始済み。
+// main.ts は main:hide-ready を待ってウィンドウ切り替えだけ担当する。
 ipcMain.on('fs:trigger-implosion', () => {
-  if (!mainWin || mainWin.isDestroyed()) return
-  const mb = mainWin.getBounds()
-  // ProxyTab ドット中心 = dockOffset + ドット内オフセット (10px padding + 7px radius)
-  const cx = mb.x + dockOffsetX + 17
-  const cy = mb.y + dockOffsetY + 16
-  const relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
-  const relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
-  mainWin.webContents.send('main:trigger-hide', { relX, relY })
+  // no-op: ウィンドウ管理は main:hide-ready ハンドラーで行う
 })
 
 // ── ProxyTab outer double-click → Implosion → A→B Blooming ─────────────
@@ -448,17 +491,11 @@ ipcMain.on('fs:trigger-implosion', () => {
 //   4. FloatingSystemView: resize → wait 60ms → setFloatingState('toolbar') → Blooming
 ipcMain.on('proxy:open-toolbar', () => {
   if (!mainWin || mainWin.isDestroyed()) return
-  const mb = mainWin.getBounds()
+  // アニメーションはレンダラー側が先行開始済み。フラグだけ立てて main:hide-ready を待つ。
   pendingAutoToolbar = true
-  // Implosion と同じ爆縮点（ProxyTab ドット中心）
-  const cx = mb.x + dockOffsetX + 17
-  const cy = mb.y + dockOffsetY + 16
-  const relX = Math.max(0, Math.min(100, ((cx - mb.x) / mb.width)  * 100))
-  const relY = Math.max(0, Math.min(100, ((cy - mb.y) / mb.height) * 100))
-  mainWin.webContents.send('main:trigger-hide', { relX, relY })
 })
 
-// Explosion トリガー: FloatingToolbar HeroDot ダブルクリック → Main を爆発展開
+// Explosion トリガー: FloatingTab(State A) HeroDot ダブルクリック → Main を爆発展開
 //
 // ── フロー（Tab A が Explosion の「窓」になる + 位置ズレ根治）──────────
 //   1. floatingWin の現在位置に合わせて mainWin を移動
@@ -468,6 +505,41 @@ ipcMain.on('proxy:open-toolbar', () => {
 //   4. mainWin.show() → win.on('show') は explosionAnimating=true でスキップ
 //   5. Explosion（0.6s）: Tab A が静止したまま main が後ろで展開
 //   6. +700ms: floatingWin を hide（ProxyTab が同座標を引き継ぐ = 位置ズレなし）
+// B→Main 直結: FloatingToolbar HeroDot ダブルクリック → 1100ms タイマー後に呼ばれる
+// ガラスカプセル出現（BA_ENTER_DELAY=1184ms）より前に floatingWin を即 hide して
+// mainWin のクリップアニメーション（カプセル→ヘッダー→フル）に切り替える
+ipcMain.on('main:show-from-b-direct', () => {
+  if (!mainWin || mainWin.isDestroyed()) return
+  const fb = floatingWin?.isDestroyed() ? null : floatingWin?.getBounds()
+  const mb = mainWin.getBounds()
+  const { workAreaSize: wa } = screen.getPrimaryDisplay()
+
+  if (fb) {
+    const newMX = Math.max(0, Math.min(fb.x - dockOffsetX, wa.width  - mb.width))
+    const newMY = Math.max(0, Math.min(fb.y - dockOffsetY, wa.height - mb.height))
+    mainWin.setPosition(newMX, newMY)
+  }
+
+  // floatingWin を即 hide（ガラスカプセルが画面に出現しないようにする）
+  if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
+
+  const relX = Math.max(0, Math.min(100, ((dockOffsetX + 17) / mb.width)  * 100))
+  const relY = Math.max(0, Math.min(100, ((dockOffsetY + 16) / mb.height) * 100))
+
+  // opacity=0 で show → backgroundThrottling=true でも RAF が動きコンポジターが新フレームをコミットできる
+  // renderer は RAF×2 後に Phase 1 start() + main:explosion-start を送信 → setOpacity(1) でウィンドウ出現
+  // これにより「古いコンポジターフレームが一瞬見える = ドットの揺れ」を完全に防ぐ
+  mainWin.setOpacity(0)
+  explosionAnimating = true
+  mainWin.webContents.send('main:will-show', { relX, relY, animate: true })
+  setTimeout(() => {
+    mainWin!.show()   // 透明で表示 → renderer の RAF が動く
+    mainWin!.focus()
+    // フォールバック: IPC が届かなかった場合でも 800ms 後に opacity を戻す
+    setTimeout(() => { mainWin?.setOpacity(1); explosionAnimating = false }, 800)
+  }, 16)
+})
+
 ipcMain.on('main:show-from-floating', () => {
   if (!mainWin || mainWin.isDestroyed()) return
   const fb = floatingWin?.isDestroyed() ? null : floatingWin?.getBounds()
@@ -489,14 +561,16 @@ ipcMain.on('main:show-from-floating', () => {
 
   explosionAnimating = true
   mainWin.webContents.send('main:will-show', { relX, relY, animate: true })
+  // レンダラーが main:will-show を受け取ってヘッダーをドット位置にセットする猶予
+  // これより前に show() するとヘッダー全幅が一瞬見えてしまう
   setTimeout(() => {
     mainWin!.show()
     mainWin!.focus()
-    // Explosion 完了後（0.6s + 80ms margin）: floatingWin を hide
-    // ProxyTab が同座標を引き継ぐためテレポートは不要
+    // Stretching Handoff 完了後（Phase1: 350ms + Phase2: 650ms, margin: 50ms）: floatingWin を hide
+    // ProxyTab dot が同座標を引き継ぐためテレポートは不要
     setTimeout(() => {
       explosionAnimating = false
       if (floatingWin && !floatingWin.isDestroyed()) floatingWin.hide()
     }, 700)
-  }, 20)
+  }, 50)
 })

@@ -26,7 +26,7 @@ declare global {
       // ── Floating System ──────────────────────────────────────
       openFloatingSystem: () => Promise<void>
       closeFloatingSystem: () => Promise<void>
-      requestFloatingResize: (size: { width: number; height: number; anchor?: 'center' | 'left' | 'right' }) => Promise<void>
+      requestFloatingResize: (size: { width: number; height: number; anchor?: 'center' | 'left' | 'right' | 'top' }) => Promise<void>
       pushSyncToFloating: (payload: unknown) => void
       onFloatingSync: (cb: (payload: unknown) => void) => () => void
       onFloatingSnapChange: (cb: (data: { side: 'none' | 'left' | 'right' }) => void) => () => void
@@ -52,12 +52,20 @@ declare global {
       proxyOpenToolbar?: () => void
       /** FloatingSystemView: Blooming 自動起動合図を受信 */
       onFloatingAutoOpenToolbar?: (cb: () => void) => () => void
+      /** FloatingSystemView: main:implosion-start からの State A 強制リセット合図 */
+      onFloatingResetToTab?: (cb: () => void) => () => void
 
       // ── Implosion / Explosion ─────────────────────────────
       onMainTriggerHide: (cb: (coords: { relX: number; relY: number }) => void) => () => void
+      mainImplosionStart?: () => void
+      mainTrafficLightsShow?: () => void
       mainHideReady: () => void
       onMainWillShow: (cb: (data: { relX: number; relY: number; animate: boolean }) => void) => () => void
+      /** Explosion Phase 1 開始直前に main へ通知 → setOpacity(1) タイミング同期 */
+      notifyExplosionStart?: () => void
       requestMainShowFromFloating: () => void
+      /** FloatingToolbar HeroDot ダブルクリック → B→Main 直結（ガラスカプセル出現前） */
+      requestMainShowFromBDirect?: () => void
 
     }
   }

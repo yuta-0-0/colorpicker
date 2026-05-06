@@ -33,6 +33,40 @@ import { ToastContainer } from '@/components/ui/ToastContainer'
 import { isOutOfGamut } from '@/lib/printUtils'
 import { FloatingProxy } from '@/components/floating/FloatingProxy'
 
+// ── Implosion / Explosion 共通イージング（モジュール定数: レンダーごとに再生成しない）──
+const EASE_QUINT_APP = [0.8, 0, 0.6, 1] as const
+
+// ウィンドウ下端クリップ値（ヘッダー 40px を残してコンテンツ領域だけを隠す）
+function getBottomPct(): string {
+  const h = window.innerHeight || 1
+  return ((h - 40) / h * 100).toFixed(2)
+}
+
+// ドット中心 relX (%) → FloatingTab カプセル(80px幅)の left / right / top / bottom inset %
+// カプセル左端  = ドット中心 − 17px（paddingLeft:10 + dot半径:7）
+// カプセル右端  = ドット中心 + 63px（80 − 17）
+// カプセル上端  = mainWin top + 7px（dockOffsetY / FloatingProxy top 位置と一致）
+// カプセル下端  = mainWin top + 39px（上端 7 + 高さ 32 = FloatingTab の物理寸法）
+// border-radius = 16px（32px 高さの pill 形状）
+function getCapsuleInset(relX: number): {
+  leftPct: string; rightPct: string; topPct: string; bottomPct: string; round: string
+} {
+  const w = window.innerWidth  || 1
+  const h = window.innerHeight || 1
+  const dotPx = relX / 100 * w
+  const capLeft   = Math.max(0, dotPx - 17)
+  const capRight  = Math.max(0, w - dotPx - 63)
+  const capTop    = 7                 // FloatingTab capsule top (dockOffsetY)
+  const capBottom = Math.max(0, h - 39)  // 39 = capTop(7) + capsule height(32)
+  return {
+    leftPct:   (capLeft   / w * 100).toFixed(2),
+    rightPct:  (capRight  / w * 100).toFixed(2),
+    topPct:    (capTop    / h * 100).toFixed(2),
+    bottomPct: (capBottom / h * 100).toFixed(2),
+    round:     '16px',
+  }
+}
+
 // 色相カテゴリを返す（FilterBar の HUE_FILTERS ラベルと一致させる）
 // 10分類：赤/橙/黄/緑/青/紫/ピンク/白/グレー/黒
 function getHueCategory(hex: string): string {
@@ -100,15 +134,19 @@ export function AppLayout() {
   const [sidebarWidth, setSidebarWidth] = useState(152)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
+  // ── ProxyTab left 位置 ──────────────────────────────────────────────
+  // 通常 : sidebarWidth + 20（padding 10 + sidebar + gap 10）
+  // collapsed : MIN_SIDEBAR_W + 20 で止める（Sidebar.tsx の Math.max(120, ...) と同値）
+  //   → 10px まで飛ばさず、サイドバー最小幅の位置でカプセルを留める
+  const MIN_SIDEBAR_W = 120
+  const proxyLeft = sidebarCollapsed ? MIN_SIDEBAR_W + 20 : sidebarWidth + 20
+
   // ── Docking System: サイドバー幅変化を main に通知 ────────────────
-  // ドック X = 10(外pad) + sidebarWidth + 10(gap)  Y = 4(drag bar 内)
-  // 折りたたみ時は更新しない（FloatingTab をその位置でキープし信号と重なるのを防ぐ）
+  // dockOffsetX = ProxyTab の left 位置（collapsed 時も追従して送信）
   useEffect(() => {
     if (!window.electronAPI?.updateDockOffset) return
-    if (sidebarCollapsed) return
-    const offsetX = 10 + sidebarWidth + 10
-    window.electronAPI.updateDockOffset(offsetX, 7)
-  }, [sidebarWidth, sidebarCollapsed])
+    window.electronAPI.updateDockOffset(proxyLeft, 7)
+  }, [proxyLeft])
   const [showAddModal, setShowAddModal] = useState(false)
   const [showShortcutHelp, setShowShortcutHelp] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
@@ -406,42 +444,136 @@ export function AppLayout() {
 
   useDynamicFavicon(selectedColor?.hex ?? null)
 
-  // ── Implosion / Explosion clip-path アニメーション ──────────────────
-  // Electron 専用: Cmd+Shift+P で Implosion、HeroDot ダブルクリックで Explosion
-  // EASE_QUINT に合わせた 0.6s の円形 clip-path で収束 / 放射展開
-  const EASE_QUINT_APP = [0.8, 0, 0.6, 1] as const
-  const clipControls = useAnimation()
+  // ── Sheet Morphing: ルート一枚板 clip-path アニメーション ───────────
+  // Electron 専用: Cmd+Shift+P / HeroDot ダブルクリックで Implosion/Explosion
+  //
+  // Explosion (Floating → Main):
+  //   Phase 1 (0–350ms):   ドット位置のヘッダーストリップが左右へ水平伸長
+  //   Phase 2 (350–700ms): ウィンドウ全体が垂直展開（コンテンツ落下）
+  //
+  // Implosion (Main → Floating):
+  //   Phase 1 (0–350ms):   コンテンツがヘッダーストリップへ垂直収縮
+  //   Phase 2 (350–700ms): ヘッダーストリップがドット位置へ水平収縮
+  const rootClipControls = useAnimation()
+
+  // フェーズ管理: onAnimationComplete でどのフェーズが完了したか識別して IPC を発火
+  const animPhaseRef = useRef<
+    'idle' | 'explosion-1' | 'explosion-2' | 'implosion-1' | 'implosion-2'
+  >('idle')
+  // Implosion/Explosion 開始時の relX を保存（Phase 2 の収縮先として使用）
+  const relXRef = useRef(50)
+  // Explosion Phase 1 中は drag bar（サイドバー開閉ボタン等）を非表示にする。
+  // カプセル clip 内に drag bar が入ってしまうため視覚的に飛び出して見える問題を防ぐ。
+  const [dragBarVisible, setDragBarVisible] = useState(true)
+
+  // ── アニメーション完了ハンドラー（フェーズ連鎖）──────────────────
+  const handleAnimationComplete = useCallback(() => {
+    const phase = animPhaseRef.current
+
+    if (phase === 'explosion-1') {
+      // Phase 1 完了: ヘッダーが全幅展開 → traffic lights 復元 + drag bar 表示 + Phase 2 開始
+      window.electronAPI?.mainTrafficLightsShow?.()
+      setDragBarVisible(true)
+      animPhaseRef.current = 'explosion-2'
+      const bottomPct = getBottomPct()
+      // t=0→0.85: カプセルのまま垂直展開、t=0.85→1.0: CSS角丸（24px）が最後に出現
+      rootClipControls.start({
+        clipPath: [
+          `inset(0% 0% ${bottomPct}% 0% round 16px)`,  // t=0: Phase 1 終了位置
+          `inset(0% 0% 0% 0% round 16px)`,             // t=0.85: 全画面、まだ丸い
+          `inset(0% 0% 0% 0% round 24px)`,             // t=1.0: 角が出現
+        ],
+        transition: {
+          duration: 0.35,
+          times: [0, 0.85, 1.0],
+          ease: EASE_QUINT_APP,
+        },
+      })
+    } else if (phase === 'explosion-2') {
+      animPhaseRef.current = 'idle'
+      // clip-path を CSS rounded-3xl（24px）と完全一致させて正規化
+      rootClipControls.set({ clipPath: 'inset(0% 0% 0% 0% round 24px)' })
+    } else if (phase === 'implosion-1') {
+      // Phase 1 完了: コンテンツ収縮 → Phase 2（帯を FloatingTab カプセル形に収縮）開始
+      // 最終形: 80px幅 × 32px高（y=7〜39）の pill 形状 → floatingWin と完全一致
+      animPhaseRef.current = 'implosion-2'
+      const cap = getCapsuleInset(relXRef.current)
+      rootClipControls.start({
+        clipPath: `inset(${cap.topPct}% ${cap.rightPct}% ${cap.bottomPct}% ${cap.leftPct}% round ${cap.round})`,
+        transition: { duration: 0.35, ease: EASE_QUINT_APP },
+      })
+    } else if (phase === 'implosion-2') {
+      animPhaseRef.current = 'idle'
+      window.electronAPI?.mainHideReady()
+    }
+  }, [rootClipControls])
+
+  // ── Implosion 開始（FloatingProxy double-click / onMainTriggerHide）──
+  const startImplosion = useCallback((relX: number, _relY: number) => {
+    relXRef.current = relX
+    animPhaseRef.current = 'implosion-1'
+    window.electronAPI?.mainImplosionStart?.()
+
+    const bottomPct = getBottomPct()
+    // Phase 1: 全体 → ヘッダーストリップへ垂直収縮
+    // t=0→0.25: 角を 24px→16px（カプセル化を先行）、t=0.25→1.0: 高さ収縮
+    rootClipControls.start({
+      clipPath: [
+        `inset(0% 0% 0% 0% round 24px)`,             // t=0: 全画面・CSS角丸と一致
+        `inset(0% 0% 0% 0% round 16px)`,             // t=0.25: 角をカプセル半径に
+        `inset(0% 0% ${bottomPct}% 0% round 16px)`,  // t=1.0: 高さ収縮
+      ],
+      transition: {
+        duration: 0.40,
+        times: [0, 0.25, 1.0],
+        ease: EASE_QUINT_APP,
+      },
+    })
+  }, [rootClipControls])
 
   useEffect(() => {
     if (!window.electronAPI?.onMainTriggerHide) return
     return window.electronAPI.onMainTriggerHide(({ relX, relY }) => {
-      clipControls.start({
-        clipPath: `circle(0% at ${relX}% ${relY}%)`,
-        transition: { duration: 0.6, ease: EASE_QUINT_APP },
-      }).then(() => {
-        window.electronAPI?.mainHideReady()
-      })
+      startImplosion(relX, relY)
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clipControls])
+  }, [startImplosion])
 
   useEffect(() => {
     if (!window.electronAPI?.onMainWillShow) return
-    return window.electronAPI.onMainWillShow(({ relX, relY, animate }) => {
+    return window.electronAPI.onMainWillShow(({ relX, animate }) => {
       if (animate) {
-        // 即時: 収束状態に設定 → 展開アニメーション
-        clipControls.set({ clipPath: `circle(0% at ${relX}% ${relY}%)` })
-        clipControls.start({
-          clipPath: 'circle(150% at 50% 50%)',
-          transition: { duration: 0.6, ease: EASE_QUINT_APP },
+        // Explosion: FloatingTab カプセル形（80px×32px pill）から開始 → 全幅展開
+        // Main→A の逆順: pill → 全幅帯（水平）→ 全画面（垂直）
+        setDragBarVisible(false)  // Phase 1 完了まで drag bar を隠す（カプセル内に飛び出し防止）
+        relXRef.current = relX
+        animPhaseRef.current = 'explosion-1'
+        const cap = getCapsuleInset(relX)
+        const bottomPct = getBottomPct()
+
+        // 初期状態: floatingWin Tab A と完全に重なるカプセル形（即時適用）
+        rootClipControls.set({
+          clipPath: `inset(${cap.topPct}% ${cap.rightPct}% ${cap.bottomPct}% ${cap.leftPct}% round ${cap.round})`,
         })
+        // Phase 1: RAF×2 後に開始
+        // ・show() は opacity=0 で先に行われ、RAF が動きコンポジターが capsule frame をコミット済み
+        // ・start() 直前に notifyExplosionStart() → main が setOpacity(1) → ユーザーにウィンドウが見える
+        //   これにより「古いコンポジターフレームの一瞬の表示（揺れ）」を完全に防ぐ
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          window.electronAPI?.notifyExplosionStart?.()  // main に setOpacity(1) を依頼
+          rootClipControls.start({
+            clipPath: `inset(0% 0% ${bottomPct}% 0% round 16px)`,  // カプセルのまま水平展開
+            transition: { duration: 0.35, ease: EASE_QUINT_APP },
+          })
+        }))
       } else {
-        // アニメなし: 即時全開
-        clipControls.set({ clipPath: 'circle(150% at 50% 50%)' })
+        // アニメなし: 即時全開 + traffic lights 即時復元
+        animPhaseRef.current = 'idle'
+        rootClipControls.set({ clipPath: 'inset(0% 0% 0% 0%)' })
+        window.electronAPI?.mainTrafficLightsShow?.()
       }
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clipControls])
+  }, [rootClipControls])
 
   const sectionTitle =
     activeSection === 'favorites' ? 'お気に入り' :
@@ -462,7 +594,8 @@ export function AppLayout() {
 
   return (
     <motion.div
-      animate={clipControls}
+      animate={isElectron ? rootClipControls : undefined}
+      onAnimationComplete={isElectron ? handleAnimationComplete : undefined}
       className="relative h-screen overflow-hidden rounded-3xl text-text-primary"
     >
       {/* ── app-frame 背景レイヤー（z:-1）──────────────────────────────── */}
@@ -477,7 +610,15 @@ export function AppLayout() {
       {isElectron && (
         <div
           className="app-drag absolute top-0 left-0 right-0 z-10 flex items-center"
-          style={{ height: 40, paddingLeft: 84, paddingRight: 12, gap: 8 }}
+          style={{
+            height: 40,
+            paddingLeft: 84,
+            paddingRight: 12,
+            gap: 8,
+            // Explosion Phase 1 中は非表示（カプセル clip 内に飛び出し防止）
+            opacity: dragBarVisible ? 1 : 0,
+            pointerEvents: dragBarVisible ? 'auto' : 'none',
+          }}
         >
           <button
             type="button"
@@ -494,8 +635,10 @@ export function AppLayout() {
           ProxyTab 座標へ floatingWin を show() して完璧な入れ替わりを実現。 */}
       {isElectron && (
         <FloatingProxy
-          left={sidebarWidth + 20}
+          left={proxyLeft}
           hex={proxyHex}
+          isResizing={isResizing}
+          onImplosionTrigger={startImplosion}
         />
       )}
 
