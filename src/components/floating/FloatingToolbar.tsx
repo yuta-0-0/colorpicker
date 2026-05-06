@@ -191,8 +191,8 @@ export function FloatingToolbar() {
 
   const isDockLeft = snapSide !== 'right'
 
-  // ── 角丸: 画面接地辺は直角、逆側は round 12px ─────────────────
-  const toolbarRadius = snapSide === 'right' ? '12px 0 0 12px' : '0 12px 12px 0'
+  // ── 角丸: 画面接地辺は直角、逆側は round 24px（Floating パネル標準）─
+  const toolbarRadius = snapSide === 'right' ? '24px 0 0 24px' : '0 24px 24px 0'
   // SpecularBorder は画面接地辺（right snap → 右辺、left snap → 左辺）
   const specularSide = snapSide === 'right' ? 'right' as const : 'left' as const
 

@@ -25,7 +25,8 @@ const OPEN    = `circle(150% at ${DOT_POS})`   // 全開
 const P1_DOT  = `circle(11.5% at ${DOT_POS})` // 14px dot サイズ（吸い込み先）
 
 // ── タイミング定数 ──────────────────────────────────────────────────
-const TOOLBAR_H      = 420
+// FloatingToolbar が SCREEN_H を使うため、ウィンドウ高さを統一する
+const SCREEN_H       = typeof window !== 'undefined' ? window.screen.availHeight : 800
 const AB_EXIT_DUR    = 0.28   // A→B: 背景収束 280ms（ゆっくり）
 const BA_ENTER_DELAY = 1.184  // B→A: Dot移動完了(1200ms)の16ms前に展開開始
 const BA_ENTER_DUR   = 0.18   // B→A: 背景復元 180ms
@@ -78,12 +79,12 @@ export function FloatingTab() {
   // Implosion は ProxyTab（メインウィンドウ内）のドットが担当する。
   // ※ FloatingWin が Tab 状態で表示中 = main は既に hide 済みなので Implosion 不要。
   const handleDoubleClick = useCallback(() => {
-    window.electronAPI?.requestFloatingResize({ width: 80, height: TOOLBAR_H, anchor: 'center' })
+    window.electronAPI?.requestFloatingResize({ width: 80, height: SCREEN_H, anchor: 'center' })
     delayTimerRef.current = setTimeout(() => {
       setFloatingState('toolbar')
       trimTimerRef.current = setTimeout(() => {
         const anchor = snapSide === 'right' ? 'right' : 'left'
-        window.electronAPI?.requestFloatingResize({ width: 48, height: TOOLBAR_H, anchor })
+        window.electronAPI?.requestFloatingResize({ width: 48, height: SCREEN_H, anchor })
       }, TRIM_DELAY)
     }, 60)
   }, [setFloatingState, snapSide])

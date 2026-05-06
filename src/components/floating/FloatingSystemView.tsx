@@ -64,6 +64,8 @@ export function FloatingSystemView() {
   const autoToolbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // B→Main 直結タイマー（FloatingToolbar アンマウント後も継続させるため FloatingSystemView が保持）
   const bToMainTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // onFloatingResetToTab 時に HeroDot を瞬間移動させるフラグ（B状態からリセットで位置ズレ防止）
+  const heroInstantRef      = useRef(false)
   useEffect(() => {
     saveAfterPickRef.current = pendingSaveAfterPick
   }, [pendingSaveAfterPick])
@@ -116,9 +118,11 @@ export function FloatingSystemView() {
   // IPC: main:implosion-start → State A(Tab) 強制リセット
   // Implosion アニメーション中に floatingWin を State A(Tab/80×32) へ戻す。
   // show() 時点で State B(Toolbar)のままにならないための事前リセット。
+  // heroInstantRef=true にして HeroDot をアニメなしで TAB_DOT に瞬間移動させる。
   useEffect(() => {
     if (!window.electronAPI?.onFloatingResetToTab) return undefined
     const unsub = window.electronAPI.onFloatingResetToTab(() => {
+      heroInstantRef.current = true  // 次レンダー1回だけ instant モード
       setFloatingState('tab')
       // main:implosion-start 側で setBounds(80×32) 済みだが念のため React 側からも要求
       window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
@@ -163,6 +167,11 @@ export function FloatingSystemView() {
   const delayResize = isToolbar ? AB_RESIZE_DELAY : BA_RESIZE_DELAY
   const delayTravel = isToolbar ? AB_TRAVEL_DELAY : BA_TRAVEL_DELAY
 
+  // onFloatingResetToTab 時: このレンダーのみ instant モードを消費して次は通常に戻す
+  // setFloatingState('tab') が同時に呼ばれるため再レンダーは保証される
+  const isInstant = heroInstantRef.current
+  if (isInstant) heroInstantRef.current = false
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       {/* mode="popLayout": Tab exit と Toolbar mount が同時進行 → HeroDot が物理移動できる */}
@@ -176,35 +185,39 @@ export function FloatingSystemView() {
       {/* ── HeroDot: コンポーネントの制約から解放されたドット ────────
           ・常時レンダリング（消えない・途切れない）
           ・floatingState 変化後 delay 秒で物理的に移動・サイズ変化
+          ・isInstant=true 時は即時移動（onFloatingResetToTab でのズレ防止）
           ・pointerEvents none = 下要素の drag・click を透過          */}
       <motion.div
-        layoutId="hero-dot"
         initial={false}
-        animate={{
+        animate={isInstant ? {
+          // 瞬間リセット: TAB_DOT に即座にジャンプ（B→A 中の位置ズレ防止）
+          left: TAB_DOT.left, top: TAB_DOT.top,
+          width: TAB_DOT.size, height: TAB_DOT.size,
+          backgroundColor: currentColor.hex, scale: 1.0,
+        } : {
           // left: top と完全同一の times/ease で補間 → レーザー直線軌道
           left: isToolbar
-            ? [TAB_DOT.left,  TAB_DOT.left,  TOOL_DOT.left]   // A→B: 10→10→12 (anticip なし、topと同期)
-            : [TOOL_DOT.left, TOOL_DOT.left, TAB_DOT.left],   // B→A: 12→12→10
+            ? [TAB_DOT.left,  TAB_DOT.left,  TOOL_DOT.left]
+            : [TOOL_DOT.left, TOOL_DOT.left, TAB_DOT.left],
           // 移動の溜め: 逆方向に 4px 引いてから発射
           top: isToolbar
-            ? [TAB_DOT.top,  TAB_DOT.top  - 4, TOOL_DOT.top]  // A→B: 9→5→46
-            : [TOOL_DOT.top, TOOL_DOT.top + 4, TAB_DOT.top],  // B→A: 46→50→9
-          // サイズ: Hold の前後で変化させる（単一ターゲット＋EASE_QUINT で滑らか）
+            ? [TAB_DOT.top,  TAB_DOT.top  - 4, TOOL_DOT.top]
+            : [TOOL_DOT.top, TOOL_DOT.top + 4, TAB_DOT.top],
           width:  dot.size,
           height: dot.size,
-          // 色: 液体のように 0.2s で混ざりながら変化
           backgroundColor: currentColor.hex,
-          // ホバー: Tab 状態のみ scale 1.1（Toolbar 状態はドット大きいのでスキップ）
           scale: !isToolbar && isDotHovered ? 1.1 : 1.0,
         }}
-        transition={{
-          // left と top: 完全同一の ease + times で x/y 補間を 1ms 単位で同期
+        transition={isInstant ? {
+          left: { duration: 0 }, top: { duration: 0 },
+          width: { duration: 0 }, height: { duration: 0 },
+          backgroundColor: { duration: 0 }, scale: { duration: 0 },
+        } : {
           left:            { delay: delayTravel, duration: DOT_TRAVEL, ease: EASE_IN_OUT, times: [0, 0.08, 1.0] },
           top:             { delay: delayTravel, duration: DOT_TRAVEL, ease: EASE_IN_OUT, times: [0, 0.08, 1.0] },
           width:           { delay: delayResize, duration: DOT_RESIZE, ease: EASE_QUINT },
           height:          { delay: delayResize, duration: DOT_RESIZE, ease: EASE_QUINT },
           backgroundColor: { duration: 0.2, ease: EASE_QUINT },
-          // SSOT spring: { stiffness: 300, damping: 30 }
           scale:           { type: 'spring', stiffness: 300, damping: 30 },
         }}
         style={{

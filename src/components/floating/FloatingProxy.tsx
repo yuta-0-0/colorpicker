@@ -67,8 +67,6 @@ export function FloatingProxy({ left, hex, isResizing, onImplosionTrigger }: Flo
         // ドット + クリック領域として機能する最小幅
         width: 80,
         display: 'flex',
-        alignItems: 'center',
-        paddingLeft: 10,
         // drag bar の z-10（=10）を 50 で制圧
         zIndex: 50,
         userSelect: 'none',
@@ -79,17 +77,20 @@ export function FloatingProxy({ left, hex, isResizing, onImplosionTrigger }: Flo
     >
       {/* カラードット: ヘッダーに溶け込む「不動の核」
           ガラス枠・背景は Stretching Handoff 時のヘッダーガラスが担当するため省略。
-          normal state ではドットのみがヘッダーに浮かんで見える。 */}
+          normal state ではドットのみがヘッダーに浮かんで見える。
+          Y 位置: dockOffsetY(7) + TAB_DOT.top(9) = 16px → 中心 23px
+          alignItems:center の自然位置(中心20px)より marginTop:3 で +3px 下げて HeroDot と一致 */}
       <div
         onDoubleClick={handleDotDoubleClick}
         style={{
-          position: 'relative',
+          position: 'absolute',
+          top: 16,   // dockOffsetY(7) + TAB_DOT.top(9) = 16px → center 23px = HeroDot 中心と完全一致
+          left: 10,
           zIndex: 1,
           width: 14,
           height: 14,
           borderRadius: '50%',
           backgroundColor: hex,
-          flexShrink: 0,
           cursor: 'default',
           WebkitAppRegion: 'no-drag',
         } as React.CSSProperties}
