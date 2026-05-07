@@ -13,13 +13,14 @@
 //   A→B: [0-280ms]Tab収束 → [280-480ms]Dot拡大 → [480-630ms]Hold★ → [630-930ms]Dot移動 → [914-1274ms]Toolbar展開
 //   B→A: [0ms]Button吸込 ≒ [40-590ms]Toolbar吸収 → [590-790ms]Dot縮小 → [790-940ms]Hold★ → [940-1240ms]Dot移動 → [1224-1404ms]Tab復元
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Easing } from 'motion-utils'
 import { useFloatingStore } from '@/store/floatingStore'
 import type { FSSyncPayload } from '@/types/floating'
 import { FloatingTab } from './FloatingTab'
-import { FloatingToolbar } from './FloatingToolbar'
+import { FloatingToolbar, BASE_H, MAX_H } from './FloatingToolbar'
+import { usePrefersDark, getGlassTokens } from './useTheme'
 
 // ── HeroDot 座標 ────────────────────────────────────────────────────
 const TAB_DOT  = { left: 10, top: 9,  size: 14 } as const  // Tab dot top-left + size
@@ -57,7 +58,21 @@ export function FloatingSystemView() {
     setPendingSaveAfterPick,
     isBToMainPending,
     setBToMainPending,
+    saveFlash,
+    setEyeActive,
+    setExplosionPending,
   } = useFloatingStore()
+
+  const isDark                   = usePrefersDark()
+  const { accentSolid, accentGlow } = getGlassTokens(isDark)
+
+  const [toolbarHeight, setToolbarHeight] = useState(BASE_H)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const handleHeightChange = useCallback((h: number) => {
+    const clamped = Math.min(MAX_H, Math.max(BASE_H, h))
+    setToolbarHeight(clamped)
+  }, [])
 
   const saveAfterPickRef    = useRef(pendingSaveAfterPick)
   // auto-open-toolbar タイマー（proxy:open-toolbar → A→B Blooming）
@@ -105,15 +120,17 @@ export function FloatingSystemView() {
   useEffect(() => {
     if (!window.electronAPI?.onFloatingColorFromPicker) return undefined
     const unsub = window.electronAPI.onFloatingColorFromPicker(({ hex }) => {
+      setEyeActive(false)  // キャンセル含め必ずリセット
       if (!hex) return
-      setCurrentColorFromPicker(hex)
+      setCurrentColorFromPicker(hex)  // HeroDot 即反映 + 1500ms sync ロック
+      window.electronAPI?.floatingColorSelected(hex)  // 常時: 履歴追加 + 再同期
       if (saveAfterPickRef.current) {
-        window.electronAPI?.floatingColorSelected(hex)
+        window.electronAPI?.floatingSaveColor?.({ hex, alpha: 1, name: hex })  // 長押し: ライブラリ保存
         setPendingSaveAfterPick(false)
       }
     })
     return unsub
-  }, [setCurrentColorFromPicker, setPendingSaveAfterPick])
+  }, [setCurrentColorFromPicker, setPendingSaveAfterPick, setEyeActive])
 
   // IPC: main:implosion-start → State A(Tab) 強制リセット
   // Implosion アニメーション中に floatingWin を State A(Tab/80×32) へ戻す。
@@ -122,13 +139,29 @@ export function FloatingSystemView() {
   useEffect(() => {
     if (!window.electronAPI?.onFloatingResetToTab) return undefined
     const unsub = window.electronAPI.onFloatingResetToTab(() => {
+      // explosionPending を先にクリア（instant FloatingTab の onAnimationComplete が
+      // 即座に発火しても requestMainShowFromFloating が呼ばれないようにする）
+      setExplosionPending(false)
+      // 遷移中フラグ: 200ms だけ pointer-events:none にして誤タップを防ぐ
+      setIsTransitioning(true)
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current)
+      transitionTimerRef.current = setTimeout(() => {
+        transitionTimerRef.current = null
+        setIsTransitioning(false)
+      }, 200)
       heroInstantRef.current = true  // 次レンダー1回だけ instant モード
       setFloatingState('tab')
-      // main:implosion-start 側で setBounds(80×32) 済みだが念のため React 側からも要求
-      window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
+      // RAF で React コミット（FloatingToolbar → FloatingTab の DOM 切り替え）完了後に
+      // resize を送る。サイズ確定 → 中身描画の順を保証し Main→A 1発帰還を実現。
+      requestAnimationFrame(() => {
+        window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
+      })
     })
-    return unsub
-  }, [setFloatingState])
+    return () => {
+      unsub?.()
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current)
+    }
+  }, [setFloatingState, setExplosionPending])
 
   // IPC: ProxyTab outer double-click → A→B Blooming 自動起動
   // main.ts から floatingWin に fs:auto-open-toolbar が届いたら
@@ -173,12 +206,12 @@ export function FloatingSystemView() {
   if (isInstant) heroInstantRef.current = false
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: isTransitioning ? 'none' : undefined }}>
       {/* mode="popLayout": Tab exit と Toolbar mount が同時進行 → HeroDot が物理移動できる */}
       <AnimatePresence mode="popLayout" initial={false}>
         {floatingState === 'tab'
-          ? <FloatingTab key="tab" />
-          : <FloatingToolbar key="toolbar" />
+          ? <FloatingTab key="tab" instant={isInstant} />
+          : <FloatingToolbar key="toolbar" toolbarHeight={toolbarHeight} onHeightChange={handleHeightChange} />
         }
       </AnimatePresence>
 
@@ -205,13 +238,19 @@ export function FloatingSystemView() {
             : [TOOL_DOT.top, TOOL_DOT.top + 4, TAB_DOT.top],
           width:  dot.size,
           height: dot.size,
+          // 保存フラッシュ: アクセントカラーに一瞬光ってから元色に戻る
           backgroundColor: currentColor.hex,
           scale: !isToolbar && isDotHovered ? 1.1 : 1.0,
+          // ⑤ Bento Bloom Save: 1.5px リング + 半径15px の霧が 0.8s でじわっと消える
+          boxShadow: saveFlash
+            ? `0 0 0 1.5px ${accentSolid}, 0 0 15px 5px ${accentGlow}`
+            : '0 0 0 1.5px rgba(128,128,128,0.35)',
         }}
         transition={isInstant ? {
           left: { duration: 0 }, top: { duration: 0 },
           width: { duration: 0 }, height: { duration: 0 },
           backgroundColor: { duration: 0 }, scale: { duration: 0 },
+          boxShadow: { duration: 0 },
         } : {
           left:            { delay: delayTravel, duration: DOT_TRAVEL, ease: EASE_IN_OUT, times: [0, 0.08, 1.0] },
           top:             { delay: delayTravel, duration: DOT_TRAVEL, ease: EASE_IN_OUT, times: [0, 0.08, 1.0] },
@@ -219,6 +258,7 @@ export function FloatingSystemView() {
           height:          { delay: delayResize, duration: DOT_RESIZE, ease: EASE_QUINT },
           backgroundColor: { duration: 0.2, ease: EASE_QUINT },
           scale:           { type: 'spring', stiffness: 300, damping: 30 },
+          boxShadow:       { duration: 0.8, ease: 'easeOut' },
         }}
         style={{
           position:        'absolute',

@@ -3,25 +3,15 @@
   "configurations": [
     {
       "name": "Vite (React Dev Server)",
-      "runtimeExecutable": "/opt/homebrew/bin/node",
-      "runtimeArgs": ["node_modules/.bin/vite"],
+      "runtimeExecutable": "/opt/homebrew/bin/npm",
+      "runtimeArgs": ["run", "dev:vite"],
       "port": 5173
     },
     {
-      "name": "Electron + Vite (Full App)",
-      "runtimeExecutable": "/opt/homebrew/bin/npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 5173
-    }
-  ,
-    {
-      "name": "Vite (Production Mode)",
+      "name": "Vite (Web Preview)",
       "runtimeExecutable": "/opt/homebrew/bin/node",
-      "runtimeArgs": ["node_modules/.bin/vite", "--port", "5174"],
-      "env": {
-        "VITE_DEV_BYPASS_AUTH": "false"
-      },
-      "port": 5174
+      "runtimeArgs": ["node_modules/.bin/vite", "--config", "vite.web.config.ts"],
+      "port": 5173
     }
   ]
 }

@@ -200,7 +200,9 @@ export function AppLayout() {
   useEffect(() => {
     if (!window.electronAPI?.pushSyncToFloating) return
 
-    const color = colors.find((c) => c.id === selectedColorId)
+    // selectedColorId が未確定でも historyColors/folders の変化を sync するため
+    // colors[0] をフォールバックとして使用（floatingStore の _syncLockUntil で保護される）
+    const color = colors.find((c) => c.id === selectedColorId) ?? colors[0]
     if (!color) return
 
     const payload: FSSyncPayload = {

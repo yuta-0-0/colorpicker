@@ -102,6 +102,9 @@ function createPrismTileWindow() {
 
 const SNAP_THRESHOLD = 40  // px: この距離以内で画面端スナップ
 
+// FloatingWin 生成前に送信された fs:push-sync を再送するためのキャッシュ
+let lastFSPayload: unknown = null
+
 function createFloatingSystemWindow() {
   if (floatingWin && !floatingWin.isDestroyed()) {
     floatingWin.show()
@@ -162,6 +165,22 @@ function createFloatingSystemWindow() {
       lastSnapSide = side
       floatingWin.webContents.send('fs:snap-change', { side })
     }
+  })
+
+  // show のたびに最新の sync payload を再送（生成前に送信された分を補完）
+  floatingWin.on('show', () => {
+    if (lastFSPayload && floatingWin && !floatingWin.isDestroyed()) {
+      floatingWin.webContents.send('fs:sync', lastFSPayload)
+    }
+  })
+
+  // 初回ロード完了後に再送（新規生成時は auto-show が on('show') 登録前に発火するため）
+  floatingWin.webContents.on('did-finish-load', () => {
+    setTimeout(() => {
+      if (lastFSPayload && floatingWin && !floatingWin.isDestroyed()) {
+        floatingWin.webContents.send('fs:sync', lastFSPayload)
+      }
+    }, 200)
   })
 
   floatingWin.on('closed', () => {
@@ -394,15 +413,24 @@ ipcMain.handle('fs:request-resize', (_, { width, height, anchor = 'left' }: { wi
 
 // Floating System: 色同期（メインウィンドウ → Floating）
 ipcMain.on('fs:push-sync', (_, payload: unknown) => {
+  lastFSPayload = payload  // show 時の再送用にキャッシュ
   if (floatingWin && !floatingWin.isDestroyed()) {
     floatingWin.webContents.send('fs:sync', payload)
   }
 })
 
 // Floating System: Floating で色を選択 → メインウィンドウへ通知
+// メインウィンドウが未ロード時はリトライ（最大5回・150ms 間隔）
 ipcMain.on('fs:color-selected', (_, { hex }: { hex: string }) => {
-  const wins = BrowserWindow.getAllWindows().filter(w => w !== floatingWin && !w.isDestroyed())
-  wins.forEach(w => w.webContents.send('fs:color-selected', { hex }))
+  const tryNotify = (attemptsLeft: number) => {
+    const wins = BrowserWindow.getAllWindows().filter(w => w !== floatingWin && !w.isDestroyed())
+    if (wins.length > 0) {
+      wins.forEach(w => w.webContents.send('fs:color-selected', { hex }))
+    } else if (attemptsLeft > 0) {
+      setTimeout(() => tryNotify(attemptsLeft - 1), 150)
+    }
+  }
+  tryNotify(5)
 })
 
 // Step 4: Floating System: メタデータ付きで保存 → メインウィンドウへ転送

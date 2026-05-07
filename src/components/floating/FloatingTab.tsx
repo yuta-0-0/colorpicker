@@ -37,17 +37,18 @@ const TRIM_DELAY     = 1700   // ms: A→B アニメーション完了後のウ�
 const EASE_QUINT: Easing = [0.8, 0, 0.6, 1] as Easing  // とろっと：出だし・着地ともに極限まで緩やか
 
 
-export function FloatingTab() {
+export function FloatingTab({ instant }: { instant?: boolean }) {
   const {
     currentColor, setFloatingState, snapSide,
     setExplosionPending, setDotHovered,
   } = useFloatingStore()
-  const specular      = useSpecularReflection({ accentHex: currentColor.hex })
   const trimTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const isDark = usePrefersDark()
-  const glass  = getGlassTokens(isDark)
+  const isDark   = usePrefersDark()
+  const glass    = getGlassTokens(isDark)
+  // isDark を渡してライトモードの ColorBleed 強度を正しく設定
+  const specular = useSpecularReflection({ accentHex: currentColor.hex, isDark })
 
   // ── Cleanup ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -91,9 +92,9 @@ export function FloatingTab() {
 
   return (
     <motion.div
-      // B→A enter: P1_DOT（ドット位置）から OPEN（全開）へ展開
-      // HeroDot 帰還(434ms) の16ms前(418ms)から開始
-      initial={{ clipPath: P1_DOT }}
+      // instant=true（Main→A リセット）: 遅延なしで即全開
+      // B→A enter: P1_DOT から OPEN へ展開（BA_ENTER_DELAY 後）
+      initial={{ clipPath: instant ? OPEN : P1_DOT }}
       animate={{ clipPath: OPEN }}
       // A→B exit: OPEN → P1_DOT へ収束
       exit={{
@@ -103,11 +104,9 @@ export function FloatingTab() {
         },
       }}
       transition={{
-        clipPath: {
-          delay:    BA_ENTER_DELAY,
-          duration: BA_ENTER_DUR,
-          ease:     EASE_QUINT,
-        },
+        clipPath: instant
+          ? { duration: 0 }
+          : { delay: BA_ENTER_DELAY, duration: BA_ENTER_DUR, ease: EASE_QUINT },
       }}
       onAnimationComplete={handleBaComplete}
       onDoubleClick={handleDoubleClick}
@@ -131,18 +130,20 @@ export function FloatingTab() {
           ProxyTab 方式では floatingWin は常に free 状態で表示されるため、
           ガラスは常時 opacity:1。B→A 入場時は BA_ENTER_DELAY 後にフェードイン。 */}
       <motion.div
-        initial={{ opacity: 0 }}
+        initial={{ opacity: instant ? 1 : 0 }}
         animate={{ opacity: 1 }}
         transition={{
-          opacity: { delay: BA_ENTER_DELAY, duration: 0.008, ease: 'linear' },
+          opacity: instant
+            ? { duration: 0 }
+            : { delay: BA_ENTER_DELAY, duration: 0.008, ease: 'linear' },
         }}
         style={{
           position: 'absolute',
           inset: 0,
           borderRadius: 20,
           background: glass.background,
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          backdropFilter: glass.backdropFilter,
+          WebkitBackdropFilter: glass.backdropFilter,
           boxShadow: glass.boxShadow,
           pointerEvents: 'none',
         } as React.CSSProperties}

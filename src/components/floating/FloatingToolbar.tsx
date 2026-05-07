@@ -1,14 +1,16 @@
 // src/components/floating/FloatingToolbar.tsx
 //
-// ── 物理骨格: Width 48px / Height 画面高（吸着スラブ）────────────────────
-//   背景: rgba(6,9,16,0.55) / 影なし / 画面接地辺に SpecularBorder
-//   逆側: round 12px / DNA レイアウト: x=24 中心軸の縦構成
+// ── デザインベース: 637f4a9 ────────────────────────────────────────────
+//   glass tokens でテーマ即時反映 / TactileButton 28px / スロット 14px
+//   24px 真円: 開閉ボタン・HeroDot・下部アクション
+//   Specular + ColorBleed 全周 / 動的スロット数（高さ連動）
 //
-// ── A→B enter clip-path タイムライン（300ms）──────────────────────────
-//   TB_DOT_ORIGIN（HeroDot 半径 12px）→ TB_OPEN（circle 150%）
-//
-// ── B→A exit clip-path タイムライン（550ms）────────────────────────────
-//   TB_OPEN → TB_DOT_ORIGIN（ドット位置へ一気に吸い込まれる）
+// ── 操作 ──────────────────────────────────────────────────────────────
+//   HeroDot シングルクリック: 保存 + Accent Ring
+//   HeroDot ダブルクリック:  B → Main（explosionPending）
+//   開閉ボタン:               B → A（カプセルへ）
+//   スロット クリック:        currentColor ↔ スロット色 swap
+//   右クリック:               ガラスコンテキストメニュー
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useCallback, useRef, useEffect } from 'react'
@@ -16,154 +18,368 @@ import type { Easing } from 'motion-utils'
 import { useFloatingStore } from '@/store/floatingStore'
 import { HandyDock } from './HandyDock'
 import { SpecularBorder, ColorBleed, useSpecularReflection } from './SpecularBorder'
-import { usePrefersDark, getGlassTokens } from './useTheme'
+import { getGlassTokens } from './useTheme'
+import { FloatingContextMenu } from './FloatingContextMenu'
+import type { ContextMenuItem } from './FloatingContextMenu'
 import {
+  IconCaretLeft,
+  IconCaretRight,
   IconEyedropper,
-  IconCheck,
   IconFolder,
+  IconSun,
+  IconMoon,
+  IconFloppyDisk,
+  IconCopy,
+  IconPalette,
 } from '@/components/ui/Icons'
 
-// ── 画面高（モジュール定数: 起動時一度だけ読む）──────────────────────
+// ── Eraser アイコンを Phosphor から直接 import（Icons.tsx 未登録） ──
+import { Eraser as IconEraser } from '@phosphor-icons/react'
+
+// ── 定数（変更禁止）──────────────────────────────────────────────────
 const SCREEN_H = typeof window !== 'undefined' ? window.screen.availHeight : 800
 
-// ── clip-path 定数（動的計算: SCREEN_H 依存）──────────────────────────
-// HeroDot 中心: left=12 + 24/2 = 24px → 50%, top=46 + 24/2 = 58px
-const _dotPctY    = ((58 / SCREEN_H) * 100).toFixed(2)
-const TB_DOT_POS  = `50% ${_dotPctY}%`
-const TB_OPEN     = `circle(150% at ${TB_DOT_POS})`
-// TB_DOT_ORIGIN: HeroDot 半径 12px の固定長（参照長に依らず正確）
+// clip-path（px 絶対値）
+const TB_DOT_POS    = '24px 58px'
+const TB_OPEN       = `circle(150% at ${TB_DOT_POS})`
 const TB_DOT_ORIGIN = `circle(12px at ${TB_DOT_POS})`
 
-// ── タイミング（変更禁止）──────────────────────────────────────────────
 const AB_ENTER_DELAY   = 0.914
 const AB_ENTER_DUR     = 0.36
 const BA_EXIT_DUR        = 0.55
 const BA_BUTTON_EXIT_DUR = 0.22
 const BA_BG_EXIT_DELAY   = 0.00
 const TRIM_DELAY_BA      = 1700
-const DOCK_CLOSE_DELAY = 220
+const DOCK_CLOSE_DELAY   = 220
 
-// ── イージング（変更禁止）─────────────────────────────────────────────
 const EASE_QUINT: Easing = [0.8, 0, 0.6, 1] as Easing
-const ENTER_DUR        = 0.30
+const ENTER_DUR = 0.30
 
-// ── ユーティリティ ───────────────────────────────────────────────────
-function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text).catch(() => {
-    const el = document.createElement('textarea')
-    el.value = text
-    document.body.appendChild(el)
-    el.select()
-    document.execCommand('copy')
-    document.body.removeChild(el)
-  })
+// ── スロット計算 ───────────────────────────────────────────────────────
+// FIXED_H: 0スロット時の高さ（gap:8 で全要素を積んだ合計）
+// BASE_H: 最小スロット数（4本）での高さ
+// TactileButton が 32px ラッパー（旧 24px 直置き）に変更されたため +24px 更新済み
+const FIXED_H    = 234   // スロットなしの固定要素合計（TactileButton×3 が 32px ラッパーに変更）
+const SLOT_STEP  = 22    // 14px dot + 8px gap（flex gap と同じ）
+const MIN_SLOTS  = 4
+export const BASE_H = FIXED_H + MIN_SLOTS * SLOT_STEP  // ≈ 298px
+export const MAX_H  = 400
+
+export function calcSlotCount(h: number): number {
+  if (h <= BASE_H) return MIN_SLOTS
+  return MIN_SLOTS + Math.floor((h - BASE_H) / SLOT_STEP)
 }
 
-// ── FloatingToolbar ─────────────────────────────────────────────────
-export function FloatingToolbar() {
+// ── TactileButton ────────────────────────────────────────────────────
+interface TactileButtonProps {
+  onClick?: () => void
+  onPointerDown?: () => void
+  onPointerUp?: () => void
+  onPointerLeave?: () => void
+  onContextMenu?: (e: React.MouseEvent) => void
+  title?: string
+  children: React.ReactNode
+  active?: boolean
+  isDark: boolean
+  entranceDelay?: number
+  size?: number
+  /** ヒットボックスサイズ（ビジュアルは size のまま、当たり判定のみ拡張） */
+  hitbox?: number
+}
+
+function TactileButton({
+  onClick, onPointerDown, onPointerUp, onPointerLeave, onContextMenu,
+  title, children, active, isDark, entranceDelay, size = 24, hitbox = 32,
+}: TactileButtonProps) {
+  const glass = getGlassTokens(isDark)
+  const hasEntrance = entranceDelay !== undefined
+  return (
+    // 透明コンテナ: ヒットボックスのみ拡張（ビジュアルに影響しない）
+    <div style={{
+      width: hitbox, height: hitbox,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      flexShrink: 0, WebkitAppRegion: 'no-drag',
+    } as React.CSSProperties}>
+      <motion.button
+        onClick={onClick}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerLeave}
+        onContextMenu={onContextMenu}
+        title={title}
+        initial={hasEntrance ? { y: 20, opacity: 0 } : undefined}
+        animate={hasEntrance ? { y: 0, opacity: 1 } : undefined}
+        exit={{ y: -20, scale: 0.7, opacity: 0, transition: {
+          y:       { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
+          scale:   { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
+          opacity: { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
+        }}}
+        whileTap={{ scale: 0.88 }}
+        transition={hasEntrance ? {
+          y:       { delay: entranceDelay, duration: ENTER_DUR, ease: EASE_QUINT },
+          opacity: { delay: entranceDelay, duration: ENTER_DUR, ease: EASE_QUINT },
+          scale:   { type: 'spring', stiffness: 300, damping: 30 },
+        } : { type: 'spring', stiffness: 300, damping: 30 }}
+        style={{
+          // ④ LED active: 背景・ボーダーは常に非アクティブと同一。アイコン自発光のみで状態表現
+          background: glass.buttonBg,
+          border: `0.5px solid ${glass.buttonBorder}`,
+          borderRadius: '50%',
+          width: size, height: size,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          color: active ? glass.accentColor : glass.textMuted,
+          padding: 0,
+          WebkitAppRegion: 'no-drag',
+          flexShrink: 0, position: 'relative', zIndex: 1,
+        } as React.CSSProperties}
+      >
+        {/* active 時: アイコン形状に沿った LED グロー（drop-shadow は透過形状対応） */}
+        <span style={active ? {
+          filter: `drop-shadow(0 0 6px ${glass.accentSolid})`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        } : undefined}>
+          {children}
+        </span>
+      </motion.button>
+    </div>
+  )
+}
+
+// ── FloatingToolbar ──────────────────────────────────────────────────
+export function FloatingToolbar({ toolbarHeight, onHeightChange }: {
+  toolbarHeight: number
+  onHeightChange: (h: number) => void
+}) {
   const {
     currentColor, snapSide,
-    miniSlots, setMiniSlot, promoteSlot,
-    setFloatingState, setPendingSaveAfterPick, setBToMainPending,
+    miniSlots, setMiniSlot, swapWithSlot,
+    setFloatingState, setPendingSaveAfterPick,
+    setExplosionPending, setBToMainPending,
+    setSaveFlash, eyeActive, setEyeActive,
   } = useFloatingStore()
 
-  const [copied, setCopied]               = useState(false)
-  const [dockOpen, setDockOpen]           = useState(false)
-  const [eyeLongActive, setEyeLongActive] = useState(false)
-  const [ejectingIndex, setEjectingIndex] = useState<number | null>(null)
-
-  const copyTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const slotTimers    = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
-  const trimTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const eyeTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const isDark   = usePrefersDark()
-  const glass    = getGlassTokens(isDark)
-  const specular = useSpecularReflection({ accentHex: currentColor.hex })
-
-  // ── Cleanup ──────────────────────────────────────────────────
+  // テーマ: local state で即時反映
+  const [isDark, setIsDark] = useState(
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
   useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  const glass    = getGlassTokens(isDark)
+  const specular = useSpecularReflection({ accentHex: currentColor.hex, isDark })
+
+  const [dockOpen, setDockOpen]          = useState(false)
+  const [flashingSlot, setFlashingSlot]  = useState<number | null>(null)
+  // Blooming フェーズ（A→B 入場アニメーション）が完了したかどうか
+  const isBloomingPhaseRef = useRef(true)
+  // スポイト: ピッカーが開いた後の pointerLeave でリセットしないフラグ
+  const pickerOpenedRef    = useRef(false)
+
+  // コンテキストメニュー
+  const [dotMenu, setDotMenu]   = useState<{ x: number; y: number } | null>(null)
+  const [slotMenu, setSlotMenu] = useState<{ x: number; y: number; index: number } | null>(null)
+  const menuWindowExpandedRef = useRef(false)
+
+  const trimTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const delayTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const eyeTimerRef      = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const clickTimerRef    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const clickCountRef    = useRef(0)
+
+  useEffect(() => {
+    // Blooming フェーズ終了タイマー（最後スロットの入場完了後）
+    const lastSlotDelay = (AB_ENTER_DELAY + 0.08 + (MIN_SLOTS - 1) * 0.02 + 0.15) * 1000
+    const bloomTimer = setTimeout(() => { isBloomingPhaseRef.current = false }, lastSlotDelay)
     return () => {
-      if (copyTimerRef.current)  clearTimeout(copyTimerRef.current)
-      if (trimTimerRef.current)  clearTimeout(trimTimerRef.current)
-      if (delayTimerRef.current) clearTimeout(delayTimerRef.current)
-      if (eyeTimerRef.current)   clearTimeout(eyeTimerRef.current)
-      slotTimers.current.forEach(t => clearTimeout(t))
+      clearTimeout(bloomTimer)
+      if (trimTimerRef.current)     clearTimeout(trimTimerRef.current)
+      if (delayTimerRef.current)    clearTimeout(delayTimerRef.current)
+      if (eyeTimerRef.current)      clearTimeout(eyeTimerRef.current)
+      if (clickTimerRef.current)    clearTimeout(clickTimerRef.current)
+      if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current)
     }
   }, [])
 
-  // ── コピー（flash）──────────────────────────────────────────
-  const handleCopyHex = useCallback(() => {
-    copyToClipboard(currentColor.hex)
-    setCopied(true)
-    specular.flash()
-    if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
-    copyTimerRef.current = setTimeout(() => setCopied(false), 1500)
-  }, [currentColor.hex, specular])
+  // スロット数をツールバー高さから計算して miniSlots 長を同期
+  const slotCount = calcSlotCount(toolbarHeight)
+  useEffect(() => {
+    const { miniSlots: slots } = useFloatingStore.getState()
+    if (slots.length === slotCount) return
+    if (slotCount > slots.length) {
+      // 増加: null で埋める
+      const next = [...slots, ...Array(slotCount - slots.length).fill(null)]
+      useFloatingStore.setState({ miniSlots: next })
+    } else {
+      // 減少: 末尾を切る
+      useFloatingStore.setState({ miniSlots: slots.slice(0, slotCount) })
+    }
+  }, [slotCount])
 
-  // ── ドットダブルクリック: B → Main ───────────────────────────
-  const handleDotDoubleClick = useCallback(() => {
-    setDockOpen(false)
-    const anchor = snapSide === 'right' ? 'right' : 'left'
-    window.electronAPI?.requestFloatingResize({ width: 80, height: SCREEN_H, anchor })
-    delayTimerRef.current = setTimeout(() => {
-      setBToMainPending(true)
-      setFloatingState('tab')
-    }, 60)
-  }, [setFloatingState, snapSide, setBToMainPending])
+  // ── 保存フラッシュ（HeroDot がほわーんとグロー）────────────────
+  const doSaveFlash = useCallback(() => {
+    setSaveFlash(true)
+    setTimeout(() => setSaveFlash(false), 200)
+  }, [setSaveFlash])
 
-  // ── スポイト（長押し 450ms = 保存フラグ ON）─────────────────
+  // ── コンテキストメニュー用ウィンドウ拡張ヘルパー ────────────
+  const expandForMenu = useCallback((cb: () => void) => {
+    // 既存の collapse タイマーをキャンセル（右クリック連打の collapse 競合を防ぐ）
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current)
+      collapseTimerRef.current = null
+    }
+    if (!dockOpen && !menuWindowExpandedRef.current) {
+      menuWindowExpandedRef.current = true
+      const anchor = snapSide === 'right' ? 'right' : 'left'
+      window.electronAPI?.requestFloatingResize({ width: 248, height: SCREEN_H, anchor })
+      setTimeout(cb, 50)
+    } else {
+      cb()
+    }
+  }, [dockOpen, snapSide])
+
+  const collapseAfterMenu = useCallback(() => {
+    if (!menuWindowExpandedRef.current || dockOpen) return
+    // タイマーで collapse（expandForMenu がキャンセル可能）
+    collapseTimerRef.current = setTimeout(() => {
+      collapseTimerRef.current = null
+      if (!menuWindowExpandedRef.current || dockOpen) return
+      menuWindowExpandedRef.current = false
+      const anchor = snapSide === 'right' ? 'right' : 'left'
+      window.electronAPI?.requestFloatingResize({ width: 48, height: SCREEN_H, anchor })
+    }, 100)
+  }, [dockOpen, snapSide])
+
+  // ── HeroDot クリック（シングル/ダブル判定）────────────────────
+  const handleDotClick = useCallback(() => {
+    clickCountRef.current += 1
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+    clickTimerRef.current = setTimeout(() => {
+      const count = clickCountRef.current
+      clickCountRef.current = 0
+      if (count === 1) {
+        // シングル → 保存フラッシュ
+        window.electronAPI?.floatingSaveColor?.({
+          hex: currentColor.hex,
+          alpha: currentColor.alpha,
+          name: currentColor.name ?? currentColor.hex,
+        })
+        doSaveFlash()
+      } else {
+        // ダブル → B→Main（explosionPending + BToMainPending 両方セット）
+        setExplosionPending(true)
+        setBToMainPending(true)
+        setDockOpen(false)
+        const anchor = snapSide === 'right' ? 'right' : 'left'
+        window.electronAPI?.requestFloatingResize({ width: 80, height: toolbarHeight, anchor })
+        delayTimerRef.current = setTimeout(() => {
+          setFloatingState('tab')
+        }, 60)
+      }
+    }, 220)
+  }, [currentColor, snapSide, toolbarHeight, doSaveFlash, setExplosionPending, setBToMainPending, setFloatingState])
+
+  // ── HeroDot 右クリックメニュー ────────────────────────────────
+  const handleDotContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    setSlotMenu(null)  // スロットメニューを閉じる（排他）
+    const clientY = e.clientY
+    expandForMenu(() => setDotMenu({ x: 56, y: clientY }))
+  }, [expandForMenu])
+
+  const dotMenuItems: ContextMenuItem[] = [
+    {
+      icon: <IconFloppyDisk size={14} />,
+      label: 'ライブラリへ保存',
+      onClick: () => {
+        window.electronAPI?.floatingSaveColor?.({
+          hex: currentColor.hex,
+          alpha: currentColor.alpha,
+          name: currentColor.name ?? currentColor.hex,
+        })
+        doSaveFlash()
+      },
+    },
+    {
+      icon: <IconCopy size={14} />,
+      label: 'HEXをコピー',
+      onClick: () => navigator.clipboard.writeText(currentColor.hex),
+    },
+    {
+      icon: <IconPalette size={14} />,
+      label: 'RGBをコピー',
+      onClick: () => {
+        const hex = currentColor.hex.replace('#', '')
+        const r = parseInt(hex.slice(0,2), 16)
+        const g = parseInt(hex.slice(2,4), 16)
+        const b = parseInt(hex.slice(4,6), 16)
+        navigator.clipboard.writeText(`rgb(${r}, ${g}, ${b})`)
+      },
+    },
+  ]
+
+  // ── スポイト ──────────────────────────────────────────────────
   const handleEyePointerDown = useCallback(() => {
+    setEyeActive(true)
+    pickerOpenedRef.current = false
     eyeTimerRef.current = setTimeout(() => {
-      setEyeLongActive(true)
-      setPendingSaveAfterPick(true)
+      eyeTimerRef.current = null
+      setPendingSaveAfterPick(true)  // 450ms 長押し: 取得後に自動保存
     }, 450)
-  }, [setPendingSaveAfterPick])
+  }, [setEyeActive, setPendingSaveAfterPick])
 
   const handleEyePointerUp = useCallback(() => {
+    // タイマーがまだ生きていれば短押し → キャンセル（自動保存しない）
     if (eyeTimerRef.current) { clearTimeout(eyeTimerRef.current); eyeTimerRef.current = null }
-    setEyeLongActive(false)
+    pickerOpenedRef.current = true  // ピッカー開放中: pointerLeave でリセットしない
     window.electronAPI?.startScreenPicker()
+    // eyeActive は FloatingSystemView の onFloatingColorFromPicker でリセット
   }, [])
 
   const handleEyePointerLeave = useCallback(() => {
+    if (pickerOpenedRef.current) return  // ピッカー使用中は何もしない
     if (eyeTimerRef.current) { clearTimeout(eyeTimerRef.current); eyeTimerRef.current = null }
-    setEyeLongActive(false)
+    setEyeActive(false)
     setPendingSaveAfterPick(false)
-  }, [setPendingSaveAfterPick])
+  }, [setEyeActive, setPendingSaveAfterPick])
 
-  // ── スロット操作 ────────────────────────────────────────────
-  const handleSlotPointerDown = useCallback((i: number) => {
-    slotTimers.current.set(i, setTimeout(() => {
-      slotTimers.current.delete(i)
-      setMiniSlot(i, currentColor.hex)
-    }, 450))
-  }, [currentColor.hex, setMiniSlot])
+  // ── テーマ切替 ─────────────────────────────────────────────────
+  const handleToggleTheme = useCallback(() => {
+    const next = !isDark
+    setIsDark(next)
+    window.electronAPI?.setTheme?.(next ? 'dark' : 'light')
+  }, [isDark])
 
-  const handleSlotPointerUp = useCallback((i: number, hex: string | null) => {
-    const t = slotTimers.current.get(i); if (!t) return
-    clearTimeout(t); slotTimers.current.delete(i)
+  // ── スロット操作 ───────────────────────────────────────────────
+  const handleSlotClick = useCallback((i: number, hex: string | null) => {
     if (hex) {
-      setEjectingIndex(i)
+      // 有色スロット → swap
+      swapWithSlot(i)
+      window.electronAPI?.floatingColorSelected(hex)
     } else {
-      window.electronAPI?.floatingSaveColor?.({
-        hex: currentColor.hex,
-        alpha: currentColor.alpha,
-        name: currentColor.name ?? currentColor.hex,
-      })
-      window.electronAPI?.floatingColorSelected(currentColor.hex)
-      specular.flash()
-      setMiniSlot(i, currentColor.hex)
+      // 空スロット → 最新 state で同色チェック後に登録（stale closure 回避）
+      const { currentColor: c, miniSlots: slots } = useFloatingStore.getState()
+      if (slots.some(s => s === c.hex)) return
+      window.electronAPI?.floatingSaveColor?.({ hex: c.hex, alpha: c.alpha, name: c.name ?? c.hex })
+      window.electronAPI?.floatingColorSelected(c.hex)
+      setMiniSlot(i, c.hex)
     }
-  }, [currentColor, specular, setMiniSlot])
+  }, [setMiniSlot, swapWithSlot])
 
-  const handleSlotPointerLeave = useCallback((i: number) => {
-    const t = slotTimers.current.get(i)
-    if (t) { clearTimeout(t); slotTimers.current.delete(i) }
-  }, [])
+  const handleSlotContextMenu = useCallback((e: React.MouseEvent, i: number) => {
+    e.preventDefault()
+    setDotMenu(null)  // HeroDot メニューを閉じる（排他）
+    const clientY = e.clientY
+    expandForMenu(() => setSlotMenu({ x: 56, y: clientY, index: i }))
+  }, [expandForMenu])
 
-  // ── 縮小（B → A）──────────────────────────────────────────────
+  // ── 縮小（B → A）─────────────────────────────────────────────
   const handleShrink = useCallback(() => {
     setDockOpen(false)
     const anchor = snapSide === 'right' ? 'right' : 'left'
@@ -190,11 +406,9 @@ export function FloatingToolbar() {
   }, [dockOpen, snapSide])
 
   const isDockLeft = snapSide !== 'right'
-
-  // ── 角丸: 画面接地辺は直角、逆側は round 24px（Floating パネル標準）─
-  const toolbarRadius = snapSide === 'right' ? '24px 0 0 24px' : '0 24px 24px 0'
-  // SpecularBorder は画面接地辺（right snap → 右辺、left snap → 左辺）
-  const specularSide = snapSide === 'right' ? 'right' as const : 'left' as const
+  const caretIcon  = snapSide === 'right'
+    ? <IconCaretRight size={10} weight="bold" />
+    : <IconCaretLeft  size={10} weight="bold" />
 
   return (
     <div
@@ -217,255 +431,262 @@ export function FloatingToolbar() {
           },
         }}
         transition={{
-          opacity: {
-            delay:    AB_ENTER_DELAY,
-            duration: 0.008,
-            ease:     'linear',
-          },
-          clipPath: {
-            delay:    AB_ENTER_DELAY,
-            duration: AB_ENTER_DUR,
-            ease:     EASE_QUINT,
-          },
+          opacity:  { delay: AB_ENTER_DELAY, duration: 0.008, ease: 'linear' },
+          clipPath: { delay: AB_ENTER_DELAY, duration: AB_ENTER_DUR, ease: EASE_QUINT },
         }}
         onMouseMove={specular.handleMouseMove}
         onMouseLeave={specular.handleMouseLeave}
         style={{
           position: 'relative',
           width: 48,
-          height: SCREEN_H,
-          borderRadius: toolbarRadius,
-          background: 'rgba(6, 9, 16, 0.55)',
-          backdropFilter: 'blur(24px) saturate(185%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(185%)',
-          boxShadow: 'none',
+          height: toolbarHeight,
+          borderRadius: 24,
+          background: glass.background,
+          backdropFilter: glass.backdropFilter,
+          WebkitBackdropFilter: glass.backdropFilter,
+          boxShadow: glass.boxShadow,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          paddingTop: 12,
+          padding: '12px 0',
+          gap: 8,
           WebkitAppRegion: 'drag',
           flexShrink: 0,
-          overflow: 'hidden',
+          overflow: 'visible',
         } as React.CSSProperties}
       >
-        {/* 内部カラーにじみ */}
-        <ColorBleed
-          borderRadius={toolbarRadius}
-          innerGlow={specular.innerGlow}
-          innerGlowOpacity={specular.innerGlowOpacity}
-        />
-        {/* 画面接地辺のみ 1.4px 鏡面反射 */}
-        <SpecularBorder
-          borderRadius={toolbarRadius}
-          background={specular.background}
-          opacity={specular.opacity}
-          side={specularSide}
-        />
+        <ColorBleed borderRadius={24} innerGlow={specular.innerGlow} innerGlowOpacity={specular.innerGlowOpacity} />
+        <SpecularBorder borderRadius={24} background={specular.background} opacity={specular.opacity} />
 
-        {/* ── 縮小ハンドル（B → A, 最上部）── */}
+        {/* ── 開閉ボタン（B → A）── */}
         <motion.button
           onClick={handleShrink}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT } }}
-          transition={{ delay: AB_ENTER_DELAY + 0.00, duration: ENTER_DUR, ease: EASE_QUINT }}
-          whileTap={{ scaleX: 0.85 }}
-          title="カプセルに戻す"
-          style={{
-            width: 20, height: 3, borderRadius: 2,
-            background: 'rgba(255,255,255,0.14)',
-            border: 'none', cursor: 'pointer',
-            WebkitAppRegion: 'no-drag',
-            position: 'relative', zIndex: 1, flexShrink: 0,
-            padding: 0,
-            marginBottom: 9,
-          } as React.CSSProperties}
-        />
-
-        {/* ── HeroDot スペーサー（FloatingSystemView の HeroDot が視覚を担当）── */}
-        <div
-          onDoubleClick={handleDotDoubleClick}
-          style={{
-            width: 24, height: 24, flexShrink: 0,
-            position: 'relative', zIndex: 1,
-            cursor: 'pointer', WebkitAppRegion: 'no-drag',
-          } as React.CSSProperties}
-        />
-
-        {/* ── Action Group: Eyedropper + HEX text ── */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
+          initial={{ y: -8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -16, opacity: 0, transition: {
+          exit={{ y: -20, scale: 0.7, opacity: 0, transition: {
             y:       { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
+            scale:   { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
             opacity: { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
           }}}
+          whileTap={{ scale: 0.88 }}
           transition={{
-            y:       { delay: AB_ENTER_DELAY + 0.04, duration: ENTER_DUR, ease: EASE_QUINT },
-            opacity: { delay: AB_ENTER_DELAY + 0.04, duration: ENTER_DUR, ease: EASE_QUINT },
+            y:       { delay: AB_ENTER_DELAY + 0.00, duration: ENTER_DUR, ease: EASE_QUINT },
+            opacity: { delay: AB_ENTER_DELAY + 0.00, duration: ENTER_DUR, ease: EASE_QUINT },
+            scale:   { type: 'spring', stiffness: 300, damping: 30 },
           }}
+          title="カプセルに戻す"
           style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            gap: 5, marginTop: 10,
+            background: glass.buttonBg,
+            border: `0.5px solid ${glass.buttonBorder}`,
+            borderRadius: '50%',
+            width: 24, height: 24,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: glass.textMuted, padding: 0,
+            WebkitAppRegion: 'no-drag',
             position: 'relative', zIndex: 1, flexShrink: 0,
           } as React.CSSProperties}
         >
-          {/* Eyedropper ボタン */}
-          <motion.button
-            onPointerDown={handleEyePointerDown}
-            onPointerUp={handleEyePointerUp}
-            onPointerLeave={handleEyePointerLeave}
-            title="スポイト（長押し：取得後に自動保存）"
-            whileTap={{ scale: 0.90 }}
-            style={{
-              background: eyeLongActive ? glass.accentBg : 'rgba(255,255,255,0.07)',
-              border: `0.5px solid ${eyeLongActive ? glass.accentBorder : 'rgba(255,255,255,0.10)'}`,
-              borderRadius: '50%',
-              width: 28, height: 28,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-              color: eyeLongActive ? glass.accentColor : glass.textMuted,
-              padding: 0,
-              WebkitAppRegion: 'no-drag',
-              flexShrink: 0,
-            } as React.CSSProperties}
-          >
-            <IconEyedropper size={13} />
-          </motion.button>
+          {caretIcon}
+        </motion.button>
 
-          {/* HEX テキスト（クリックでコピー）*/}
-          <motion.button
-            onClick={handleCopyHex}
-            title="HEXをコピー"
-            whileTap={{ scale: 0.94 }}
-            style={{
-              background: 'none', border: 'none', padding: 0,
-              cursor: 'pointer', WebkitAppRegion: 'no-drag',
-              fontFamily: 'monospace',
-              fontSize: 8,
-              letterSpacing: '0.03em',
-              color: copied ? glass.accentColor : 'rgba(255,255,255,0.45)',
-              lineHeight: 1,
-              flexShrink: 0,
-            } as React.CSSProperties}
-          >
-            {copied
-              ? <IconCheck size={9} />
-              : currentColor.hex.replace('#', '').toUpperCase()
-            }
-          </motion.button>
-        </motion.div>
-
-        {/* ── Separator ── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT } }}
-          transition={{ delay: AB_ENTER_DELAY + 0.06, duration: ENTER_DUR, ease: EASE_QUINT }}
+        {/* ── HeroDot スペーサー（実体は FloatingSystemView の HeroDot） ── */}
+        {/* ヒットボックス 30px > ビジュアル 24px: 操作の遊びを確保 */}
+        <div
+          onClick={handleDotClick}
+          onContextMenu={handleDotContextMenu}
+          title="クリック:保存 / ダブルクリック:メインへ"
           style={{
-            width: 28, height: 0.5,
-            background: 'rgba(255,255,255,0.10)',
-            position: 'relative', zIndex: 1, flexShrink: 0,
-            marginTop: 7, marginBottom: 7,
+            position: 'relative',
+            width: 30, height: 30, flexShrink: 0,
+            borderRadius: 15,
+            cursor: 'pointer', WebkitAppRegion: 'no-drag',
+            zIndex: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           } as React.CSSProperties}
         />
 
-        {/* ── Mini Slots × 4（14px 丸角、7px gap）── */}
-        <div
-          style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
-            position: 'relative', zIndex: 1, flexShrink: 0,
-          } as React.CSSProperties}
-        >
-          {miniSlots.map((hex, i) => {
-            const isEjecting = ejectingIndex === i
-            return (
-              <motion.button
-                key={`${i}-${hex ?? 'empty'}`}
-                layoutId={`slot-${i}`}
-                initial={{ y: 16, scale: 0.6, opacity: 0 }}
-                animate={isEjecting
-                  ? { y: -20, scale: 0.2, opacity: 0 }
-                  : { y: 0, scale: 1, opacity: 1 }
-                }
-                exit={{ y: -16, scale: 0.7, opacity: 0, transition: {
-                  y:       { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
-                  scale:   { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
-                  opacity: { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
-                }}}
-                onAnimationComplete={() => {
-                  if (isEjecting && hex) {
-                    promoteSlot(hex)
-                    window.electronAPI?.floatingColorSelected(hex)
-                    setEjectingIndex(null)
-                  }
-                }}
-                whileHover={isEjecting ? {} : { opacity: 0.75 }}
-                whileTap={isEjecting ? {} : { scale: 0.85 }}
-                transition={isEjecting
-                  ? {
-                      y:       { duration: 0.22, ease: EASE_QUINT },
-                      scale:   { duration: 0.22, ease: EASE_QUINT },
-                      opacity: { duration: 0.18, ease: EASE_QUINT },
-                    }
-                  : {
-                      y:       { delay: AB_ENTER_DELAY + 0.08 + i * 0.02, duration: ENTER_DUR, ease: EASE_QUINT },
-                      scale:   { delay: AB_ENTER_DELAY + 0.08 + i * 0.02, duration: ENTER_DUR, ease: EASE_QUINT },
-                      opacity: { delay: AB_ENTER_DELAY + 0.08 + i * 0.02, duration: ENTER_DUR, ease: EASE_QUINT },
-                    }
-                }
-                onPointerDown={() => !isEjecting && handleSlotPointerDown(i)}
-                onPointerUp={() => !isEjecting && handleSlotPointerUp(i, hex)}
-                onPointerLeave={() => handleSlotPointerLeave(i)}
-                onContextMenu={(e) => { e.preventDefault(); setMiniSlot(i, null) }}
-                title={hex
-                  ? `${hex}（クリック:Active昇格 / 長押し:上書き / 右クリック:解除）`
-                  : '（長押し:現在色を登録）'}
-                style={{
-                  width: 14, height: 14,
-                  borderRadius: 4,
-                  background: hex ?? 'rgba(255,255,255,0.06)',
-                  border: hex ? 'none' : `0.5px solid rgba(255,255,255,0.12)`,
-                  cursor: isEjecting ? 'default' : 'pointer',
-                  flexShrink: 0, position: 'relative', zIndex: 1,
-                  WebkitAppRegion: 'no-drag', padding: 0, display: 'block',
-                } as React.CSSProperties}
-              />
-            )
-          })}
-        </div>
-
-        {/* ── Dock 展開ボタン（絶対配置・最下部）── */}
-        <motion.button
-          onClick={() => setDockOpen(v => !v)}
+        {/* ── Divider 1 ── */}
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT } }}
-          transition={{ delay: AB_ENTER_DELAY + 0.16, duration: ENTER_DUR, ease: EASE_QUINT }}
-          title={dockOpen ? 'Dockを閉じる' : 'Dockを開く'}
-          whileTap={{ scale: 0.90 }}
-          style={{
-            position: 'absolute', bottom: 12,
-            background: dockOpen ? glass.accentBg : 'rgba(255,255,255,0.07)',
-            border: `0.5px solid ${dockOpen ? glass.accentBorder : 'rgba(255,255,255,0.10)'}`,
-            borderRadius: '50%',
-            width: 28, height: 28,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer',
-            color: dockOpen ? glass.accentColor : glass.textMuted,
-            padding: 0,
-            WebkitAppRegion: 'no-drag',
-            zIndex: 1,
-          } as React.CSSProperties}
+          exit={{ opacity: 0, transition: { duration: BA_BUTTON_EXIT_DUR } }}
+          transition={{ delay: AB_ENTER_DELAY + 0.02, duration: ENTER_DUR, ease: EASE_QUINT }}
+          style={{ width: 28, height: 0.5, background: glass.divider, flexShrink: 0, zIndex: 1, position: 'relative' }}
+        />
+
+        {/* ── Eyedropper ── */}
+        <TactileButton
+          onPointerDown={handleEyePointerDown}
+          onPointerUp={handleEyePointerUp}
+          onPointerLeave={handleEyePointerLeave}
+          title="スポイト（長押し：取得後に自動保存）"
+          active={eyeActive}
+          isDark={isDark}
+          entranceDelay={AB_ENTER_DELAY + 0.04}
         >
-          <IconFolder size={13} />
-        </motion.button>
+          <IconEyedropper size={14} weight={eyeActive ? 'fill' : 'regular'} />
+        </TactileButton>
+
+        {/* ── Divider 2 ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: BA_BUTTON_EXIT_DUR } }}
+          transition={{ delay: AB_ENTER_DELAY + 0.06, duration: ENTER_DUR, ease: EASE_QUINT }}
+          style={{ width: 28, height: 0.5, background: glass.divider, flexShrink: 0, zIndex: 1, position: 'relative' }}
+        />
+
+        {/* ── Mini Slots（動的数）── */}
+        {miniSlots.slice(0, slotCount).map((hex, i) => {
+          const inBlooming = isBloomingPhaseRef.current
+          const bloomDelay = AB_ENTER_DELAY + 0.08 + i * 0.02
+          return (
+            <motion.button
+              key={`slot-${i}-${hex ?? 'empty'}`}
+              // Blooming: y+scale+opacity でスタッガー入場（clip は即全開）
+              // 通常登録: 中心から色が満ちる clip-path アニメーション
+              initial={inBlooming
+                ? { y: 4, scale: 0.6, opacity: 0 }
+                : { scale: 1, opacity: 1, y: 0 }
+              }
+              animate={{ y: 0, scale: 1, opacity: 1 }}
+              exit={{ y: -4, scale: 0.7, opacity: 0, transition: {
+                y:       { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
+                scale:   { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
+                opacity: { duration: BA_BUTTON_EXIT_DUR, ease: EASE_QUINT },
+              }}}
+              whileTap={{ scale: 0.85 }}
+              transition={{
+                y:       inBlooming ? { delay: bloomDelay, duration: 0.15, ease: EASE_QUINT } : { duration: 0 },
+                scale:   inBlooming ? { delay: bloomDelay, duration: 0.15, ease: EASE_QUINT } : { duration: 0 },
+                opacity: inBlooming ? { delay: bloomDelay, duration: 0.15, ease: EASE_QUINT } : { duration: 0 },
+              }}
+              onClick={() => handleSlotClick(i, hex)}
+              onContextMenu={(e) => handleSlotContextMenu(e, i)}
+              title={hex
+                ? `${hex}（クリック:Swap）`
+                : '（クリック:現在色を登録）'}
+              style={{
+                // ⑥ layout は 14×14 のまま、overflow:visible で内側の透明ヒット拡張層を通す
+                width: 14, height: 14, borderRadius: '50%',
+                background: 'transparent', border: 'none',
+                cursor: 'pointer', flexShrink: 0, position: 'relative', zIndex: 1,
+                WebkitAppRegion: 'no-drag', padding: 0, overflow: 'visible',
+              } as React.CSSProperties}
+            >
+              {/* ⑥ 透明ヒット拡張層: 5px 外側に延びて 24×24 の当たり判定を形成 */}
+              <div style={{
+                position: 'absolute',
+                top: -5, left: -5, right: -5, bottom: -5,
+                borderRadius: '50%', zIndex: 0,
+              }} />
+              {/* 視覚: 14px 色円。clipPath で登録時の「色が中心から膨らむ」アニメーション */}
+              <motion.div
+                initial={{ clipPath: inBlooming ? 'circle(150% at 50% 50%)' : 'circle(0% at 50% 50%)' }}
+                animate={{ clipPath: 'circle(150% at 50% 50%)' }}
+                transition={{ clipPath: inBlooming ? { duration: 0 } : { duration: 0.18, ease: [0.2, 0, 0.4, 1] as Easing } }}
+                style={{
+                  position: 'absolute', inset: 0,
+                  borderRadius: '50%',
+                  background: hex ?? 'transparent',
+                  border: hex ? 'none' : `0.7px solid ${glass.textExtra}`,
+                  pointerEvents: 'none', zIndex: 1,
+                  boxShadow: flashingSlot === i
+                    ? `0 0 0 1.5px ${glass.accentSolid}`
+                    : hex
+                      ? isDark
+                        ? '0 0 0 1px rgba(255,255,255,0.18), 0 0 0 2px rgba(0,0,0,0.30)'
+                        : '0 0 0 1px rgba(0,0,0,0.14), 0 0 0 2px rgba(255,255,255,0.60)'
+                      : '0 0 0 0px transparent',
+                  transition: 'box-shadow 0.8s ease-out',
+                } as React.CSSProperties}
+              />
+            </motion.button>
+          )
+        })}
+
+        {/* ── Divider 3 ── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, transition: { duration: BA_BUTTON_EXIT_DUR } }}
+          transition={{ delay: AB_ENTER_DELAY + 0.16, duration: ENTER_DUR, ease: EASE_QUINT }}
+          style={{ width: 28, height: 0.5, background: glass.divider, flexShrink: 0, zIndex: 1, position: 'relative' }}
+        />
+
+        {/* ── テーマ切替 ── */}
+        <TactileButton
+          onClick={handleToggleTheme}
+          title={isDark ? 'ライトモードに切り替え' : 'ダークモードに切り替え'}
+          isDark={isDark}
+          entranceDelay={AB_ENTER_DELAY + 0.18}
+        >
+          {isDark ? <IconSun size={14} weight="bold" /> : <IconMoon size={14} weight="bold" />}
+        </TactileButton>
+
+        {/* ── Dock 展開ボタン ── */}
+        <TactileButton
+          onClick={() => setDockOpen(v => !v)}
+          title={dockOpen ? 'Dockを閉じる' : 'Dockを開く'}
+          active={dockOpen}
+          isDark={isDark}
+          entranceDelay={AB_ENTER_DELAY + 0.20}
+        >
+          <IconFolder size={14} weight={dockOpen ? 'fill' : 'regular'} />
+        </TactileButton>
       </motion.div>
 
       {/* ── State C: Handy Dock ── */}
       <AnimatePresence>
-        {dockOpen && <HandyDock snapSide={snapSide} onFlash={specular.flash} />}
+        {dockOpen && (
+          <HandyDock
+            snapSide={snapSide}
+            onFlash={specular.flash}
+            height={toolbarHeight}
+            onHeightChange={onHeightChange}
+          />
+        )}
       </AnimatePresence>
+
+      {/* ── コンテキストメニュー: HeroDot ── */}
+      <FloatingContextMenu
+        open={dotMenu !== null}
+        x={dotMenu?.x ?? 0}
+        y={dotMenu?.y ?? 0}
+        items={dotMenuItems}
+        isDark={isDark}
+        onClose={() => { setDotMenu(null); collapseAfterMenu() }}
+      />
+
+      {/* ── コンテキストメニュー: スロット ── */}
+      <FloatingContextMenu
+        open={slotMenu !== null}
+        x={slotMenu?.x ?? 0}
+        y={slotMenu?.y ?? 0}
+        isDark={isDark}
+        onClose={() => { setSlotMenu(null); collapseAfterMenu() }}
+        items={slotMenu !== null ? [
+          {
+            icon: <IconEraser size={14} />,
+            label: 'スロットをクリア',
+            onClick: () => setMiniSlot(slotMenu.index, null),
+            danger: true,
+          },
+          {
+            icon: <IconFloppyDisk size={14} />,
+            label: 'この色を保存',
+            onClick: () => {
+              const idx = slotMenu.index
+              const hex = miniSlots[idx]
+              if (!hex) return
+              window.electronAPI?.floatingSaveColor?.({ hex, alpha: 1, name: hex })
+              // HeroDot ではなくそのスロットのリングをフラッシュ
+              setFlashingSlot(idx)
+              setTimeout(() => setFlashingSlot(null), 350)
+            },
+          },
+        ] : []}
+      />
     </div>
   )
 }

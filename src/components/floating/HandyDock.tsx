@@ -9,7 +9,7 @@
 // Step 7: 保存成功時に親の flash() を呼ぶ
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useFloatingStore } from '@/store/floatingStore'
 import { usePrefersDark, getGlassTokens } from './useTheme'
 import type { SnapSide } from '@/types/floating'
@@ -21,6 +21,8 @@ import {
 interface HandyDockProps {
   snapSide: SnapSide
   onFlash?: () => void
+  height: number
+  onHeightChange: (h: number) => void
 }
 
 // ── 色行コンポーネント ──────────────────────────────────────────────
@@ -105,10 +107,10 @@ function ColorRow({
 }
 
 // ── HandyDock 本体 ────────────────────────────────────────────────
-export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
+export function HandyDock({ snapSide, onFlash, height, onHeightChange }: HandyDockProps) {
   const {
     history, folders, activeFolderIndex, setActiveFolderIndex,
-    currentColor, setCurrentColorFromPicker,
+    currentColor, setCurrentColorFromPicker, promoteHistory,
   } = useFloatingStore()
 
   const isDark = usePrefersDark()
@@ -127,6 +129,29 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
   const isDockOnRight = snapSide !== 'right'
   const slideX = isDockOnRight ? 12 : -12
 
+  // ── 下端ドラッグリサイズ ────────────────────────────────────────
+  const dragStartY   = useRef(0)
+  const dragStartH   = useRef(0)
+  const isDragging   = useRef(false)
+
+  const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault()
+    dragStartY.current  = e.clientY
+    dragStartH.current  = height
+    isDragging.current  = true
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }, [height])
+
+  const handleResizePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return
+    const delta = e.clientY - dragStartY.current
+    onHeightChange(dragStartH.current + delta)
+  }, [onHeightChange])
+
+  const handleResizePointerUp = useCallback(() => {
+    isDragging.current = false
+  }, [])
+
   const displayItems = activeFolderIndex === 0
     ? history.slice(0, 20)
     : (folders[activeFolderIndex - 1]?.colors ?? [])
@@ -136,6 +161,7 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
 
   // ── handleApply — floatingStore も更新 ───────────────────────
   const handleApply = (hex: string) => {
+    promoteHistory(hex)  // 即時先頭移動（楽観的 UI 更新）
     setCurrentColorFromPicker(hex)
     window.electronAPI?.floatingColorSelected(hex)
   }
@@ -192,7 +218,7 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
       transition={{ type: 'spring', stiffness: 500, damping: 40, mass: 0.5 }}
       style={{
         width: 300,
-        height: 420,       // TOOLBAR_H に合わせる
+        height,
         borderRadius: 16,
         background: glass.dockBg,
         backdropFilter: 'blur(24px) saturate(180%)',
@@ -353,6 +379,7 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
           gap: 6,
         }}
       >
+
         {/* 履歴タブ */}
         <button
           onClick={() => setActiveFolderIndex(0)}
@@ -445,6 +472,28 @@ export function HandyDock({ snapSide, onFlash }: HandyDockProps) {
         >
           <IconPlus size={14} />
         </button>
+      </div>
+
+      {/* ── 下端リサイズハンドル ── */}
+      <div
+        onPointerDown={handleResizePointerDown}
+        onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerUp}
+        title="ドラッグして高さを変更"
+        style={{
+          height: 8,
+          cursor: 'ns-resize',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          WebkitAppRegion: 'no-drag',
+        } as React.CSSProperties}
+      >
+        <div style={{
+          width: 28, height: 2, borderRadius: 1,
+          background: glass.divider,
+        }} />
       </div>
     </motion.div>
   )

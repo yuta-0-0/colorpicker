@@ -27,6 +27,7 @@ export {
   SidebarSimple    as IconSidebarSimple,
   MagnifyingGlass  as IconMagnifyingGlass,
   CaretRight       as IconCaretRight,
+  CaretLeft        as IconCaretLeft,
   FolderSimple     as IconFolder,
   Tag              as IconTag,
   Clock            as IconClock,

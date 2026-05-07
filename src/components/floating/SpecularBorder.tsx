@@ -48,20 +48,25 @@ function makeSpecular(x: number, y: number, accentHex?: string): string {
 
 // ── 内部カラーにじみ（マウス位置 = 光の入射点、そこから内側へ染み込む）
 // ellipse を小さめにして「縁から広がる」感を出す
-function makeInnerGlow(x: number, y: number, accentHex?: string): string {
+function makeInnerGlow(x: number, y: number, accentHex?: string, isDark = true): string {
   if (!accentHex) return 'transparent'
   const rgb = hexToRgb(accentHex)
   if (!rgb) return 'transparent'
   const [r, g, b] = rgb
+  // ライトモードは少し強め、ダークモードは控えめ
+  // 80px 固定半径で「点光源」感を出す。15% で急速フェードし鮮鋭な照射感を演出
+  const alpha1 = isDark ? 0.28 : 0.38
+  const alpha2 = isDark ? 0.12 : 0.16
   return (
-    `radial-gradient(ellipse 55% 40% at ${x}% ${y}%, ` +
-    `rgba(${r},${g},${b},0.16) 0%, ` +
-    `rgba(${r},${g},${b},0.07) 50%, ` +
+    `radial-gradient(circle 80px at ${x}% ${y}%, ` +
+    `rgba(${r},${g},${b},${alpha1}) 0%, ` +
+    `rgba(${r},${g},${b},${alpha2}) 15%, ` +
     `transparent 100%)`
   )
 }
 
-const BASE_OPACITY = 0.30
+// 非ホバー時も常時うっすら光る（完全非表示にしない）
+const BASE_OPACITY = 0.15
 
 // ── Hook ─────────────────────────────────────────────────────────────
 export interface SpecularReflectionControls {
@@ -79,18 +84,23 @@ interface UseSpecularOptions {
   accentHex?: string
   /** 非ホバー時の境界線不透明度（デフォルト 0.30）。FloatingProxy では 1.0 を渡す。 */
   baseOpacity?: number
+  /** ライトモードかどうか（ColorBleed の強度調整に使用） */
+  isDark?: boolean
 }
 
 export function useSpecularReflection(
-  { accentHex, baseOpacity: baseOpacityProp }: UseSpecularOptions = {}
+  { accentHex, baseOpacity: baseOpacityProp, isDark = true }: UseSpecularOptions = {}
 ): SpecularReflectionControls {
   // effectiveBaseRef: レンダー間で安定した ref として保持（コールバック deps に不要）
   const effectiveBaseRef = useRef(baseOpacityProp ?? BASE_OPACITY)
   effectiveBaseRef.current = baseOpacityProp ?? BASE_OPACITY
 
+  const isDarkRef = useRef(isDark)
+  isDarkRef.current = isDark
+
   const background       = useMotionValue(makeSpecular(50, 0, accentHex))
   const opacity          = useMotionValue(effectiveBaseRef.current)
-  const innerGlow        = useMotionValue(makeInnerGlow(50, 50, accentHex))
+  const innerGlow        = useMotionValue(makeInnerGlow(50, 50, accentHex, isDark))
   // にじみは最初は完全透明
   const innerGlowOpacity = useMotionValue(0)
 
@@ -103,7 +113,7 @@ export function useSpecularReflection(
     if (!isHovering.current) {
       background.set(makeSpecular(50, 0, accentHex))
     }
-    innerGlow.set(makeInnerGlow(50, 50, accentHex))
+    innerGlow.set(makeInnerGlow(50, 50, accentHex, isDarkRef.current))
   }, [accentHex, background, innerGlow])
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
@@ -118,7 +128,7 @@ export function useSpecularReflection(
     animate(opacity, 1, { duration: 0.12 })
 
     // にじみ: グラデーション位置を更新
-    innerGlow.set(makeInnerGlow(x, y, accentRef.current))
+    innerGlow.set(makeInnerGlow(x, y, accentRef.current, isDarkRef.current))
     // 初回進入時だけ「にじわっと」フェードイン
     if (!wasHovering) {
       animate(innerGlowOpacity, 1, { duration: 0.35, ease: 'easeOut' })

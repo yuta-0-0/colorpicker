@@ -20,9 +20,10 @@ export function usePrefersDark(): boolean {
 export interface GlassTokens {
   /** メインのグラデーション背景（ガラス面の厚みを表現） */
   background: string
-  /** インセットシャドウ（上端ハイライト + 内側光） */
+  /** インセットシャドウ（0.5px 芯 + 上端ハイライト + 内側光） */
   boxShadow: string
-  /** backdropFilter は両モード共通: blur(24px) saturate(180%) */
+  /** backdrop-filter: saturate/brightness でモード別に純度調整 */
+  backdropFilter: string
   textPrimary: string
   textMuted: string
   textExtra: string
@@ -30,6 +31,10 @@ export interface GlassTokens {
   buttonBg: string
   buttonBorder: string
   accentColor: string
+  /** 保存リング・アクティブアイコン用: 不透明度 100% のアクセントカラー */
+  accentSolid: string
+  /** Gentle Shine 用: opacity 0.3 のソフトアクセント */
+  accentGlow: string
   accentBg: string
   accentBorder: string
   /** ドック背景 */
@@ -43,7 +48,8 @@ export function getGlassTokens(isDark: boolean): GlassTokens {
       background:
         'linear-gradient(180deg, rgba(35,47,68,0.78) 0%, rgba(12,18,34,0.75) 100%)',
       boxShadow:
-        'inset 0 1px 0 rgba(255,255,255,0.22), inset 0 0 14px rgba(255,255,255,0.04)',
+        'inset 0 0 0 0.5px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 0 14px rgba(255,255,255,0.04)',
+      backdropFilter: 'blur(24px) saturate(200%)',
       textPrimary: 'rgba(255,255,255,0.85)',
       textMuted: 'rgba(255,255,255,0.42)',
       textExtra: 'rgba(255,255,255,0.28)',
@@ -51,6 +57,8 @@ export function getGlassTokens(isDark: boolean): GlassTokens {
       buttonBg: 'rgba(255,255,255,0.07)',
       buttonBorder: 'rgba(255,255,255,0.09)',
       accentColor: 'rgba(80,176,211,0.85)',
+      accentSolid: 'rgba(80,176,211,1.0)',
+      accentGlow: 'rgba(80,176,211,0.3)',
       accentBg: 'rgba(80,176,211,0.13)',
       accentBorder: 'rgba(80,176,211,0.32)',
       dockBg:
@@ -64,7 +72,8 @@ export function getGlassTokens(isDark: boolean): GlassTokens {
       'linear-gradient(180deg, rgba(255,255,255,0.63) 0%, rgba(224,232,255,0.57) 100%)',
     // 上端エッジ: 純白フルハイライト（光の当たり面） / 下端エッジ: 青みシャドウ（厚みの底面） / 内部グロー: 透過光
     boxShadow:
-      'inset 0 1.5px 0 rgba(255,255,255,1.0), inset 0 -0.5px 0 rgba(180,205,240,0.32), inset 0 0 20px rgba(255,255,255,0.30)',
+      'inset 0 0 0 0.5px rgba(0,0,0,0.10), inset 0 1.5px 0 rgba(255,255,255,1.0), inset 0 -0.5px 0 rgba(180,205,240,0.32), inset 0 0 20px rgba(255,255,255,0.30)',
+    backdropFilter: 'blur(24px) saturate(200%) brightness(1.08)',
     textPrimary: 'rgba(10,20,40,0.88)',
     textMuted: 'rgba(10,20,40,0.42)',
     textExtra: 'rgba(10,20,40,0.28)',
@@ -72,6 +81,8 @@ export function getGlassTokens(isDark: boolean): GlassTokens {
     buttonBg: 'rgba(10,20,40,0.05)',
     buttonBorder: 'rgba(10,20,40,0.09)',
     accentColor: 'rgba(10,62,216,0.85)',
+    accentSolid: 'rgba(10,62,216,1.0)',
+    accentGlow: 'rgba(10,62,216,0.3)',
     accentBg: 'rgba(10,62,216,0.10)',
     accentBorder: 'rgba(10,62,216,0.24)',
     dockBg:
