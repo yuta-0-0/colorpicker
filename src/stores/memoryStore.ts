@@ -31,4 +31,4 @@ interface MemoryState {
   // TODO: 役割コメント追加後、実装を構成していく
 }
 
-export const useMemoryStore = create<MemoryState>((set) => ({}))
+export const useMemoryStore = create<MemoryState>(() => ({}))

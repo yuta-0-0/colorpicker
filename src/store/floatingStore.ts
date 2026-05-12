@@ -20,14 +20,8 @@ interface FloatingStore {
   folders: FSFolderData[]
   activeFolderIndex: number // 0 = 履歴, 1以降 = folders[index-1]
   miniSlots: (string | null)[]  // 最大4スロット
-  /** スポイト後に自動保存するかどうかのフラグ（長押し判定で true に） */
-  pendingSaveAfterPick: boolean
-  /** HeroDot ダブルクリック後、FloatingTab マウント時に Explosion を発火するフラグ */
-  explosionPending: boolean
   /** FloatingTab ドット上にマウスが乗っている（HeroDot scale 1.1 用） */
   isDotHovered: boolean
-  /** スポイトボタン: pointerDown で true / pick 完了 or pointerLeave で false */
-  eyeActive: boolean
   /** syncFromIPC が currentColor を上書きしない期限（ms timestamp）*/
   _syncLockUntil: number
   // アクション
@@ -45,17 +39,10 @@ interface FloatingStore {
   promoteHistory: (hex: string) => void
   /** スクリーンピッカーで取得した色を直接セット（1500ms 間 syncFromIPC ロック） */
   setCurrentColorFromPicker: (hex: string) => void
-  /** スポイト長押し後の自動保存フラグをセット */
-  setPendingSaveAfterPick: (v: boolean) => void
-  setExplosionPending: (v: boolean) => void
   setDotHovered: (v: boolean) => void
-  setEyeActive: (v: boolean) => void
   /** B→Main 直結: FloatingToolbar アンマウント後も FloatingSystemView でタイマー継続 */
   isBToMainPending: boolean
   setBToMainPending: (v: boolean) => void
-  /** 保存フラッシュ: HeroDot がアクセントカラーに一瞬光る */
-  saveFlash: boolean
-  setSaveFlash: (v: boolean) => void
 }
 
 export const useFloatingStore = create<FloatingStore>((set) => ({
@@ -67,10 +54,7 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
   folders: [],
   activeFolderIndex: 0,
   miniSlots: [null, null, null, null],
-  pendingSaveAfterPick: false,
-  explosionPending: false,
   isDotHovered: false,
-  eyeActive: false,
   _syncLockUntil: 0,
   isBToMainPending: false,
 
@@ -168,11 +152,6 @@ export const useFloatingStore = create<FloatingStore>((set) => ({
       miniSlots: packSlots(state.miniSlots.map(s => s === hex ? null : s)),
     })),
 
-  setPendingSaveAfterPick: (pendingSaveAfterPick) => set({ pendingSaveAfterPick }),
-  setExplosionPending: (explosionPending) => set({ explosionPending }),
   setDotHovered: (isDotHovered) => set({ isDotHovered }),
-  setEyeActive: (eyeActive) => set({ eyeActive }),
   setBToMainPending: (isBToMainPending) => set({ isBToMainPending }),
-  saveFlash: false,
-  setSaveFlash: (saveFlash) => set({ saveFlash }),
 }))

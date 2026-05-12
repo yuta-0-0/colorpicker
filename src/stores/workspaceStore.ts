@@ -29,4 +29,4 @@ interface WorkspaceState {
   // TODO: 役割コメント追加後、実装を構成していく
 }
 
-export const useWorkspaceStore = create<WorkspaceState>((set) => ({}))
+export const useWorkspaceStore = create<WorkspaceState>(() => ({}))

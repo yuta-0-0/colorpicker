@@ -17,6 +17,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Easing } from 'motion-utils'
 import { useFloatingStore } from '@/store/floatingStore'
+import { useEphemeralStore } from '@/stores/ephemeralStore'
 import type { FSSyncPayload } from '@/types/floating'
 import { FloatingTab } from './FloatingTab'
 import { FloatingToolbar, BASE_H, MAX_H } from './FloatingToolbar'
@@ -54,14 +55,17 @@ export function FloatingSystemView() {
     setFloatingState,
     syncFromIPC,
     setCurrentColorFromPicker,
-    pendingSaveAfterPick,
-    setPendingSaveAfterPick,
     isBToMainPending,
     setBToMainPending,
+  } = useFloatingStore()
+
+  const {
+    pendingSaveAfterPick,
+    setPendingSaveAfterPick,
     saveFlash,
     setEyeActive,
     setExplosionPending,
-  } = useFloatingStore()
+  } = useEphemeralStore()
 
   const isDark                   = usePrefersDark()
   const { accentSolid, accentGlow } = getGlassTokens(isDark)

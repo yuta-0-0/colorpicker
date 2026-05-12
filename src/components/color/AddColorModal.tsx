@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { ColorSwatch } from './ColorSwatch'
 import { useColorStore } from '@/store/colorStore'
 import { useUIStore } from '@/store/uiStore'
-import { useHistoryStore } from '@/store/historyStore'
+import { useEphemeralStore } from '@/stores/ephemeralStore'
 import { normalizeToHex } from '@/lib/colorUtils'
 
 interface AddColorModalProps {
@@ -16,7 +16,7 @@ export function AddColorModal({ onClose }: AddColorModalProps) {
   const [saving, setSaving] = useState(false)
   const { addColor } = useColorStore()
   const { activeFolderId } = useUIStore()
-  const { addToHistory } = useHistoryStore()
+  const { addToHistory } = useEphemeralStore()
 
   useEffect(() => {
     if (!input.trim()) {

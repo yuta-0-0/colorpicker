@@ -25,7 +25,7 @@ import { ShortcutHelpModal } from '@/components/ui/ShortcutHelpModal'
 import { downloadAllDataJSON } from '@/lib/exportUtils'
 import { hasTraditionalColor } from '@/lib/colorUtils'
 import { IconSidebarSimple } from '@/components/ui/Icons'
-import { useHistoryStore } from '@/store/historyStore'
+import { useEphemeralStore } from '@/stores/ephemeralStore'
 import type { FSSyncPayload } from '@/types/floating'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useToastStore } from '@/store/toastStore'
@@ -127,7 +127,7 @@ export function AppLayout() {
   const { colors, loading: colorsLoading, fetchColors, addColor } = useColorStore()
   const { fetchFolders, folders } = useFolderStore()
   const { fetchTags, fetchAllColorTags, colorTags, createTag, addTagToColor } = useTagStore()
-  const { addToHistory: addColorToHistory, historyColors } = useHistoryStore()
+  const { addToHistory: addColorToHistory, historyColors } = useEphemeralStore()
   const isOnline = useNetworkStatus()
   const { addToast } = useToastStore()
   const prevIsOnline = useRef(true)

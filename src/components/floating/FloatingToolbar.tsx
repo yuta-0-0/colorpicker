@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { Easing } from 'motion-utils'
 import { useFloatingStore } from '@/store/floatingStore'
+import { useEphemeralStore } from '@/stores/ephemeralStore'
 import { HandyDock } from './HandyDock'
 import { SpecularBorder, ColorBleed, useSpecularReflection } from './SpecularBorder'
 import { getGlassTokens } from './useTheme'
@@ -154,10 +155,14 @@ export function FloatingToolbar({ toolbarHeight, onHeightChange }: {
   const {
     currentColor, snapSide,
     miniSlots, setMiniSlot, swapWithSlot,
-    setFloatingState, setPendingSaveAfterPick,
-    setExplosionPending, setBToMainPending,
-    setSaveFlash, eyeActive, setEyeActive,
+    setFloatingState, setBToMainPending,
   } = useFloatingStore()
+  const {
+    eyeActive, setEyeActive,
+    setPendingSaveAfterPick,
+    setExplosionPending,
+    setSaveFlash,
+  } = useEphemeralStore()
 
   // テーマ: local state で即時反映
   const [isDark, setIsDark] = useState(

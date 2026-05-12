@@ -28,4 +28,4 @@ interface SettingsState {
   // TODO: 役割コメント追加後、実装を構成していく
 }
 
-export const useSettingsStore = create<SettingsState>((set) => ({}))
+export const useSettingsStore = create<SettingsState>(() => ({}))

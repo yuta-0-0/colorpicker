@@ -30,7 +30,7 @@ import { FolderList } from './FolderList'
 import { TagList } from './TagList'
 import { useUIStore, type ToneCategory, type ActiveMode } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
-import { useHistoryStore } from '@/store/historyStore'
+import { useEphemeralStore } from '@/stores/ephemeralStore'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // インラインパレットパネル（フィルター・ソート）
@@ -257,7 +257,7 @@ export function Sidebar({
     setActiveMode,
   } = useUIStore()
   const { colors } = useColorStore()
-  const { historyColors, loadHistory, clearHistory } = useHistoryStore()
+  const { historyColors, loadHistory, clearHistory } = useEphemeralStore()
 
   useEffect(() => { loadHistory() }, [loadHistory])
 

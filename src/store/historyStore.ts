@@ -1,43 +1,17 @@
-import { create } from 'zustand'
-import {
-  addToHistory as dbAddToHistory,
-  getHistory,
-  clearHistory as dbClearHistory,
-  type HistoryColor,
-} from '@/lib/historyDB'
+/**
+ * @deprecated
+ * historyStore は ephemeralStore に統合されました。
+ *
+ * 移行先: src/stores/ephemeralStore.ts
+ *
+ * 旧 API → 新 API:
+ *   useHistoryStore().historyColors  → useEphemeralStore().historyColors
+ *   useHistoryStore().loadHistory    → useEphemeralStore().loadHistory
+ *   useHistoryStore().addToHistory   → useEphemeralStore().addToHistory
+ *   useHistoryStore().clearHistory   → useEphemeralStore().clearHistory
+ *
+ * このファイルは段階移行期間中のみ残します。
+ * 全コンポーネントの import 更新後に削除します。
+ */
 
-interface HistoryStore {
-  historyColors: HistoryColor[]
-  loading: boolean
-
-  /** IndexedDB から履歴を読み込む */
-  loadHistory: () => Promise<void>
-
-  /** 色を履歴に追加し、ストアを更新する */
-  addToHistory: (hex: string, alpha?: number) => Promise<void>
-
-  /** 履歴を全件削除する */
-  clearHistory: () => Promise<void>
-}
-
-export const useHistoryStore = create<HistoryStore>((set) => ({
-  historyColors: [],
-  loading: false,
-
-  loadHistory: async () => {
-    set({ loading: true })
-    const colors = await getHistory()
-    set({ historyColors: colors, loading: false })
-  },
-
-  addToHistory: async (hex, alpha = 1.0) => {
-    await dbAddToHistory(hex, alpha)
-    const colors = await getHistory()
-    set({ historyColors: colors })
-  },
-
-  clearHistory: async () => {
-    await dbClearHistory()
-    set({ historyColors: [] })
-  },
-}))
+export { useEphemeralStore as useHistoryStore } from '@/stores/ephemeralStore'
