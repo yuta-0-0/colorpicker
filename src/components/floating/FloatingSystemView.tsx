@@ -17,7 +17,6 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Easing } from 'motion-utils'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
-import { useFloatingStore } from '@/store/floatingStore'
 import { useEphemeralStore } from '@/stores/ephemeralStore'
 import type { FSSyncPayload } from '@/types/floating'
 import { FloatingTab } from './FloatingTab'
@@ -55,9 +54,8 @@ export function FloatingSystemView() {
     setBToMainPending,
   } = useWorkspaceStore()
 
-  const { isDotHovered } = useFloatingStore()
-
   const {
+    isDotHovered,
     pendingSaveAfterPick,
     setPendingSaveAfterPick,
     saveFlash,

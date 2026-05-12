@@ -5,7 +5,7 @@
 //   - のれん: 名前 / メモ / タグ入力欄
 //   - Enter または保存ボタンでメタデータ付き保存 → flash → のれん閉じる
 //
-// Step 6: handleApply で floatingStore の currentColor も更新
+// Step 6: handleApply で workspaceStore の currentColor を更新
 // Step 7: 保存成功時に親の flash() を呼ぶ
 
 import { motion, AnimatePresence } from 'framer-motion'
@@ -159,7 +159,7 @@ export function HandyDock({ snapSide, onFlash, height, onHeightChange }: HandyDo
   const activeFolder  = activeFolderIndex > 0 ? folders[activeFolderIndex - 1] : null
   const folderLabel   = activeFolderIndex === 0 ? '履歴' : (activeFolder?.name ?? '')
 
-  // ── handleApply — floatingStore も更新 ───────────────────────
+  // ── handleApply — workspaceStore の currentColor を更新 ──────
   const handleApply = (hex: string) => {
     promoteHistory(hex)  // 即時先頭移動（楽観的 UI 更新）
     setCurrentColorFromPicker(hex)

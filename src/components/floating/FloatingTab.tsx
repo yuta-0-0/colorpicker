@@ -16,7 +16,6 @@ import { useCallback, useEffect, useRef } from 'react'
 import { motion, type AnimationDefinition } from 'framer-motion'
 import type { Easing } from 'motion-utils'
 import { useWorkspaceStore } from '@/stores/workspaceStore'
-import { useFloatingStore } from '@/store/floatingStore'
 import { useEphemeralStore } from '@/stores/ephemeralStore'
 import { SpecularBorder, ColorBleed, useSpecularReflection } from './SpecularBorder'
 import { usePrefersDark, getGlassTokens } from './useTheme'
@@ -43,8 +42,7 @@ export function FloatingTab({ instant }: { instant?: boolean }) {
   const {
     currentColor, setFloatingState, snapSide,
   } = useWorkspaceStore()
-  const { setDotHovered } = useFloatingStore()
-  const { setExplosionPending } = useEphemeralStore()
+  const { setDotHovered, setExplosionPending } = useEphemeralStore()
   const trimTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 

@@ -201,7 +201,7 @@ export function AppLayout() {
     if (!window.electronAPI?.pushSyncToFloating) return
 
     // selectedColorId が未確定でも historyColors/folders の変化を sync するため
-    // colors[0] をフォールバックとして使用（floatingStore の _syncLockUntil で保護される）
+    // colors[0] をフォールバックとして使用（workspaceStore の _syncLocked で保護される）
     const color = colors.find((c) => c.id === selectedColorId) ?? colors[0]
     if (!color) return
 
@@ -590,8 +590,8 @@ export function AppLayout() {
   const isElectron = !!(window as Window & { electronAPI?: unknown }).electronAPI
 
   // ── ProxyTab: FloatingProxy に渡す現在色（メインウィンドウ選択色と同期） ───
-  // floatingStore の currentColor と同期させるのが理想だが、
-  // ProxyTab は AppLayout 内なので colorStore の選択色をそのまま使う
+  // workspaceStore の currentColor と同期させるのが理想だが、
+  // ProxyTab は AppLayout 内なので memoryStore の選択色をそのまま使う
   const proxyHex = selectedColor?.hex ?? '#3A7BD5'
 
   return (

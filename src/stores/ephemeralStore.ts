@@ -58,6 +58,14 @@ interface EphemeralState {
   /** 保存フラッシュ: HeroDot がアクセントカラーに一瞬光る（視覚残響） */
   saveFlash: boolean
 
+  // ── Hover 状態（視覚フィードバック用）──────────────────────────────
+  /**
+   * FloatingTab ドット上にマウスが乗っている。
+   * HeroDot の scale アニメーション（1.1）用。
+   * workspaceStore には置かない（判断と無関係な純粋な身体反応）。
+   */
+  isDotHovered: boolean
+
   // ── エラー（瞬間異常状態）──────────────────────────────────────────
   /**
    * 最新のエラー文字列。
@@ -97,6 +105,7 @@ interface EphemeralState {
   setPendingSaveAfterPick: (v: boolean) => void
   setExplosionPending: (v: boolean) => void
   setSaveFlash: (v: boolean) => void
+  setDotHovered: (v: boolean) => void
   setLastError: (error: string | null) => void
 
   /** IndexedDB から取得残響を読み込む */
@@ -113,6 +122,7 @@ export const useEphemeralStore = create<EphemeralState>((set) => ({
   pendingSaveAfterPick: false,
   explosionPending: false,
   saveFlash: false,
+  isDotHovered: false,
   lastError: null,
 
   capturePreviewColor: (hex) => set({ previewColor: hex }),
@@ -136,6 +146,7 @@ export const useEphemeralStore = create<EphemeralState>((set) => ({
   setPendingSaveAfterPick: (pendingSaveAfterPick) => set({ pendingSaveAfterPick }),
   setExplosionPending: (explosionPending) => set({ explosionPending }),
   setSaveFlash: (saveFlash) => set({ saveFlash }),
+  setDotHovered: (isDotHovered) => set({ isDotHovered }),
   setLastError: (lastError) => set({ lastError }),
 
   loadHistory: async () => {
