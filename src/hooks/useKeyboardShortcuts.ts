@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useUIStore } from '@/store/uiStore'
 import { useColorStore } from '@/store/colorStore'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 import type { Color } from '@/types/database'
 
 interface ShortcutHandlers {
@@ -29,7 +30,9 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker, displayCo
     setIsAddingFolder,
   } = useUIStore()
 
-  const { colors, addColor, deleteColor, undo, redo } = useColorStore()
+  const { colors, addColor, deleteColor } = useColorStore()
+  // Judgment Rollback: Undo/Redo は currentColor + previousColor のみ巻き戻す
+  const { undo, redo } = useWorkspaceStore()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

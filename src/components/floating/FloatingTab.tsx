@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { motion, type AnimationDefinition } from 'framer-motion'
 import type { Easing } from 'motion-utils'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useFloatingStore } from '@/store/floatingStore'
 import { useEphemeralStore } from '@/stores/ephemeralStore'
 import { SpecularBorder, ColorBleed, useSpecularReflection } from './SpecularBorder'
@@ -41,8 +42,8 @@ const EASE_QUINT: Easing = [0.8, 0, 0.6, 1] as Easing  // とろっと：出だ�
 export function FloatingTab({ instant }: { instant?: boolean }) {
   const {
     currentColor, setFloatingState, snapSide,
-    setDotHovered,
-  } = useFloatingStore()
+  } = useWorkspaceStore()
+  const { setDotHovered } = useFloatingStore()
   const { setExplosionPending } = useEphemeralStore()
   const trimTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -71,7 +72,7 @@ export function FloatingTab({ instant }: { instant?: boolean }) {
     // 80×420 → 80×32 にトリム（B→A 後のウィンドウ縮小）
     window.electronAPI?.requestFloatingResize({ width: 80, height: 32, anchor: 'center' })
     // explosionPending が立っていれば Main を復元（B→A→Main フロー）
-    if (useEphemeralStore.getState().explosionPending) {
+    if (useEphemeralStore.getState().explosionPending) {  // ephemeral: 爆発フラグ
       window.electronAPI?.requestMainShowFromFloating?.()
       setExplosionPending(false)
     }

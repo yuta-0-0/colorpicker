@@ -10,7 +10,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useFloatingStore } from '@/store/floatingStore'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { usePrefersDark, getGlassTokens } from './useTheme'
 import type { SnapSide } from '@/types/floating'
 import {
@@ -111,7 +111,7 @@ export function HandyDock({ snapSide, onFlash, height, onHeightChange }: HandyDo
   const {
     history, folders, activeFolderIndex, setActiveFolderIndex,
     currentColor, setCurrentColorFromPicker, promoteHistory,
-  } = useFloatingStore()
+  } = useWorkspaceStore()
 
   const isDark = usePrefersDark()
   const glass  = getGlassTokens(isDark)

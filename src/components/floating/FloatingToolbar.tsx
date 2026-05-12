@@ -15,7 +15,7 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import type { Easing } from 'motion-utils'
-import { useFloatingStore } from '@/store/floatingStore'
+import { useWorkspaceStore } from '@/stores/workspaceStore'
 import { useEphemeralStore } from '@/stores/ephemeralStore'
 import { HandyDock } from './HandyDock'
 import { SpecularBorder, ColorBleed, useSpecularReflection } from './SpecularBorder'
@@ -156,7 +156,7 @@ export function FloatingToolbar({ toolbarHeight, onHeightChange }: {
     currentColor, snapSide,
     miniSlots, setMiniSlot, swapWithSlot,
     setFloatingState, setBToMainPending,
-  } = useFloatingStore()
+  } = useWorkspaceStore()
   const {
     eyeActive, setEyeActive,
     setPendingSaveAfterPick,
@@ -214,15 +214,15 @@ export function FloatingToolbar({ toolbarHeight, onHeightChange }: {
   // スロット数をツールバー高さから計算して miniSlots 長を同期
   const slotCount = calcSlotCount(toolbarHeight)
   useEffect(() => {
-    const { miniSlots: slots } = useFloatingStore.getState()
+    const { miniSlots: slots } = useWorkspaceStore.getState()
     if (slots.length === slotCount) return
     if (slotCount > slots.length) {
       // 増加: null で埋める
       const next = [...slots, ...Array(slotCount - slots.length).fill(null)]
-      useFloatingStore.setState({ miniSlots: next })
+      useWorkspaceStore.setState({ miniSlots: next })
     } else {
       // 減少: 末尾を切る
-      useFloatingStore.setState({ miniSlots: slots.slice(0, slotCount) })
+      useWorkspaceStore.setState({ miniSlots: slots.slice(0, slotCount) })
     }
   }, [slotCount])
 
@@ -369,7 +369,7 @@ export function FloatingToolbar({ toolbarHeight, onHeightChange }: {
       window.electronAPI?.floatingColorSelected(hex)
     } else {
       // 空スロット → 最新 state で同色チェック後に登録（stale closure 回避）
-      const { currentColor: c, miniSlots: slots } = useFloatingStore.getState()
+      const { currentColor: c, miniSlots: slots } = useWorkspaceStore.getState()
       if (slots.some(s => s === c.hex)) return
       window.electronAPI?.floatingSaveColor?.({ hex: c.hex, alpha: c.alpha, name: c.name ?? c.hex })
       window.electronAPI?.floatingColorSelected(c.hex)
