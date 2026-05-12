@@ -1,0 +1,272 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Bento Glass: 窓全体は透過のまま、各 .bento-pane が独自の backdrop-filter を持つ */
+html, body, #root {
+  background: transparent;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Lism ハイブリッド — 余白ステップシステム ── */
+@import './styles/spacing.css';
+
+/* ── テーマトークン（Dark = デフォルト） ── */
+:root {
+  /* ─ Policy B: .blue Identity（サイドバー・詳細パネル・ポップアップ） ─ */
+  --color-surface:          11 16 26;      /* #0B101A — 深い青み黒 */
+  --color-surface-raised:   22 30 48;      /* #161E30 */
+  --color-surface-overlay:  32 44 68;      /* #202C44 */
+  --color-surface-sidebar:  11 16 26;      /* #0B101A */
+
+  /* ─ Policy A: Strict Neutrality（メインコンテンツ・色評価領域） ─ */
+  --color-neutral-pane:     28 28 28;      /* #1C1C1C — 完全無彩色 */
+
+  --color-border:           255 255 255;   /* border uses /5 opacity */
+  --color-border-subtle:    255 255 255;
+  --color-border-sidebar:   255 255 255;
+  --color-text-primary:     235 239 248;   /* #EBEFF8 — off-white */
+  --color-text-secondary:   148 154 178;   /* #949ab2 */
+  --color-text-muted:       82 88 108;     /* #52586c */
+  --color-accent:           80 176 211;    /* #50B0D3 — ダーク用シアンブルー */
+  --color-accent-hover:     62 154 190;    /* #3E9ABE — hover: 少し沈める */
+  --color-accent-soft:      122 160 255;   /* #7aa0ff */
+  --color-accent-ring:      0 206 255;     /* #00ceff */
+}
+
+/* ── Light Mode ── */
+[data-theme="light"] {
+  /* ─ Policy B: .blue Identity ライト ─ */
+  --color-surface:          240 244 248;   /* #F0F4F8 — 青みのある白 */
+  --color-surface-raised:   248 250 254;   /* #F8FAFE */
+  --color-surface-overlay:  243 246 252;   /* #F3F6FC */
+  --color-surface-sidebar:  240 244 248;   /* #F0F4F8 */
+
+  /* ─ Policy A: Strict Neutrality ライト ─ */
+  --color-neutral-pane:     241 243 245;   /* #F1F3F5 — クールグレー（黄ばみ防止） */
+
+  --color-border:           0 0 0;
+  --color-border-subtle:    0 0 0;
+  --color-border-sidebar:   0 0 0;
+  --color-text-primary:     13 13 13;
+  --color-text-secondary:   80 88 112;     /* #505870 */
+  --color-text-muted:       148 158 180;   /* #949eb4 */
+  --color-accent:           10 62 216;     /* #0a3ed8 */
+  --color-accent-hover:     8 50 184;      /* #0832b8 */
+  --color-accent-soft:      10 62 216;     /* #0a3ed8 */
+  --color-accent-ring:      0 206 255;     /* #00ceff */
+}
+
+/* ── Signature Blue グロー（ナビゲーション領域専用 — LEDインジケーター感） ── */
+/* アクティブアイコンに常時点灯する青い光彩。メインコンテンツ領域には使用しないこと */
+.sig-glow-active {
+  filter: drop-shadow(0 0 6px rgba(80, 176, 211, 0.60));
+}
+[data-theme="light"] .sig-glow-active {
+  filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.50));
+}
+
+.ring-selection {
+  box-shadow: 0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(var(--color-accent-ring)), 0 0 6px rgba(0,206,255,.35);
+}
+[data-theme="light"] .ring-selection {
+  box-shadow: 0 0 0 2px rgb(var(--color-surface)), 0 0 0 3.5px rgb(var(--color-accent-ring)), 0 0 6px rgba(0,206,255,.28);
+}
+
+/* ── Notion思想: ウィスパーボーダー ── */
+/* ポップアップ・ドロップダウン専用のガラス効果 — Liquid Glass（Policy B） */
+.glass-popup {
+  backdrop-filter: blur(48px) saturate(220%);
+  -webkit-backdrop-filter: blur(48px) saturate(220%);
+  background: rgba(11, 16, 26, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.07),
+    0 12px 48px rgba(0, 0, 0, 0.58),
+    0 4px 12px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+[data-theme="light"] .glass-popup {
+  background: rgba(240, 244, 248, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 12px 48px rgba(0, 0, 0, 0.18),
+    0 4px 12px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* モーダルオーバーレイ */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+[data-theme="light"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ── 色相スライダー サム ── */
+.hue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid rgba(0,0,0,0.25);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  cursor: grab;
+  transition: transform 80ms ease;
+}
+.hue-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.15);
+}
+.hue-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid rgba(0,0,0,0.25);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  cursor: grab;
+}
+
+/* ── App Frame（最外枠ガラスシェル — 40px Liquid Glass コンテナ） ── */
+/* 外枠に半透明背景を付与することで rounded-[2.5rem] の角丸を視覚化する */
+.app-frame {
+  background: rgba(6, 9, 16, 0.55);
+}
+[data-theme="light"] .app-frame {
+  background: rgba(220, 228, 242, 0.55);
+}
+
+/* ── Bento Pane — Policy B: .blue Identity（サイドバー・詳細パネル） ── */
+/* 90% 不透明：壁紙の透け感を抑えソリッド感を確保しつつ、Liquid Glass 効果を維持 */
+.bento-pane {
+  background: rgba(11, 16, 26, 0.90);         /* #0B101A 90% — 深い青み黒 */
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border-radius: 14px;
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+[data-theme="light"] .bento-pane {
+  background: rgba(240, 244, 248, 0.90);       /* #F0F4F8 90% — 青みのある白 */
+  border: 0.5px solid rgba(0, 0, 0, 0.06);
+}
+
+/* ── Bento Pane Neutral — Policy A: Strict Neutrality（メインコンテンツ） ── */
+/* 100% 不透明のベタ塗り無彩色：色の正確な評価を保証する */
+.bento-pane-neutral {
+  background: #1C1C1C;                         /* 完全無彩色ダーク — 青みゼロ */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-radius: 14px;
+  border: 0.5px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+[data-theme="light"] .bento-pane-neutral {
+  background: #F1F3F5;                         /* クールグレーライト — 黄ばみ防止 */
+  border: 0.5px solid rgba(0, 0, 0, 0.05);
+}
+
+/* ── Bento リストアイテム（フラット・ボーダーなし） ── */
+.list-item {
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  transition: background 80ms ease;
+  outline: none;
+}
+.list-item:focus,
+.list-item:focus-visible,
+.list-item *:focus,
+.list-item *:focus-visible {
+  outline: none !important;
+  box-shadow: none;
+}
+.list-item:hover {
+  background: rgba(32, 44, 68, 0.50);   /* --color-surface-overlay dark */
+}
+[data-theme="light"] .list-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.list-item-active {
+  background: rgba(22, 30, 48, 0.70);   /* --color-surface-raised dark */
+  border: 1px solid rgba(255,255,255,0.10);
+}
+[data-theme="light"] .list-item-active {
+  background: rgba(248, 250, 254, 1);   /* --color-surface-raised light */
+  border: 1px solid rgba(0,0,0,0.07);
+}
+
+/* ── サイドバー検索・グリッドセル — ダーク/ライトモード背景切り替え ── */
+.sidebar-search-bg {
+  background: rgba(255, 255, 255, 0.05);  /* bg-white/5 — ダーク */
+}
+[data-theme="light"] .sidebar-search-bg {
+  background: rgba(0, 0, 0, 0.05);        /* bg-black/5 — ライト */
+}
+.sidebar-glass-hover:hover {
+  background: rgba(255, 255, 255, 0.10);  /* hover:bg-white/10 — ダーク */
+}
+[data-theme="light"] .sidebar-glass-hover:hover {
+  background: rgba(0, 0, 0, 0.08);        /* hover:bg-black/8 — ライト */
+}
+
+/* ── タクタイルフィードバック ── */
+.tactile {
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+.tactile:hover {
+  transform: translateY(-1px);
+}
+.tactile:active {
+  transform: scale(0.97);
+}
+
+/* ── スクロールバー非表示 ── */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Gallery カラーチップ 0.5px ボーダー ── */
+.chip-border {
+  border-width: 0.5px;
+}
+
+/* ── Electron ウィンドウドラッグ領域 ── */
+.app-drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ── iPhone ノッチ・ホームバー対応 ── */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    /* Spatial Design: OS Vibrancy を透かすため透明 */
+    background: transparent;
+    @apply text-text-primary font-sans;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+}

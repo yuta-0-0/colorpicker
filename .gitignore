@@ -1,0 +1,69 @@
+# ── 依存関係 ──────────────────────────────────────────────
+node_modules/
+.npm-cache/
+.npx/
+
+# ── ビルド成果物 ───────────────────────────────────────────
+dist/
+dist-electron/
+release/
+out/
+*.tsbuildinfo
+
+# ── 環境変数（絶対に公開しない）────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# ── エディタ・IDE ──────────────────────────────────────────
+.vscode/settings.json
+.vscode/*.code-workspace
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ── Claude Code 設定（開発者固有） ─────────────────────────
+.claude/
+# .claude/CLAUDE.md や skills は公開してもよい場合は除外
+# !.claude/CLAUDE.md
+
+# ── OS 固有 ────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ── ログ・一時ファイル ─────────────────────────────────────
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Electron パッケージング ────────────────────────────────
+*.dmg
+*.pkg
+*.zip
+*.tar.gz
+*.AppImage
+*.deb
+*.rpm
+*.snap
+
+# ── テスト・カバレッジ ─────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── その他 ────────────────────────────────────────────────
+*.local
+.cache/
