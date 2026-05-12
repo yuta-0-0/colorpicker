@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase'
-import { useToastStore } from '@/store/toastStore'
+import { eventBus } from '@/lib/eventBus'
 import type { Color, ColorInsert, ColorUpdate } from '@/types/database'
 
 
@@ -154,7 +154,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
         ? '保存できる色の上限（500色）に達しています'
         : 'ネットワークエラー。オンライン復帰時に再試行してください。'
       set({ error: message })
-      useToastStore.getState().addToast(message, 'error')
+      eventBus.publish({ type: 'color:error', payload: { message } })
       return null
     }
 
@@ -171,7 +171,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     if (error) {
       const message = 'ネットワークエラー。オンライン復帰時に再試行してください。'
       set({ error: message })
-      useToastStore.getState().addToast(message, 'error')
+      eventBus.publish({ type: 'color:error', payload: { message } })
       return
     }
 
@@ -191,7 +191,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
     if (error) {
       const message = 'ネットワークエラー。オンライン復帰時に再試行してください。'
       set({ error: message })
-      useToastStore.getState().addToast(message, 'error')
+      eventBus.publish({ type: 'color:error', payload: { message } })
       return
     }
 
@@ -257,11 +257,11 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       .eq('id', id)
 
     if (error) {
-      useToastStore.getState().addToast('ゴミ箱への移動に失敗しました。', 'error')
+      eventBus.publish({ type: 'color:error', payload: { message: 'ゴミ箱への移動に失敗しました。' } })
       return
     }
     set((state) => ({ colors: state.colors.filter((c) => c.id !== id) }))
-    useToastStore.getState().addToast('ゴミ箱に移動しました。', 'info')
+    eventBus.publish({ type: 'color:trashed', payload: { id } })
   },
 
   restoreColor: async (id) => {
@@ -271,11 +271,11 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       .eq('id', id)
 
     if (error) {
-      useToastStore.getState().addToast('元に戻すのに失敗しました。', 'error')
+      eventBus.publish({ type: 'color:error', payload: { message: '元に戻すのに失敗しました。' } })
       return
     }
     set((state) => ({ colors: state.colors.filter((c) => c.id !== id) }))
-    useToastStore.getState().addToast('コレクションに戻しました。', 'success')
+    eventBus.publish({ type: 'color:restored', payload: { id } })
   },
 
   permanentlyDeleteColor: async (id) => {
@@ -285,7 +285,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       .eq('id', id)
 
     if (error) {
-      useToastStore.getState().addToast('完全削除に失敗しました。', 'error')
+      eventBus.publish({ type: 'color:error', payload: { message: '完全削除に失敗しました。' } })
       return
     }
     set((state) => ({ colors: state.colors.filter((c) => c.id !== id) }))
@@ -312,7 +312,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       .insert({ color_id: colorId, folder_id: folderId })
 
     if (error && !error.message.includes('duplicate')) {
-      useToastStore.getState().addToast('フォルダへの追加に失敗しました。', 'error')
+      eventBus.publish({ type: 'color:error', payload: { message: 'フォルダへの追加に失敗しました。' } })
     }
   },
 
@@ -324,7 +324,7 @@ export const useColorStore = create<ColorStore>((set, get) => ({
       .eq('folder_id', folderId)
 
     if (error) {
-      useToastStore.getState().addToast('フォルダからの削除に失敗しました。', 'error')
+      eventBus.publish({ type: 'color:error', payload: { message: 'フォルダからの削除に失敗しました。' } })
     }
   },
 
