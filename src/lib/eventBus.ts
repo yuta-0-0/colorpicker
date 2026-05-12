@@ -18,13 +18,20 @@
  */
 
 export type AppEvent =
-  | { type: 'color:captured';  payload: { hex: string } }
-  | { type: 'color:saved';     payload: { id: string; hex: string } }
-  | { type: 'color:error';     payload: { message: string } }
-  | { type: 'color:trashed';   payload: { id: string } }
-  | { type: 'color:restored';  payload: { id: string } }
-  | { type: 'workspace:undo';  payload: Record<string, never> }
-  | { type: 'workspace:redo';  payload: Record<string, never> }
+  // ── Capture フェーズ（ephemeralStore）──────────────────────────────
+  | { type: 'color:captured';       payload: { hex: string } }
+  // ── Intent フェーズ（workspaceStore）───────────────────────────────
+  | { type: 'color:intent_changed'; payload: { hex: string } }
+  // ── Commit フェーズ（memoryStore）──────────────────────────────────
+  | { type: 'color:committed';      payload: { id: string; hex: string } }
+  | { type: 'color:rejected';       payload: { reason: string } }
+  // ── その他ドメインイベント ────────────────────────────────────────
+  | { type: 'color:saved';          payload: { id: string; hex: string } }
+  | { type: 'color:error';          payload: { message: string } }
+  | { type: 'color:trashed';        payload: { id: string } }
+  | { type: 'color:restored';       payload: { id: string } }
+  | { type: 'workspace:undo';       payload: Record<string, never> }
+  | { type: 'workspace:redo';       payload: Record<string, never> }
 
 type Handler = (event: AppEvent) => void
 

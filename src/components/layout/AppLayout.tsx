@@ -124,7 +124,7 @@ export function AppLayout() {
     setTheme,
   } = useUIStore()
 
-  const { colors, loading: colorsLoading, fetchColors, addColor } = useColorStore()
+  const { colors, loading: colorsLoading, fetchColors, saveColor } = useColorStore()
   const { fetchFolders, folders } = useFolderStore()
   const { fetchTags, fetchAllColorTags, colorTags, createTag, addTagToColor } = useTagStore()
   const { addToHistory: addColorToHistory, historyColors } = useEphemeralStore()
@@ -161,11 +161,11 @@ export function AppLayout() {
       const eyeDropper = new (window as unknown as { EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper()
       const { sRGBHex } = await eyeDropper.open()
       await addColorToHistory(sRGBHex, 1.0)
-      await addColor(sRGBHex, 1.0, activeFolderId)
+      await saveColor(sRGBHex, { alpha: 1.0, folderId: activeFolderId })
     } catch {
       // ユーザーキャンセルは無視
     }
-  }, [addColor, addColorToHistory, activeFolderId])
+  }, [saveColor, addColorToHistory, activeFolderId])
 
   const handleOpenAddModal = useCallback(() => setShowAddModal(true), [])
 
@@ -420,7 +420,7 @@ export function AppLayout() {
     const unsub = window.electronAPI.onFloatingSaveColor(async ({ hex, alpha, name, memo, tag }) => {
       if (!hex) return
       await addColorToHistory(hex, alpha ?? 1.0)
-      const saved = await addColor(hex, alpha ?? 1.0, activeFolderId, { name, memo: memo || undefined })
+      const saved = await saveColor(hex, { alpha: alpha ?? 1.0, folderId: activeFolderId, name, memo: memo || undefined })
       // tag が指定されていれば作成・割り当て
       if (saved && tag?.trim()) {
         const createdTag = await createTag(tag.trim())
@@ -429,7 +429,7 @@ export function AppLayout() {
       addToast(`${name ?? hex} を保存しました`, 'success')
     })
     return unsub
-  }, [addColor, addColorToHistory, activeFolderId, addToast, createTag, addTagToColor])
+  }, [saveColor, addColorToHistory, activeFolderId, addToast, createTag, addTagToColor])
 
   // ? キーでショートカットヘルプ
   useEffect(() => {

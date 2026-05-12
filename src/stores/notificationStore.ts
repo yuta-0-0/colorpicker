@@ -26,6 +26,17 @@ export function initNotificationStore(): () => void {
     const { addToast } = useToastStore.getState()
 
     switch (event.type) {
+      // ── Commit フェーズ（PHASE 4）────────────────────────────────
+      case 'color:committed':
+        // 保存成功の視覚フィードバックは saveFlash（HeroDot）が担当。
+        // toast は出さない（UI ノイズ抑制）。
+        break
+
+      case 'color:rejected':
+        addToast(event.payload.reason, 'error')
+        break
+
+      // ── その他ドメインイベント ────────────────────────────────────
       case 'color:error':
         addToast(event.payload.message, 'error')
         break
@@ -38,8 +49,8 @@ export function initNotificationStore(): () => void {
         addToast('コレクションに戻しました。', 'success')
         break
 
-      // color:captured / color:saved / workspace:undo / workspace:redo は
-      // 現時点では toast 不要。将来の拡張はここに追記する。
+      // color:captured / color:intent_changed / color:saved /
+      // workspace:undo / workspace:redo は現時点では toast 不要。
       default:
         break
     }

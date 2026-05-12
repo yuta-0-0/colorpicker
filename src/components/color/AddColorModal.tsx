@@ -14,7 +14,7 @@ export function AddColorModal({ onClose }: AddColorModalProps) {
   const [previewHex, setPreviewHex] = useState<string | null>(null)
   const [isInvalid, setIsInvalid] = useState(false)
   const [saving, setSaving] = useState(false)
-  const { addColor } = useColorStore()
+  const { saveColor } = useColorStore()
   const { activeFolderId } = useUIStore()
   const { addToHistory } = useEphemeralStore()
 
@@ -38,7 +38,7 @@ export function AddColorModal({ onClose }: AddColorModalProps) {
     if (!previewHex) return
     setSaving(true)
     await addToHistory(previewHex, 1.0)
-    await addColor(previewHex, 1.0, activeFolderId)
+    await saveColor(previewHex, { alpha: 1.0, folderId: activeFolderId })
     setSaving(false)
     onClose()
   }

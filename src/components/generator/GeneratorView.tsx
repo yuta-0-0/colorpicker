@@ -22,7 +22,7 @@ const DEFAULT_RATIOS = [60, 20, 10, 5, 5]
 type GeneratorMode = 'single' | 'bridge' | 'multi'
 
 export function GeneratorView() {
-  const { addColor } = useColorStore()
+  const { saveColor } = useColorStore()
   const { setActiveMode, setActiveSection } = useUIStore()
   const { setSlot } = usePreviewStore()
 
@@ -102,14 +102,14 @@ export function GeneratorView() {
 
   const handleSaveOne = async (hex: string, index: number) => {
     setSavingIndex(index)
-    await addColor(hex)
+    await saveColor(hex)
     setSavingIndex(null)
   }
 
   const handleSaveAll = async () => {
     if (generatedColors.length === 0) return
     setSavingAll(true)
-    for (const hex of generatedColors) await addColor(hex)
+    for (const hex of generatedColors) await saveColor(hex)
     setSavingAll(false)
   }
 
@@ -138,7 +138,7 @@ export function GeneratorView() {
   const handleConfirm = async () => {
     if (generatedColors.length === 0) return
     setSavingAll(true)
-    for (const hex of generatedColors) await addColor(hex)
+    for (const hex of generatedColors) await saveColor(hex)
     setSavingAll(false)
     setConfirmedScheme(activeScheme)
     setIsPendingConfirm(false)

@@ -30,7 +30,7 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker, displayCo
     setIsAddingFolder,
   } = useUIStore()
 
-  const { colors, addColor, deleteColor } = useColorStore()
+  const { colors, saveColor, deleteColor } = useColorStore()
   // Judgment Rollback: Undo/Redo は currentColor + previousColor のみ巻き戻す
   const { undo, redo } = useWorkspaceStore()
 
@@ -156,7 +156,7 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker, displayCo
       // ⌘+D: 選択色を複製
       if (key === 'd' && !shift) {
         e.preventDefault()
-        addColor(selected.hex, selected.alpha)
+        saveColor(selected.hex, { alpha: selected.alpha })
         return
       }
 
@@ -182,7 +182,7 @@ export function useKeyboardShortcuts({ openAddModal, openScreenPicker, displayCo
     setActiveSection,
     triggerSearchFocus,
     setIsAddingFolder,
-    addColor,
+    saveColor,
     deleteColor,
     undo,
     redo,

@@ -10,7 +10,7 @@ interface ImportModalProps {
 type ImportFileFormat = 'JSON' | 'CSV' | 'ASE'
 
 export function ImportModal({ onClose }: ImportModalProps) {
-  const { addColor } = useColorStore()
+  const { saveColor } = useColorStore()
   const { activeFolderId } = useUIStore()
   const fileRef = useRef<HTMLInputElement>(null)
   const [fileFormat, setFileFormat] = useState<ImportFileFormat>('JSON')
@@ -44,7 +44,7 @@ export function ImportModal({ onClose }: ImportModalProps) {
 
       let imported = 0
       for (const c of colors) {
-        await addColor(c.hex, c.alpha ?? 1.0, activeFolderId)
+        await saveColor(c.hex, { alpha: c.alpha ?? 1.0, folderId: activeFolderId })
         imported++
       }
 

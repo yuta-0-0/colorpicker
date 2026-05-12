@@ -9,7 +9,7 @@ interface ImagePickerModalProps {
 }
 
 export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
-  const { addColor } = useColorStore()
+  const { saveColor } = useColorStore()
   const { activeFolderId } = useUIStore()
 
   // 共有: アップロード済み画像
@@ -101,7 +101,7 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
     if (!eyedropperHex) return
     setSavingEyedropper(true)
     try {
-      await addColor(eyedropperHex, 1.0, activeFolderId)
+      await saveColor(eyedropperHex, { alpha: 1.0, folderId: activeFolderId })
       onClose()
     } finally {
       setSavingEyedropper(false)
@@ -124,7 +124,7 @@ export function ImagePickerModal({ onClose }: ImagePickerModalProps) {
     setSavingPalette(true)
     try {
       for (const hex of selectedHexes) {
-        await addColor(hex, 1.0, activeFolderId)
+        await saveColor(hex, { alpha: 1.0, folderId: activeFolderId })
       }
       onClose()
     } finally {
